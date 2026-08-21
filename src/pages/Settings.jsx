@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { User, Building2, Bell, Shield, CreditCard, Globe, Check } from "lucide-react";
+import { User, Building2, Bell, Shield, CreditCard, Globe, Check, Plus, Pencil, Trash2, X } from "lucide-react";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "gyms", label: "Gym Settings", icon: Building2 },
+  { id: "gymProfile", label: "Gym Profile", icon: Building2 },
+  { id: "plans", label: "Membership Plans", icon: CreditCard },
+  { id: "gyms", label: "Gym Settings", icon: Globe },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Shield },
   { id: "billing", label: "Billing", icon: CreditCard },
@@ -38,6 +40,38 @@ export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ newMembers: true, payments: true, lowAttendance: false, reports: true });
   const [twoFA, setTwoFA] = useState(true);
+
+  const [gymProfile, setGymProfile] = useState({ name: "IronHub Downtown", address: "120 Market St, San Francisco, CA", currency: "USD" });
+
+  const [plans, setPlans] = useState([
+    { id: 1, name: "Basic", price: 40, features: "Gym access · 2 classes/week" },
+    { id: 2, name: "Standard", price: 60, features: "Gym access · Unlimited classes" },
+    { id: 3, name: "VIP", price: 120, features: "All access · Personal trainer · Sauna" },
+  ]);
+  const [planModal, setPlanModal] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(null);
+  const [planForm, setPlanForm] = useState({ name: "", price: "", features: "" });
+
+  const openAddPlan = () => {
+    setEditingPlan(null);
+    setPlanForm({ name: "", price: "", features: "" });
+    setPlanModal(true);
+  };
+  const openEditPlan = (p) => {
+    setEditingPlan(p.id);
+    setPlanForm({ name: p.name, price: p.price, features: p.features });
+    setPlanModal(true);
+  };
+  const submitPlan = () => {
+    if (!planForm.name.trim()) return;
+    if (editingPlan) {
+      setPlans((ps) => ps.map((p) => (p.id === editingPlan ? { ...p, ...planForm, price: Number(planForm.price) || 0 } : p)));
+    } else {
+      setPlans((ps) => [...ps, { id: Date.now(), ...planForm, price: Number(planForm.price) || 0 }]);
+    }
+    setPlanModal(false);
+  };
+  const removePlan = (id) => setPlans((ps) => ps.filter((p) => p.id !== id));
 
   return (
     <Layout>
@@ -103,6 +137,90 @@ export default function Settings() {
                   <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save changes
                   </button>
+                </div>
+              </div>
+            )}
+
+            {active === "gymProfile" && (
+              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                <h3 className="font-semibold">Gym Profile</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium mb-1.5">Gym Name</label>
+                    <input
+                      className={inputCls}
+                      value={gymProfile.name}
+                      onChange={(e) => setGymProfile({ ...gymProfile, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium mb-1.5">Address</label>
+                    <input
+                      className={inputCls}
+                      value={gymProfile.address}
+                      onChange={(e) => setGymProfile({ ...gymProfile, address: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Currency</label>
+                    <select
+                      className={inputCls}
+                      value={gymProfile.currency}
+                      onChange={(e) => setGymProfile({ ...gymProfile, currency: e.target.value })}
+                    >
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                      <option value="SOS">SOS - Somali Shilling</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                    Save profile
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {active === "plans" && (
+              <div className="space-y-4">
+                <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold">Membership Plans</h3>
+                      <p className="text-xs text-black/50">Create and manage subscription packages</p>
+                    </div>
+                    <button
+                      onClick={openAddPlan}
+                      className="flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"
+                    >
+                      <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add plan</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {plans.map((p) => (
+                      <div key={p.id} className="group border border-black/10 rounded-xl p-4 hover:border-black/30 transition-colors">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="font-semibold">{p.name}</p>
+                            <p className="text-2xl font-bold mt-1">
+                              ${p.price}<span className="text-xs font-normal text-black/40">/mo</span>
+                            </p>
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => openEditPlan(p)} className="p-1.5 rounded-lg hover:bg-black/5">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => removePlan(p.id)} className="p-1.5 rounded-lg hover:bg-black/5">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-black/50 mt-2">{p.features}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -263,6 +381,58 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {planModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setPlanModal(false)} />
+          <div className="relative bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between px-5 h-14 border-b border-black/10 shrink-0">
+              <h3 className="font-semibold">{editingPlan ? "Edit Plan" : "Add Plan"}</h3>
+              <button onClick={() => setPlanModal(false)} className="p-1.5 rounded-lg hover:bg-black/5">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Plan Name</label>
+                <input
+                  className={inputCls}
+                  value={planForm.name}
+                  onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
+                  placeholder="Premium"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Price ($/month)</label>
+                <input
+                  type="number"
+                  className={inputCls}
+                  value={planForm.price}
+                  onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
+                  placeholder="80"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Features</label>
+                <input
+                  className={inputCls}
+                  value={planForm.features}
+                  onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })}
+                  placeholder="Gym access · Sauna · PT"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 px-5 py-4 border-t border-black/10 shrink-0">
+              <button onClick={() => setPlanModal(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
+                Cancel
+              </button>
+              <button onClick={submitPlan} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                {editingPlan ? "Save" : "Add plan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
