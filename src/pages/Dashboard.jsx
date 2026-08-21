@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { Users, DollarSign, Building2, Dumbbell, TrendingUp, TrendingDown, ArrowUpRight, MoreHorizontal } from "lucide-react";
+import { Users, DollarSign, Building2, Dumbbell, TrendingUp, TrendingDown, ArrowUpRight, ChevronDown } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
 
 const stats = [
@@ -10,15 +10,51 @@ const stats = [
   { label: "Active Trainers", value: "86", change: "-3", up: false, icon: Dumbbell },
 ];
 
-const revenueData = [
-  { month: "Jan", revenue: 32, members: 3800 },
-  { month: "Feb", revenue: 35, members: 3950 },
-  { month: "Mar", revenue: 38, members: 4100 },
-  { month: "Apr", revenue: 36, members: 4200 },
-  { month: "May", revenue: 42, members: 4400 },
-  { month: "Jun", revenue: 45, members: 4600 },
-  { month: "Jul", revenue: 48, members: 4829 },
+const rangeOptions = [
+  { key: "week", label: "Last week" },
+  { key: "3m", label: "Last 3 months" },
+  { key: "6m", label: "Last 6 months" },
+  { key: "year", label: "Last year" },
 ];
+
+const rangeData = {
+  week: [
+    { month: "Mon", revenue: 9, members: 1380 },
+    { month: "Tue", revenue: 11, members: 1410 },
+    { month: "Wed", revenue: 10, members: 1395 },
+    { month: "Thu", revenue: 12, members: 1430 },
+    { month: "Fri", revenue: 14, members: 1460 },
+    { month: "Sat", revenue: 16, members: 1490 },
+    { month: "Sun", revenue: 7, members: 1340 },
+  ],
+  "3m": [
+    { month: "May", revenue: 42, members: 4400 },
+    { month: "Jun", revenue: 45, members: 4600 },
+    { month: "Jul", revenue: 48, members: 4829 },
+  ],
+  "6m": [
+    { month: "Feb", revenue: 35, members: 3950 },
+    { month: "Mar", revenue: 38, members: 4100 },
+    { month: "Apr", revenue: 36, members: 4200 },
+    { month: "May", revenue: 42, members: 4400 },
+    { month: "Jun", revenue: 45, members: 4600 },
+    { month: "Jul", revenue: 48, members: 4829 },
+  ],
+  year: [
+    { month: "Aug", revenue: 30, members: 3600 },
+    { month: "Sep", revenue: 31, members: 3700 },
+    { month: "Oct", revenue: 33, members: 3850 },
+    { month: "Nov", revenue: 34, members: 3900 },
+    { month: "Dec", revenue: 32, members: 3850 },
+    { month: "Jan", revenue: 35, members: 3950 },
+    { month: "Feb", revenue: 35, members: 3950 },
+    { month: "Mar", revenue: 38, members: 4100 },
+    { month: "Apr", revenue: 36, members: 4200 },
+    { month: "May", revenue: 42, members: 4400 },
+    { month: "Jun", revenue: 45, members: 4600 },
+    { month: "Jul", revenue: 48, members: 4829 },
+  ],
+};
 
 const attendanceData = [
   { day: "Mon", count: 320 },
@@ -45,6 +81,10 @@ const recentMembers = [
 ];
 
 export default function Dashboard() {
+  const [range, setRange] = useState("6m");
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const rangeLabel = rangeOptions.find((o) => o.key === range)?.label ?? "Last 6 months";
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -93,15 +133,42 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-semibold">Revenue & Members</h3>
-                <p className="text-xs text-black/50">Last 7 months</p>
+                <p className="text-xs text-black/50">{rangeLabel}</p>
               </div>
-              <button className="p-1.5 rounded-lg hover:bg-black/5">
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setRangeOpen((o) => !o)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-black/15 text-sm font-medium hover:bg-black/5"
+                >
+                  {rangeLabel}
+                  <ChevronDown className="w-4 h-4 text-black/50" />
+                </button>
+                {rangeOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setRangeOpen(false)} />
+                    <div className="absolute right-0 top-9 z-20 bg-white border border-black/10 rounded-lg shadow-lg w-40 py-1">
+                      {rangeOptions.map((opt) => (
+                        <button
+                          key={opt.key}
+                          onClick={() => {
+                            setRange(opt.key);
+                            setRangeOpen(false);
+                          }}
+                          className={`flex items-center w-full px-3 py-2 text-sm hover:bg-black/5 text-left ${
+                            range === opt.key ? "font-semibold" : ""
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             <div className="h-56 md:h-64 -ml-2">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={revenueData} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
+                <LineChart data={rangeData[range]} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
