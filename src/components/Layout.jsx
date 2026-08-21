@@ -1,12 +1,11 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, CalendarDays, Settings, Bell, Search, ChevronDown, Menu, X } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, Bell, Search, ChevronDown, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Members", path: "/members", icon: Users },
-  { label: "Classes", path: "/classes", icon: CalendarDays },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 

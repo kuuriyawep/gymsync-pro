@@ -138,62 +138,27 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Gyms + Recent members */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-4 md:p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Gym Locations</h3>
-              <button className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                View all <ArrowUpRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="space-y-1">
-              <div className="grid grid-cols-4 gap-2 px-3 py-2 text-xs font-medium text-black/40 border-b border-black/5">
-                <span>Location</span>
-                <span className="text-right">Members</span>
-                <span className="text-right">Revenue</span>
-                <span className="text-right">Status</span>
-              </div>
-              {gyms.map((g) => (
-                <div key={g.name} className="grid grid-cols-4 gap-2 px-3 py-3 items-center text-sm hover:bg-black/[0.02] rounded-lg">
-                  <span className="font-medium truncate">{g.name}</span>
-                  <span className="text-right tabular-nums">{g.members}</span>
-                  <span className="text-right tabular-nums font-medium">{g.revenue}</span>
-                  <span className="text-right">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        g.status === "Active" ? "bg-black text-white" : "bg-black/10 text-black/60"
-                      }`}
-                    >
-                      {g.status}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Recent members */}
+        <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">New Members</h3>
+            <button className="text-xs font-semibold flex items-center gap-1 hover:underline">
+              View all <ArrowUpRight className="w-3 h-3" />
+            </button>
           </div>
-
-          <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">New Members</h3>
-              <button className="text-xs font-semibold flex items-center gap-1 hover:underline">
-                View all <ArrowUpRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              {recentMembers.map((m) => (
-                <div key={m.name} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">
-                    {m.name.split(" ").map((n) => n[0]).join("")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{m.name}</p>
-                    <p className="text-xs text-black/50 truncate">{m.gym} · {m.plan}</p>
-                  </div>
-                  <span className="text-xs text-black/40 whitespace-nowrap">{m.date}</span>
+          <div className="space-y-3">
+            {recentMembers.map((m) => (
+              <div key={m.name} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">
+                  {m.name.split(" ").map((n) => n[0]).join("")}
                 </div>
-              ))}
-            </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{m.name}</p>
+                  <p className="text-xs text-black/50 truncate">{m.gym} · {m.plan}</p>
+                </div>
+                <span className="text-xs text-black/40 whitespace-nowrap">{m.date}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
