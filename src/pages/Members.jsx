@@ -22,6 +22,8 @@ export default function Members() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [query, setQuery] = useState("");
+  const [tierFilter, setTierFilter] = useState("all");
 
   const openAdd = () => {
     setEditingId(null);
@@ -54,13 +56,19 @@ export default function Members() {
     setOpenMenuId(null);
   };
 
+  const filteredMembers = members.filter((m) => {
+    const matchesName = m.name.toLowerCase().includes(query.trim().toLowerCase());
+    const matchesTier = tierFilter === "all" || m.tier === tierFilter;
+    return matchesName && matchesTier;
+  });
+
   return (
     <Layout>
       <div className="space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Members</h1>
-            <p className="text-sm text-black/50 mt-0.5">{members.length} members across 12 gyms</p>
+            <p className="text-sm text-black/50 mt-0.5">{filteredMembers.length} of {members.length} members across 12 gyms</p>
           </div>
           <button
             onClick={openAdd}
@@ -70,17 +78,31 @@ export default function Members() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-black/5 flex-1">
             <Search className="w-4 h-4 text-black/40" />
             <input
-              placeholder="Search members…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by name…"
               className="bg-transparent outline-none text-sm flex-1 placeholder:text-black/40"
             />
           </div>
-          <button className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-black/15 text-sm font-medium hover:bg-black/5">
-            <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Filter</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            {["all", "Standard", "VIP"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setTierFilter(t)}
+                className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
+                  tierFilter === t
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-black/70 border-black/15 hover:bg-black/5"
+                }`}
+              >
+                {t === "all" ? "All" : t}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Table (desktop) */}
@@ -97,7 +119,7 @@ export default function Members() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
+              {filteredMembers.map((m) => (
                 <tr key={m.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02]">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
@@ -148,7 +170,7 @@ export default function Members() {
 
         {/* Cards (mobile) */}
         <div className="md:hidden space-y-3">
-          {members.map((m) => (
+          {filteredMembers.map((m) => (
             <div key={m.id} className="bg-white border border-black/10 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">

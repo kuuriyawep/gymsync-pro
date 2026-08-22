@@ -11,6 +11,7 @@ import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
 import Settings from '@/pages/Settings';
+import Reports from '@/pages/Reports';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -51,6 +52,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/members" element={<Members />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { User, Building2, Bell, Shield, CreditCard, Globe, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { User, Building2, Bell, Shield, CreditCard, Globe, Check, Plus, Pencil, Trash2, X, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -13,6 +13,7 @@ const sections = [
   { id: "security", label: "Security", icon: Shield, desc: "Keep your account protected" },
   { id: "billing", label: "Billing", icon: CreditCard, desc: "Manage your subscription and payment method" },
   { id: "regional", label: "Regional", icon: Globe, desc: "Language, date format and measurement units" },
+  { id: "feedback", label: "Feedback", icon: MessageSquare, desc: "Share your thoughts or suggestions" },
 ];
 
 const Toggle = ({ on, onClick }) => (
@@ -42,6 +43,7 @@ export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ newMembers: true, payments: true, lowAttendance: false, reports: true });
   const [twoFA, setTwoFA] = useState(true);
+  const [feedback, setFeedback] = useState({ rating: 5, message: "" });
   const { toast } = useToast();
   const activeSection = sections.find((s) => s.id === active);
   const handleSave = () =>
@@ -401,6 +403,51 @@ export default function Settings() {
                 <div className="flex justify-end pt-2">
                   <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save changes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {active === "feedback" && (
+              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                <h3 className="font-semibold">Share Your Feedback</h3>
+                <div>
+                  <label className="block text-sm font-medium mb-2">How would you rate your experience?</label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setFeedback({ ...feedback, rating: n })}
+                        className={`w-10 h-10 rounded-lg border text-lg flex items-center justify-center transition-colors ${
+                          n <= feedback.rating ? "bg-black text-white border-black" : "bg-white text-black/40 border-black/15 hover:bg-black/5"
+                        }`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Your feedback</label>
+                  <textarea
+                    rows={4}
+                    className={inputCls}
+                    value={feedback.message}
+                    onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
+                    placeholder="Tell us what you think or what we can improve…"
+                  />
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      if (!feedback.message.trim()) return;
+                      toast({ title: "Feedback sent", description: "Thanks for your feedback!" });
+                      setFeedback({ rating: 5, message: "" });
+                    }}
+                    className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"
+                  >
+                    Submit feedback
                   </button>
                 </div>
               </div>
