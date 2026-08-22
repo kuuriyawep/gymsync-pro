@@ -1,0 +1,130 @@
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Layout from "@/components/Layout";
+import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, CalendarDays, CreditCard, UserCheck } from "lucide-react";
+import { members, memberPaymentHistory, memberActivity } from "@/lib/mockData";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
+
+const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : s === "Expiring Soon" ? "bg-black/10 text-black" : s === "Expired" ? "bg-black/5 text-black/50" : "bg-black/10 text-black/60");
+const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
+
+export default function MemberDetails() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const member = members.find((m) => m.id === Number(id)) ?? members[0];
+  const daysRemaining = differenceInCalendarDays(parseISO(member.expiryDate), new Date());
+
+  const info = [
+    { icon: Phone, label: "Phone", value: member.phone },
+    { icon: CalendarDays, label: "Registration Date", value: format(parseISO(member.registeredDate), "MMM d, yyyy") },
+    { icon: UserCheck, label: "Status", value: member.status, badge: true },
+  ];
+  const membership = [
+    { label: "Current Plan", value: member.plan },
+    { label: "Start Date", value: format(parseISO(member.registeredDate), "MMM d, yyyy") },
+    { label: "Expiry Date", value: format(parseISO(member.expiryDate), "MMM d, yyyy") },
+    { label: "Days Remaining", value: `${daysRemaining} days` },
+    { label: "Payment Status", value: member.paymentStatus, badge: true },
+  ];
+
+  return (
+    <Layout>
+      <div className="space-y-5">
+        <button onClick={() => navigate("/members")} className="flex items-center gap-1.5 text-sm text-black/60 hover:text-black">
+          <ArrowLeft className="w-4 h-4" /> Back to Members
+        </button>
+
+        {/* Profile header */}
+        <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center text-2xl font-bold">{initials(member.name)}</div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-heading font-bold tracking-tight">{member.name}</h1>
+              <p className="text-sm text-black/50 mt-0.5">{member.memberId} · {member.gym}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(member.status)}`}>{member.status}</span>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(member.paymentStatus)}`}>{member.paymentStatus}</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-5 border-t border-black/5">
+            {info.map((f) => (
+              <div key={f.label} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><f.icon className="w-4 h-4" /></div>
+                <div>
+                  <p className="text-xs text-black/40">{f.label}</p>
+                  {f.badge ? <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(f.value)}`}>{f.value}</span> : <p className="text-sm font-medium">{f.value}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Membership */}
+          <div className="bg-white border border-black/10 rounded-xl p-5">
+            <h3 className="font-semibold mb-4">Membership</h3>
+            <div className="space-y-0">
+              {membership.map((f) => (
+                <div key={f.label} className="flex items-center justify-between py-2.5 border-b border-black/5 last:border-0">
+                  <span className="text-sm text-black/50">{f.label}</span>
+                  {f.badge ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(f.value)}`}>{f.value}</span> : <span className="text-sm font-medium">{f.value}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Payment history */}
+          <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-5">
+            <h3 className="font-semibold mb-4">Payment History</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-black/10 text-left text-xs text-black/40">
+                  <th className="py-2 pr-3 font-medium">Amount</th><th className="py-2 pr-3 font-medium">Date</th>
+                  <th className="py-2 pr-3 font-medium">Method</th><th className="py-2 pr-3 font-medium">Status</th><th className="py-2 font-medium">Reference</th>
+                </tr></thead>
+                <tbody>
+                  {memberPaymentHistory.map((p) => (
+                    <tr key={p.id} className="border-b border-black/5 last:border-0">
+                      <td className="py-2.5 pr-3 font-medium tabular-nums">${p.amount}</td>
+                      <td className="py-2.5 pr-3 text-black/70">{format(parseISO(p.date), "MMM d, yyyy")}</td>
+                      <td className="py-2.5 pr-3 text-black/70">{p.method}</td>
+                      <td className="py-2.5 pr-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
+                      <td className="py-2.5 text-black/50 tabular-nums">{p.reference}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity */}
+        <div className="bg-white border border-black/10 rounded-xl p-5">
+          <h3 className="font-semibold mb-4">Activity Timeline</h3>
+          <div className="space-y-0">
+            {memberActivity.map((a, i) => (
+              <div key={a.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center shrink-0"><CreditCard className="w-4 h-4" /></div>
+                  {i < memberActivity.length - 1 && <div className="w-px flex-1 bg-black/10 my-1" />}
+                </div>
+                <div className="pb-5">
+                  <p className="text-sm font-medium">{a.type}</p>
+                  <p className="text-xs text-black/50">{a.text}</p>
+                  <p className="text-xs text-black/40 mt-0.5">{a.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}

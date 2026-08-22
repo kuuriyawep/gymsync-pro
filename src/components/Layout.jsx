@@ -1,12 +1,14 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, Settings, Bell, Search, ChevronDown, Menu, X, BarChart3 } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, Bell, Search, ChevronDown, Menu, X, BarChart3, CreditCard, Ticket } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Members", path: "/members", icon: Users },
+  { label: "Payments", path: "/payments", icon: CreditCard },
+  { label: "Membership", path: "/membership", icon: Ticket },
   { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
