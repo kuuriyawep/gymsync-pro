@@ -128,45 +128,45 @@ export default function Dashboard() {
         </div>
 
         {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-4 md:p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold">Revenue & Members</h3>
-                <p className="text-xs text-black/50">{rangeLabel}</p>
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() => setRangeOpen((o) => !o)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-black/15 text-sm font-medium hover:bg-black/5"
-                >
-                  {rangeLabel}
-                  <ChevronDown className="w-4 h-4 text-black/50" />
-                </button>
-                {rangeOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setRangeOpen(false)} />
-                    <div className="absolute right-0 top-9 z-20 bg-white border border-black/10 rounded-lg shadow-lg w-40 py-1">
-                      {rangeOptions.map((opt) => (
-                        <button
-                          key={opt.key}
-                          onClick={() => {
-                            setRange(opt.key);
-                            setRangeOpen(false);
-                          }}
-                          className={`flex items-center w-full px-3 py-2 text-sm hover:bg-black/5 text-left ${
-                            range === opt.key ? "font-semibold" : ""
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+        <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold">Revenue & Members</h3>
+              <p className="text-xs text-black/50">{rangeLabel}</p>
             </div>
-            <div className="h-56 md:h-64 -ml-2">
+            <div className="relative">
+              <button
+                onClick={() => setRangeOpen((o) => !o)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-black/15 text-sm font-medium hover:bg-black/5"
+              >
+                {rangeLabel}
+                <ChevronDown className="w-4 h-4 text-black/50" />
+              </button>
+              {rangeOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setRangeOpen(false)} />
+                  <div className="absolute right-0 top-9 z-20 bg-white border border-black/10 rounded-lg shadow-lg w-40 py-1">
+                    {rangeOptions.map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          setRange(opt.key);
+                          setRangeOpen(false);
+                        }}
+                        className={`flex items-center w-full px-3 py-2 text-sm hover:bg-black/5 text-left ${
+                          range === opt.key ? "font-semibold" : ""
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 h-56 md:h-64 -ml-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={rangeData[range]} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />
@@ -181,26 +181,25 @@ export default function Dashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </div>
-
-          <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
-            <div className="mb-4">
-              <h3 className="font-semibold">Weekly Attendance</h3>
-              <p className="text-xs text-black/50">Check-ins per day</p>
-            </div>
-            <div className="h-56 md:h-64 -ml-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={attendanceData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "1px solid #00000020", fontSize: 12 }}
-                    cursor={{ fill: "#00000008" }}
-                  />
-                  <Bar dataKey="count" fill="#000" radius={[6, 6, 0, 0]} barSize={22} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="border-t lg:border-t-0 lg:border-l lg:border-black/10 lg:pl-6 pt-4 lg:pt-0 flex flex-col">
+              <div className="mb-3">
+                <h4 className="text-sm font-semibold">Weekly Attendance</h4>
+                <p className="text-xs text-black/50">Check-ins per day</p>
+              </div>
+              <div className="h-44 md:h-52 -ml-2 flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={attendanceData} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: "1px solid #00000020", fontSize: 12 }}
+                      cursor={{ fill: "#00000008" }}
+                    />
+                    <Bar dataKey="count" fill="#000" radius={[6, 6, 0, 0]} barSize={22} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </div>

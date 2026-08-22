@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Dumbbell, LayoutDashboard, Users, Settings, Bell, Search, ChevronDown, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -24,19 +25,26 @@ export default function Layout({ children }) {
           <span className="font-heading font-bold text-lg tracking-tight">IronHub</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => {
+          {navItems.map((item, i) => {
             const active = location.pathname === item.path;
             return (
-              <Link
+              <motion.div
                 key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active ? "bg-black text-white" : "text-black/70 hover:bg-black/5"
-                }`}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * i, duration: 0.25 }}
+                whileHover={{ x: 4 }}
               >
-                <item.icon className="w-4.5 h-4.5" strokeWidth={2} />
-                {item.label}
-              </Link>
+                <Link
+                  to={item.path}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    active ? "bg-black text-white" : "text-black/70 hover:bg-black/5"
+                  }`}
+                >
+                  <item.icon className="w-4.5 h-4.5" strokeWidth={2} />
+                  {item.label}
+                </Link>
+              </motion.div>
             );
           })}
         </nav>
@@ -98,28 +106,51 @@ export default function Layout({ children }) {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-black/10 flex items-center justify-around h-16 px-2">
-        {navItems.map((item) => {
+        {navItems.map((item, i) => {
           const active = location.pathname === item.path;
           return (
-            <Link
+            <motion.div
               key={item.path}
-              to={item.path}
-              className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-lg flex-1 transition-colors ${
-                active ? "text-black" : "text-black/40"
-              }`}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 * i, duration: 0.25 }}
+              className="flex-1"
             >
-              <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
+              <Link
+                to={item.path}
+                className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
+                  active ? "text-black" : "text-black/40"
+                }`}
+              >
+                <motion.div whileTap={{ scale: 0.85 }}>
+                  <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
+                </motion.div>
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            </motion.div>
           );
         })}
       </nav>
 
       {/* Mobile slide-over menu */}
-      {mobileMenuOpen && (
+      <AnimatePresence>
+        {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ type: "tween", duration: 0.25 }}
+            className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col"
+          >
             <div className="flex items-center justify-between px-5 h-16 border-b border-black/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
@@ -149,9 +180,10 @@ export default function Layout({ children }) {
                 );
               })}
             </nav>
-          </div>
+          </motion.div>
         </div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

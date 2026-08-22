@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import { User, Building2, Bell, Shield, CreditCard, Globe, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
 
 const sections = [
-  { id: "profile", label: "Profile", icon: User },
-  { id: "gymProfile", label: "Gym Profile", icon: Building2 },
-  { id: "plans", label: "Membership Plans", icon: CreditCard },
-  { id: "gyms", label: "Gym Settings", icon: Globe },
-  { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "security", label: "Security", icon: Shield },
-  { id: "billing", label: "Billing", icon: CreditCard },
-  { id: "regional", label: "Regional", icon: Globe },
+  { id: "profile", label: "Profile", icon: User, desc: "Manage your personal account details" },
+  { id: "gymProfile", label: "Gym Profile", icon: Building2, desc: "Configure your gym's branding and location" },
+  { id: "plans", label: "Membership Plans", icon: CreditCard, desc: "Create and manage subscription packages" },
+  { id: "gyms", label: "Gym Settings", icon: Globe, desc: "Default currency, timezone and operating hours" },
+  { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
+  { id: "security", label: "Security", icon: Shield, desc: "Keep your account protected" },
+  { id: "billing", label: "Billing", icon: CreditCard, desc: "Manage your subscription and payment method" },
+  { id: "regional", label: "Regional", icon: Globe, desc: "Language, date format and measurement units" },
 ];
 
 const Toggle = ({ on, onClick }) => (
@@ -40,6 +42,10 @@ export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ newMembers: true, payments: true, lowAttendance: false, reports: true });
   const [twoFA, setTwoFA] = useState(true);
+  const { toast } = useToast();
+  const activeSection = sections.find((s) => s.id === active);
+  const handleSave = () =>
+    toast({ title: "Changes saved", description: "Your settings have been updated successfully." });
 
   const [gymProfile, setGymProfile] = useState({ name: "IronHub Downtown", address: "120 Market St, San Francisco, CA", currency: "USD" });
 
@@ -89,12 +95,21 @@ export default function Settings() {
                 <button
                   key={s.id}
                   onClick={() => setActive(s.id)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    active === s.id ? "bg-black text-white" : "text-black/70 hover:bg-black/5"
+                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                    active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"
                   }`}
                 >
-                  <s.icon className="w-4.5 h-4.5" />
-                  {s.label}
+                  {active === s.id && (
+                    <motion.span
+                      layoutId="settings-pill"
+                      className="absolute inset-0 rounded-lg bg-black"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative flex items-center gap-3">
+                    <s.icon className="w-4.5 h-4.5" />
+                    {s.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -102,6 +117,18 @@ export default function Settings() {
 
           {/* Content */}
           <div className="flex-1 min-w-0">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">{activeSection.label}</h2>
+              <p className="text-sm text-black/50">{activeSection.desc}</p>
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+              >
             {active === "profile" && (
               <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                 <h3 className="font-semibold">Profile Information</h3>
@@ -134,7 +161,7 @@ export default function Settings() {
                   <button className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
                     Cancel
                   </button>
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save changes
                   </button>
                 </div>
@@ -176,7 +203,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="flex justify-end pt-2">
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save profile
                   </button>
                 </div>
@@ -251,7 +278,7 @@ export default function Settings() {
                   </Field>
                 </div>
                 <div className="flex justify-end pt-2">
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save changes
                   </button>
                 </div>
@@ -302,7 +329,7 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="flex justify-end pt-2">
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Update password
                   </button>
                 </div>
@@ -372,12 +399,14 @@ export default function Settings() {
                   </Field>
                 </div>
                 <div className="flex justify-end pt-2">
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
                     Save changes
                   </button>
                 </div>
               </div>
             )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
