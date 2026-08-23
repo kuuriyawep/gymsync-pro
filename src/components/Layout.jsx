@@ -78,8 +78,7 @@ export default function Layout({ children }) {
           {/* Gym selector */}
           <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-black/15 hover:bg-black/5 transition-colors">
             <span className="w-2 h-2 rounded-full bg-black" />
-            <span className="text-sm font-semibold hidden sm:inline">All Gyms</span>
-            <span className="text-sm font-semibold sm:hidden">Gyms</span>
+            <span className="text-sm font-semibold">Olympic Gym</span>
             <ChevronDown className="w-4 h-4 text-black/50" />
           </button>
 

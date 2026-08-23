@@ -68,11 +68,13 @@ const tierData = [
   { name: "VIP", count: 3 },
 ];
 
-const topGyms = [
-  { name: "Downtown Iron", members: 820 },
-  { name: "Westside Fitness", members: 640 },
-  { name: "Riverside Gym", members: 510 },
-  { name: "Northgate Athletic", members: 430 },
+const membershipGrowth = [
+  { month: "Feb", active: 3950 },
+  { month: "Mar", active: 4100 },
+  { month: "Apr", active: 4200 },
+  { month: "May", active: 4400 },
+  { month: "Jun", active: 4600 },
+  { month: "Jul", active: 4829 },
 ];
 
 const stats = [
@@ -96,7 +98,7 @@ export default function Reports() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Reports</h1>
-            <p className="text-sm text-black/50 mt-0.5">Insights across all your gym locations</p>
+            <p className="text-sm text-black/50 mt-0.5">Insights into your gym's performance</p>
           </div>
           <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
             <Download className="w-4 h-4" /> Export report
@@ -229,21 +231,21 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Top gyms */}
+          {/* Membership growth */}
           <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-4 md:p-5">
             <div className="mb-4">
-              <h3 className="font-semibold">Top Gyms by Members</h3>
-              <p className="text-xs text-black/50">Across all locations</p>
+              <h3 className="font-semibold">Membership Growth</h3>
+              <p className="text-xs text-black/50">Active members over time</p>
             </div>
             <div className="h-56 -ml-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topGyms} margin={{ top: 5, right: 10, bottom: 0, left: -10 }} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#00000010" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} width={120} />
-                  <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #00000020", fontSize: 12 }} cursor={{ fill: "#00000008" }} />
-                  <Bar dataKey="members" fill="#000" radius={[0, 6, 6, 0]} barSize={18} />
-                </BarChart>
+                <LineChart data={membershipGrowth} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#00000080" }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #00000020", fontSize: 12 }} cursor={{ stroke: "#00000020" }} />
+                  <Line type="monotone" dataKey="active" name="Active Members" stroke="#000" strokeWidth={2.5} dot={false} />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </div>

@@ -1,18 +1,18 @@
 // Shared mock data for the IronHub owner frontend (frontend-only / no backend)
 
 export const members = [
-  { id: 1, memberId: "GYM-1001", name: "Sarah Chen", phone: "+1 555 0101", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-15", paymentStatus: "Paid", registeredDate: "2026-06-20", gym: "Downtown Iron" },
-  { id: 2, memberId: "GYM-1002", name: "Marcus Reed", phone: "+1 555 0102", plan: "3 Months", fee: 150, status: "Active", expiryDate: "2026-11-20", paymentStatus: "Paid", registeredDate: "2026-05-12", gym: "Westside Fitness" },
-  { id: 3, memberId: "GYM-1003", name: "Lena Park", phone: "+1 555 0103", plan: "Monthly", fee: 60, status: "Expiring Soon", expiryDate: "2026-08-25", paymentStatus: "Pending", registeredDate: "2026-07-30", gym: "Riverside Gym" },
-  { id: 4, memberId: "GYM-1004", name: "Diego Santos", phone: "+1 555 0104", plan: "6 Months", fee: 300, status: "Expired", expiryDate: "2026-08-10", paymentStatus: "Overdue", registeredDate: "2026-02-10", gym: "Downtown Iron" },
-  { id: 5, memberId: "GYM-1005", name: "Aisha Khan", phone: "+1 555 0105", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-01", paymentStatus: "Paid", registeredDate: "2026-06-01", gym: "Northgate Athletic" },
-  { id: 6, memberId: "GYM-1006", name: "Tom Walsh", phone: "+1 555 0106", plan: "3 Months", fee: 150, status: "Suspended", expiryDate: "2026-10-05", paymentStatus: "Pending", registeredDate: "2026-04-18", gym: "Westside Fitness" },
-  { id: 7, memberId: "GYM-1007", name: "Nina Costa", phone: "+1 555 0107", plan: "Monthly", fee: 60, status: "Expiring Soon", expiryDate: "2026-08-22", paymentStatus: "Paid", registeredDate: "2026-07-22", gym: "Riverside Gym" },
-  { id: 8, memberId: "GYM-1008", name: "Omar Farah", phone: "+1 555 0108", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-30", paymentStatus: "Paid", registeredDate: "2026-08-01", gym: "Downtown Iron" },
-  { id: 9, memberId: "GYM-1009", name: "Grace Lee", phone: "+1 555 0109", plan: "6 Months", fee: 300, status: "Expiring Soon", expiryDate: "2026-08-27", paymentStatus: "Pending", registeredDate: "2026-03-15", gym: "Northgate Athletic" },
-  { id: 10, memberId: "GYM-1010", name: "Liam Doyle", phone: "+1 555 0110", plan: "Monthly", fee: 60, status: "Expired", expiryDate: "2026-07-30", paymentStatus: "Overdue", registeredDate: "2026-01-25", gym: "Westside Fitness" },
-  { id: 11, memberId: "GYM-1011", name: "Hana Yusuf", phone: "+1 555 0111", plan: "3 Months", fee: 150, status: "Active", expiryDate: "2026-10-18", paymentStatus: "Paid", registeredDate: "2026-07-18", gym: "Riverside Gym" },
-  { id: 12, memberId: "GYM-1012", name: "Carlos Mendez", phone: "+1 555 0112", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-10", paymentStatus: "Paid", registeredDate: "2026-08-10", gym: "Downtown Iron" },
+  { id: 1, memberId: "GYM-1001", name: "Sarah Chen", phone: "+1 555 0101", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-15", paymentStatus: "Paid", registeredDate: "2026-06-20", gym: "Olympic Gym" },
+  { id: 2, memberId: "GYM-1002", name: "Marcus Reed", phone: "+1 555 0102", plan: "3 Months", fee: 150, status: "Active", expiryDate: "2026-11-20", paymentStatus: "Paid", registeredDate: "2026-05-12", gym: "Olympic Gym" },
+  { id: 3, memberId: "GYM-1003", name: "Lena Park", phone: "+1 555 0103", plan: "Monthly", fee: 60, status: "Expiring Soon", expiryDate: "2026-08-25", paymentStatus: "Pending", registeredDate: "2026-07-30", gym: "Olympic Gym" },
+  { id: 4, memberId: "GYM-1004", name: "Diego Santos", phone: "+1 555 0104", plan: "6 Months", fee: 300, status: "Expired", expiryDate: "2026-08-10", paymentStatus: "Overdue", registeredDate: "2026-02-10", gym: "Olympic Gym" },
+  { id: 5, memberId: "GYM-1005", name: "Aisha Khan", phone: "+1 555 0105", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-01", paymentStatus: "Paid", registeredDate: "2026-06-01", gym: "Olympic Gym" },
+  { id: 6, memberId: "GYM-1006", name: "Tom Walsh", phone: "+1 555 0106", plan: "3 Months", fee: 150, status: "Suspended", expiryDate: "2026-10-05", paymentStatus: "Pending", registeredDate: "2026-04-18", gym: "Olympic Gym" },
+  { id: 7, memberId: "GYM-1007", name: "Nina Costa", phone: "+1 555 0107", plan: "Monthly", fee: 60, status: "Expiring Soon", expiryDate: "2026-08-22", paymentStatus: "Paid", registeredDate: "2026-07-22", gym: "Olympic Gym" },
+  { id: 8, memberId: "GYM-1008", name: "Omar Farah", phone: "+1 555 0108", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-30", paymentStatus: "Paid", registeredDate: "2026-08-01", gym: "Olympic Gym" },
+  { id: 9, memberId: "GYM-1009", name: "Grace Lee", phone: "+1 555 0109", plan: "6 Months", fee: 300, status: "Expiring Soon", expiryDate: "2026-08-27", paymentStatus: "Pending", registeredDate: "2026-03-15", gym: "Olympic Gym" },
+  { id: 10, memberId: "GYM-1010", name: "Liam Doyle", phone: "+1 555 0110", plan: "Monthly", fee: 60, status: "Expired", expiryDate: "2026-07-30", paymentStatus: "Overdue", registeredDate: "2026-01-25", gym: "Olympic Gym" },
+  { id: 11, memberId: "GYM-1011", name: "Hana Yusuf", phone: "+1 555 0111", plan: "3 Months", fee: 150, status: "Active", expiryDate: "2026-10-18", paymentStatus: "Paid", registeredDate: "2026-07-18", gym: "Olympic Gym" },
+  { id: 12, memberId: "GYM-1012", name: "Carlos Mendez", phone: "+1 555 0112", plan: "Monthly", fee: 60, status: "Active", expiryDate: "2026-09-10", paymentStatus: "Paid", registeredDate: "2026-08-10", gym: "Olympic Gym" },
 ];
 
 export const payments = [
@@ -88,7 +88,7 @@ export const analyticsData = {
   ],
 };
 
-// Dashboard aggregate headline stats (all gyms)
+// Dashboard aggregate headline stats (your gym)
 export const dashboardStats = {
   totalMembers: 4829,
   activeMembers: 4512,

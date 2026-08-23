@@ -48,7 +48,7 @@ export default function Settings() {
   const handleSave = () =>
     toast({ title: "Changes saved", description: "Your settings have been updated successfully." });
 
-  const [gymProfile, setGymProfile] = useState({ name: "IronHub Downtown", address: "120 Market St, San Francisco, CA", currency: "USD" });
+  const [gymProfile, setGymProfile] = useState({ name: "Olympic Gym", address: "120 Market St, San Francisco, CA", currency: "USD" });
 
   return (
     <Layout>

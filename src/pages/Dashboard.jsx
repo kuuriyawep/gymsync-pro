@@ -55,7 +55,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Dashboard</h1>
-            <p className="text-sm text-black/50 mt-0.5">Overview across all your gym locations</p>
+            <p className="text-sm text-black/50 mt-0.5">Overview of your gym</p>
           </div>
           <button className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
             <Download className="w-4 h-4" /> Export
