@@ -5,41 +5,41 @@ import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
 
 const primaryNav = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Members", path: "/members", icon: Users },
-  { label: "Reports", path: "/reports", icon: BarChart3 },
-  { label: "Settings", path: "/settings", icon: Settings },
-];
+{ label: "Dashboard", path: "/", icon: LayoutDashboard },
+{ label: "Members", path: "/members", icon: Users },
+{ label: "Reports", path: "/reports", icon: BarChart3 },
+{ label: "Settings", path: "/settings", icon: Settings }];
+
 
 const secondaryNav = [
-  { label: "Payments", path: "/payments", icon: CreditCard },
-  { label: "Trainers", path: "/trainers", icon: UserCog },
-  { label: "Membership", path: "/membership", icon: Ticket },
-];
+{ label: "Payments", path: "/payments", icon: CreditCard },
+{ label: "Trainers", path: "/trainers", icon: UserCog },
+{ label: "Membership", path: "/membership", icon: Ticket }];
+
 
 export default function Layout({ children }) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+  const isActive = (path) => location.pathname === path || path !== "/" && location.pathname.startsWith(path);
 
-  const renderLink = (item, active, onClick) => (
-    <Link
-      key={item.path}
-      to={item.path}
-      onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-black text-white" : "text-black/70 hover:bg-black/5"}`}
-    >
+  const renderLink = (item, active, onClick) =>
+  <Link
+    key={item.path}
+    to={item.path}
+    onClick={onClick}
+    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-black text-white" : "text-black/70 hover:bg-black/5"}`}>
+    
       <item.icon className="w-4.5 h-4.5" strokeWidth={2} />
       {item.label}
-    </Link>
-  );
+    </Link>;
+
 
   return (
     <div className="min-h-screen bg-white text-black flex">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-black/10 bg-white sticky top-0 h-screen">
-        <div className="flex items-center gap-2 px-6 h-16 border-b border-black/10">
+        <div className="flex items-center gap-2 px-6 h-16 border-b border-black/10 opacity-100 rounded">
           <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center">
             <Dumbbell className="w-5 h-5 text-white" />
           </div>
@@ -51,8 +51,8 @@ export default function Layout({ children }) {
             return (
               <motion.div key={item.path} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * i, duration: 0.25 }} whileHover={{ x: 4 }}>
                 {renderLink(item, active)}
-              </motion.div>
-            );
+              </motion.div>);
+
           })}
           <div className="pt-4 mt-2 border-t border-black/10">
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Manage</p>
@@ -61,8 +61,8 @@ export default function Layout({ children }) {
               return (
                 <motion.div key={item.path} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * (primaryNav.length + i), duration: 0.25 }} whileHover={{ x: 4 }}>
                   {renderLink(item, active)}
-                </motion.div>
-              );
+                </motion.div>);
+
             })}
           </div>
         </nav>
@@ -112,15 +112,15 @@ export default function Layout({ children }) {
                 </motion.div>
                 <span className="text-[10px] font-medium">{item.label}</span>
               </Link>
-            </motion.div>
-          );
+            </motion.div>);
+
         })}
       </nav>
 
       {/* Mobile slide-over (all nav) */}
       <AnimatePresence>
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50">
+        {mobileMenuOpen &&
+        <div className="md:hidden fixed inset-0 z-50">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
             <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col">
               <div className="flex items-center justify-between px-5 h-16 border-b border-black/10">
@@ -138,8 +138,8 @@ export default function Layout({ children }) {
               </nav>
             </motion.div>
           </div>
-        )}
+        }
       </AnimatePresence>
-    </div>
-  );
+    </div>);
+
 }
