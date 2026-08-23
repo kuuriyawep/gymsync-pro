@@ -1,54 +1,66 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, Bell, Shield, CreditCard, Globe, Check, Plus, Pencil, Trash2, X, MessageSquare } from "lucide-react";
+import { User, Shield, Bell, Building2, CreditCard, Palette, Globe, DollarSign, Check, ArrowRight, Monitor } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { plans } from "@/lib/mockData";
 
-const sections = [
-  { id: "profile", label: "Profile", icon: User, desc: "Manage your personal account details" },
-  { id: "gymProfile", label: "Gym Profile", icon: Building2, desc: "Configure your gym's branding and location" },
-  { id: "gyms", label: "Gym Settings", icon: Globe, desc: "Default currency, timezone and operating hours" },
-  { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
-  { id: "security", label: "Security", icon: Shield, desc: "Keep your account protected" },
-  { id: "billing", label: "Billing", icon: CreditCard, desc: "Manage your subscription and payment method" },
-  { id: "regional", label: "Regional", icon: Globe, desc: "Language, date format and measurement units" },
-  { id: "feedback", label: "Feedback", icon: MessageSquare, desc: "Share your thoughts or suggestions" },
+const groups = [
+  {
+    label: "Account",
+    items: [
+      { id: "profile", label: "Profile", icon: User, desc: "Your personal account details" },
+      { id: "security", label: "Security", icon: Shield, desc: "Password, 2FA and active sessions" },
+      { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
+    ],
+  },
+  {
+    label: "Gym",
+    items: [
+      { id: "gymProfile", label: "Gym Profile", icon: Building2, desc: "Your gym's information and branding" },
+      { id: "plans", label: "Membership Plans", icon: CreditCard, desc: "Overview of your membership plans" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "appearance", label: "Appearance", icon: Palette, desc: "Theme and display preferences" },
+      { id: "language", label: "Language", icon: Globe, desc: "App display language" },
+      { id: "currency", label: "Currency", icon: DollarSign, desc: "Default currency for your gym" },
+    ],
+  },
 ];
 
 const Toggle = ({ on, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`w-11 h-6 rounded-full transition-colors relative ${on ? "bg-black" : "bg-black/15"}`}
-  >
-    <span
-      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-        on ? "translate-x-5" : "translate-x-0.5"
-      }`}
-    />
+  <button onClick={onClick} className={`w-11 h-6 rounded-full transition-colors relative ${on ? "bg-black" : "bg-black/15"}`}>
+    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
   </button>
 );
-
 const Field = ({ label, children }) => (
-  <div>
-    <label className="block text-sm font-medium mb-1.5">{label}</label>
-    {children}
-  </div>
+  <div><label className="block text-sm font-medium mb-1.5">{label}</label>{children}</div>
 );
+const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 
-const inputCls =
-  "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
+const sessions = [
+  { id: 1, device: "Chrome · macOS", location: "San Francisco, CA", current: true, time: "Active now" },
+  { id: 2, device: "Safari · iPhone", location: "San Francisco, CA", current: false, time: "2h ago" },
+  { id: 3, device: "Edge · Windows", location: "New York, NY", current: false, time: "3d ago" },
+];
 
 export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ newMembers: true, payments: true, lowAttendance: false, reports: true });
   const [twoFA, setTwoFA] = useState(true);
-  const [feedback, setFeedback] = useState({ rating: 5, message: "" });
+  const [appearance, setAppearance] = useState("Light");
+  const [gymProfile, setGymProfile] = useState({
+    name: "Olympic Gym", phone: "+1 555 0100", email: "info@olympicgym.com",
+    address: "120 Market St, San Francisco, CA", openHours: "05:00", closeHours: "23:00",
+    description: "A premium fitness center offering strength training, cardio, group classes and personal training.",
+  });
   const { toast } = useToast();
-  const activeSection = sections.find((s) => s.id === active);
-  const handleSave = () =>
-    toast({ title: "Changes saved", description: "Your settings have been updated successfully." });
-
-  const [gymProfile, setGymProfile] = useState({ name: "Olympic Gym", address: "120 Market St, San Francisco, CA", currency: "USD" });
+  const handleSave = () => toast({ title: "Changes saved", description: "Your settings have been updated successfully." });
+  const activeItem = groups.flatMap((g) => g.items).find((s) => s.id === active);
 
   return (
     <Layout>
@@ -62,26 +74,20 @@ export default function Settings() {
           {/* Section nav */}
           <div className="lg:w-56 shrink-0">
             <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
-              {sections.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setActive(s.id)}
-                  className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"
-                  }`}
-                >
-                  {active === s.id && (
-                    <motion.span
-                      layoutId="settings-pill"
-                      className="absolute inset-0 rounded-lg bg-black"
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative flex items-center gap-3">
-                    <s.icon className="w-4.5 h-4.5" />
-                    {s.label}
-                  </span>
-                </button>
+              {groups.map((g) => (
+                <div key={g.label} className="flex lg:flex-col gap-1">
+                  <p className="hidden lg:block px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">{g.label}</p>
+                  {g.items.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setActive(s.id)}
+                      className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}
+                    >
+                      {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-black" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                      <span className="relative flex items-center gap-3"><s.icon className="w-4.5 h-4.5" />{s.label}</span>
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
@@ -89,302 +95,184 @@ export default function Settings() {
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="mb-4">
-              <h2 className="text-lg font-semibold">{activeSection.label}</h2>
-              <p className="text-sm text-black/50">{activeSection.desc}</p>
+              <h2 className="text-lg font-semibold">{activeItem.label}</h2>
+              <p className="text-sm text-black/50">{activeItem.desc}</p>
             </div>
             <AnimatePresence mode="wait">
-              <motion.div
-                key={active}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.18 }}
-              >
-            {active === "profile" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Profile Information</h3>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-lg font-bold">
-                    AK
-                  </div>
-                  <div>
-                    <button className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
-                      Change photo
-                    </button>
-                    <p className="text-xs text-black/40 mt-1.5">JPG or PNG. Max 2MB.</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Full name">
-                    <input className={inputCls} defaultValue="Alex Kovac" />
-                  </Field>
-                  <Field label="Email">
-                    <input className={inputCls} defaultValue="alex@ironhub.com" />
-                  </Field>
-                  <Field label="Phone">
-                    <input className={inputCls} defaultValue="+1 555 0100" />
-                  </Field>
-                  <Field label="Role">
-                    <input className={inputCls} defaultValue="Super Admin" disabled />
-                  </Field>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <button className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
-                    Cancel
-                  </button>
-                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-                    Save changes
-                  </button>
-                </div>
-              </div>
-            )}
+              <motion.div key={active} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
 
-            {active === "gymProfile" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Gym Profile</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium mb-1.5">Gym Name</label>
-                    <input
-                      className={inputCls}
-                      value={gymProfile.name}
-                      onChange={(e) => setGymProfile({ ...gymProfile, name: e.target.value })}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-sm font-medium mb-1.5">Address</label>
-                    <input
-                      className={inputCls}
-                      value={gymProfile.address}
-                      onChange={(e) => setGymProfile({ ...gymProfile, address: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Currency</label>
-                    <select
-                      className={inputCls}
-                      value={gymProfile.currency}
-                      onChange={(e) => setGymProfile({ ...gymProfile, currency: e.target.value })}
-                    >
-                      <option value="USD">USD - US Dollar</option>
-                      <option value="EUR">EUR - Euro</option>
-                      <option value="GBP">GBP - British Pound</option>
-                      <option value="SOS">SOS - Somali Shilling</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-                    Save profile
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {active === "gyms" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Default Gym Settings</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Default currency">
-                    <select className={inputCls}>
-                      <option>USD - US Dollar</option>
-                      <option>EUR - Euro</option>
-                      <option>GBP - British Pound</option>
-                    </select>
-                  </Field>
-                  <Field label="Time zone">
-                    <select className={inputCls}>
-                      <option>UTC</option>
-                      <option>America/New_York</option>
-                      <option>Europe/London</option>
-                    </select>
-                  </Field>
-                  <Field label="Operating hours start">
-                    <input className={inputCls} defaultValue="05:00" />
-                  </Field>
-                  <Field label="Operating hours end">
-                    <input className={inputCls} defaultValue="23:00" />
-                  </Field>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-                    Save changes
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {active === "notifications" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-1">
-                <h3 className="font-semibold mb-4">Notification Preferences</h3>
-                {[
-                  { key: "newMembers", label: "New member sign-ups", desc: "Get notified when a member joins" },
-                  { key: "payments", label: "Payment alerts", desc: "Failed or successful payments" },
-                  { key: "lowAttendance", label: "Low attendance warnings", desc: "When a gym drops below 60% capacity" },
-                  { key: "reports", label: "Weekly reports", desc: "Summary of all gyms every Monday" },
-                ].map((n) => (
-                  <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
-                    <div className="pr-4">
-                      <p className="text-sm font-medium">{n.label}</p>
-                      <p className="text-xs text-black/50">{n.desc}</p>
-                    </div>
-                    <Toggle on={notif[n.key]} onClick={() => setNotif({ ...notif, [n.key]: !notif[n.key] })} />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {active === "security" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Security</h3>
-                <div className="flex items-center justify-between">
-                  <div className="pr-4">
-                    <p className="text-sm font-medium">Two-factor authentication</p>
-                    <p className="text-xs text-black/50">Extra security for your account</p>
-                  </div>
-                  <Toggle on={twoFA} onClick={() => setTwoFA(!twoFA)} />
-                </div>
-                <div className="pt-2 space-y-4">
-                  <Field label="Current password">
-                    <input type="password" className={inputCls} defaultValue="password" />
-                  </Field>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Field label="New password">
-                      <input type="password" className={inputCls} />
-                    </Field>
-                    <Field label="Confirm new password">
-                      <input type="password" className={inputCls} />
-                    </Field>
-                  </div>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-                    Update password
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {active === "billing" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Billing Plan</h3>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-black/5">
-                  <div>
-                    <p className="font-semibold">Enterprise</p>
-                    <p className="text-sm text-black/50">$299/month · 12 gyms</p>
-                  </div>
-                  <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-black text-white">
-                    <Check className="w-3 h-3" /> Active
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <p className="text-sm font-medium">Payment method</p>
-                  <div className="flex items-center justify-between p-4 border border-black/10 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-7 rounded bg-black flex items-center justify-center">
-                        <CreditCard className="w-4 h-4 text-white" />
-                      </div>
+                {active === "profile" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                    <h3 className="font-semibold">Owner Profile</h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-lg font-bold">AK</div>
                       <div>
-                        <p className="text-sm font-medium">•••• 4242</p>
-                        <p className="text-xs text-black/50">Expires 08/27</p>
+                        <button className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Change photo</button>
+                        <p className="text-xs text-black/40 mt-1.5">JPG or PNG. Max 2MB.</p>
                       </div>
                     </div>
-                    <button className="text-sm font-medium hover:underline">Edit</button>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Full name"><input className={inputCls} defaultValue="Alex Kovac" /></Field>
+                      <Field label="Email"><input className={inputCls} defaultValue="alex@olympicgym.com" /></Field>
+                      <Field label="Phone"><input className={inputCls} defaultValue="+1 555 0100" /></Field>
+                      <Field label="Role"><input className={inputCls} defaultValue="Owner" disabled /></Field>
+                      <Field label="Account created"><input className={inputCls} defaultValue="Jan 12, 2025" disabled /></Field>
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save changes</button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {active === "regional" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Regional Settings</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Language">
-                    <select className={inputCls}>
-                      <option>English</option>
-                      <option>Spanish</option>
-                      <option>French</option>
-                      <option>Arabic</option>
-                    </select>
-                  </Field>
-                  <Field label="Date format">
-                    <select className={inputCls}>
-                      <option>MM/DD/YYYY</option>
-                      <option>DD/MM/YYYY</option>
-                      <option>YYYY-MM-DD</option>
-                    </select>
-                  </Field>
-                  <Field label="Distance unit">
-                    <select className={inputCls}>
-                      <option>Kilometers</option>
-                      <option>Miles</option>
-                    </select>
-                  </Field>
-                  <Field label="Weight unit">
-                    <select className={inputCls}>
-                      <option>Kilograms</option>
-                      <option>Pounds</option>
-                    </select>
-                  </Field>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-                    Save changes
-                  </button>
-                </div>
-              </div>
-            )}
+                {active === "security" && (
+                  <div className="space-y-4">
+                    <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                      <h3 className="font-semibold">Change Password</h3>
+                      <div className="space-y-4">
+                        <Field label="Current password"><input type="password" className={inputCls} defaultValue="password" /></Field>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Field label="New password"><input type="password" className={inputCls} /></Field>
+                          <Field label="Confirm new password"><input type="password" className={inputCls} /></Field>
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-2">
+                        <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Update password</button>
+                      </div>
+                    </div>
+                    <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="pr-4">
+                          <p className="text-sm font-medium">Two-factor authentication</p>
+                          <p className="text-xs text-black/50">Add an extra layer of security to your account</p>
+                        </div>
+                        <Toggle on={twoFA} onClick={() => setTwoFA(!twoFA)} />
+                      </div>
+                    </div>
+                    <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+                      <h3 className="font-semibold mb-4">Active Sessions</h3>
+                      <div className="space-y-3">
+                        {sessions.map((s) => (
+                          <div key={s.id} className="flex items-center justify-between p-3 border border-black/10 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><Monitor className="w-4 h-4" /></div>
+                              <div>
+                                <p className="text-sm font-medium">{s.device} {s.current && <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">Current</span>}</p>
+                                <p className="text-xs text-black/50">{s.location} · {s.time}</p>
+                              </div>
+                            </div>
+                            {!s.current && <button className="text-xs font-medium text-black/60 hover:text-black">Revoke</button>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-            {active === "feedback" && (
-              <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                <h3 className="font-semibold">Share Your Feedback</h3>
-                <div>
-                  <label className="block text-sm font-medium mb-2">How would you rate your experience?</label>
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setFeedback({ ...feedback, rating: n })}
-                        className={`w-10 h-10 rounded-lg border text-lg flex items-center justify-center transition-colors ${
-                          n <= feedback.rating ? "bg-black text-white border-black" : "bg-white text-black/40 border-black/15 hover:bg-black/5"
-                        }`}
-                      >
-                        ★
-                      </button>
+                {active === "notifications" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-1">
+                    <h3 className="font-semibold mb-4">Notification Preferences</h3>
+                    {[
+                      { key: "newMembers", label: "New member sign-ups", desc: "Get notified when a member joins" },
+                      { key: "payments", label: "Payment alerts", desc: "Failed or successful payments" },
+                      { key: "lowAttendance", label: "Low attendance warnings", desc: "When attendance drops below 60% capacity" },
+                      { key: "reports", label: "Weekly reports", desc: "Summary of your gym every Monday" },
+                    ].map((n) => (
+                      <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
+                        <div className="pr-4"><p className="text-sm font-medium">{n.label}</p><p className="text-xs text-black/50">{n.desc}</p></div>
+                        <Toggle on={notif[n.key]} onClick={() => setNotif({ ...notif, [n.key]: !notif[n.key] })} />
+                      </div>
                     ))}
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Your feedback</label>
-                  <textarea
-                    rows={4}
-                    className={inputCls}
-                    value={feedback.message}
-                    onChange={(e) => setFeedback({ ...feedback, message: e.target.value })}
-                    placeholder="Tell us what you think or what we can improve…"
-                  />
-                </div>
-                <div className="flex justify-end pt-2">
-                  <button
-                    onClick={() => {
-                      if (!feedback.message.trim()) return;
-                      toast({ title: "Feedback sent", description: "Thanks for your feedback!" });
-                      setFeedback({ rating: 5, message: "" });
-                    }}
-                    className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"
-                  >
-                    Submit feedback
-                  </button>
-                </div>
-              </div>
-            )}
+                )}
+
+                {active === "gymProfile" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                    <h3 className="font-semibold">Gym Profile</h3>
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-xl bg-black text-white flex items-center justify-center text-xl font-bold">OG</div>
+                      <div>
+                        <button className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Upload logo</button>
+                        <p className="text-xs text-black/40 mt-1.5">PNG or SVG. Max 1MB.</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Gym name"><input className={inputCls} value={gymProfile.name} onChange={(e) => setGymProfile({ ...gymProfile, name: e.target.value })} /></Field>
+                      <Field label="Phone"><input className={inputCls} value={gymProfile.phone} onChange={(e) => setGymProfile({ ...gymProfile, phone: e.target.value })} /></Field>
+                      <Field label="Email"><input className={inputCls} value={gymProfile.email} onChange={(e) => setGymProfile({ ...gymProfile, email: e.target.value })} /></Field>
+                      <Field label="Address"><input className={inputCls} value={gymProfile.address} onChange={(e) => setGymProfile({ ...gymProfile, address: e.target.value })} /></Field>
+                      <Field label="Opening hours"><input type="time" className={inputCls} value={gymProfile.openHours} onChange={(e) => setGymProfile({ ...gymProfile, openHours: e.target.value })} /></Field>
+                      <Field label="Closing hours"><input type="time" className={inputCls} value={gymProfile.closeHours} onChange={(e) => setGymProfile({ ...gymProfile, closeHours: e.target.value })} /></Field>
+                      <div className="sm:col-span-2"><Field label="Description"><textarea rows={3} className={inputCls} value={gymProfile.description} onChange={(e) => setGymProfile({ ...gymProfile, description: e.target.value })} /></Field></div>
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save profile</button>
+                    </div>
+                  </div>
+                )}
+
+                {active === "plans" && (
+                  <div className="space-y-4">
+                    <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div><h3 className="font-semibold">Membership Plans</h3><p className="text-xs text-black/50">Overview of your active plans</p></div>
+                        <Link to="/membership" className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Manage plans <ArrowRight className="w-4 h-4" /></Link>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {plans.map((p) => (
+                          <div key={p.id} className="border border-black/10 rounded-xl p-4">
+                            <p className="font-semibold">{p.name}</p>
+                            <p className="text-2xl font-bold mt-1">{p.price == null ? "Custom" : `$${p.price}`}</p>
+                            <p className="text-xs text-black/50 mt-2">{p.duration} · {p.activeMembers} members</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {active === "appearance" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                    <h3 className="font-semibold">Appearance</h3>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Theme</label>
+                      <div className="flex items-center gap-2">
+                        {["Light", "Dark", "System"].map((t) => (
+                          <button key={t} onClick={() => setAppearance(t)} className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${appearance === t ? "bg-black text-white border-black" : "bg-white text-black/70 border-black/15 hover:bg-black/5"}`}>{t}</button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-black/40 mt-2">Theme preference is saved for display only.</p>
+                    </div>
+                  </div>
+                )}
+
+                {active === "language" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                    <h3 className="font-semibold">Language</h3>
+                    <Field label="Display language">
+                      <select className={inputCls} defaultValue="English">
+                        <option>English</option><option>Spanish</option><option>French</option><option>Arabic</option><option>Somali</option>
+                      </select>
+                    </Field>
+                    <div className="flex justify-end pt-2"><button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save changes</button></div>
+                  </div>
+                )}
+
+                {active === "currency" && (
+                  <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
+                    <h3 className="font-semibold">Currency</h3>
+                    <Field label="Default currency">
+                      <select className={inputCls} defaultValue="USD">
+                        <option value="USD">USD - US Dollar</option><option value="EUR">EUR - Euro</option><option value="GBP">GBP - British Pound</option><option value="SOS">SOS - Somali Shilling</option>
+                      </select>
+                    </Field>
+                    <div className="flex justify-end pt-2"><button onClick={handleSave} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save changes</button></div>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
       </div>
-
     </Layout>
   );
 }

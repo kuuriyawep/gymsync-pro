@@ -15,6 +15,7 @@ import Reports from '@/pages/Reports';
 import Payments from '@/pages/Payments';
 import Membership from '@/pages/Membership';
 import MemberDetails from '@/pages/MemberDetails';
+import Trainers from '@/pages/Trainers';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
         <Route path="/members/:id" element={<MemberDetails />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/membership" element={<Membership />} />
+        <Route path="/trainers" element={<Trainers />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

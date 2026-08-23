@@ -123,3 +123,71 @@ export const memberActivity = [
   { id: 6, type: "Renewal", text: "Membership renewed (Monthly)", time: "Aug 20, 2026" },
   { id: 7, type: "Payment", text: "Payment recorded · $60 · Card", time: "Aug 20, 2026" },
 ];
+
+export const trainers = [
+  {
+    id: 1, name: "Jake Miller", phone: "+1 555 0201", specialization: "Strength Training", assigned: 42, status: "Active",
+    assignedMembers: ["Sarah Chen", "Marcus Reed", "Aisha Khan", "Carlos Mendez"],
+    activity: [
+      { id: 1, text: "Trained Sarah Chen · Strength session", time: "2h ago" },
+      { id: 2, text: "Trained Marcus Reed · Strength session", time: "1d ago" },
+      { id: 3, text: "Assigned new member: Carlos Mendez", time: "3d ago" },
+    ],
+  },
+  {
+    id: 2, name: "Emily Stone", phone: "+1 555 0202", specialization: "Yoga & Flexibility", assigned: 38, status: "Active",
+    assignedMembers: ["Lena Park", "Nina Costa", "Hana Yusuf"],
+    activity: [
+      { id: 1, text: "Led Yoga class · 12 attendees", time: "4h ago" },
+      { id: 2, text: "Trained Lena Park · Flexibility session", time: "1d ago" },
+    ],
+  },
+  {
+    id: 3, name: "David Park", phone: "+1 555 0203", specialization: "Cardio & HIIT", assigned: 35, status: "Active",
+    assignedMembers: ["Omar Farah", "Grace Lee"],
+    activity: [
+      { id: 1, text: "Led HIIT class · 18 attendees", time: "6h ago" },
+      { id: 2, text: "Trained Omar Farah · Cardio session", time: "2d ago" },
+    ],
+  },
+  {
+    id: 4, name: "Sofia Ramos", phone: "+1 555 0204", specialization: "Personal Training", assigned: 29, status: "Inactive",
+    assignedMembers: ["Tom Walsh"],
+    activity: [
+      { id: 1, text: "Trained Tom Walsh · PT session", time: "5d ago" },
+      { id: 2, text: "Status changed to Inactive", time: "4d ago" },
+    ],
+  },
+  {
+    id: 5, name: "Brian Lee", phone: "+1 555 0205", specialization: "CrossFit", assigned: 44, status: "Active",
+    assignedMembers: ["Diego Santos", "Liam Doyle"],
+    activity: [
+      { id: 1, text: "Led CrossFit class · 15 attendees", time: "3h ago" },
+      { id: 2, text: "Trained Diego Santos · CrossFit session", time: "1d ago" },
+      { id: 3, text: "Assigned new member: Liam Doyle", time: "2d ago" },
+    ],
+  },
+];
+
+export const notifications = [
+  { id: 1, type: "expired", title: "Membership expired", description: "Diego Santos's membership has expired", time: "1h ago", read: false },
+  { id: 2, type: "expiring", title: "Membership expires soon", description: "Lena Park's membership expires in 5 days", time: "3h ago", read: false },
+  { id: 3, type: "member", title: "New member registered", description: "Carlos Mendez joined Olympic Gym", time: "5h ago", read: false },
+  { id: 4, type: "renewal", title: "Membership renewed", description: "Sarah Chen renewed their membership", time: "1d ago", read: true },
+  { id: 5, type: "payment", title: "Payment recorded", description: "Omar Farah paid $60 (Mobile Money)", time: "1d ago", read: true },
+  { id: 6, type: "trainer", title: "New trainer added", description: "Brian Lee joined as CrossFit trainer", time: "2d ago", read: true },
+];
+
+export const revenueBreakdown = { daily: 1820, weekly: 12400, monthly: 48250, quarterly: 138000, yearly: 548000 };
+export const memberSummary = { newMembers: 178, active: 4512, expired: 47, renewals: 124 };
+export const membershipStats = { mostPopularPlan: "Monthly", renewalRate: 78 };
+export const expirationTrends = [
+  { month: "Feb", expired: 8 }, { month: "Mar", expired: 12 }, { month: "Apr", expired: 9 },
+  { month: "May", expired: 14 }, { month: "Jun", expired: 11 }, { month: "Jul", expired: 16 },
+];
+export const planPerformance = [
+  { plan: "Monthly", members: 142, revenue: 8520, share: 58 },
+  { plan: "3 Months", members: 98, revenue: 14700, share: 25 },
+  { plan: "6 Months", members: 64, revenue: 19200, share: 14 },
+  { plan: "Custom", members: 12, revenue: 3600, share: 3 },
+];
