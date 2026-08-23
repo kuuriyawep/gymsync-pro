@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, CalendarDays, CreditCard, UserCheck } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet } from "lucide-react";
 import { members, memberPaymentHistory, memberActivity } from "@/lib/mockData";
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
@@ -14,18 +14,29 @@ export default function MemberDetails() {
   const navigate = useNavigate();
   const member = members.find((m) => m.id === Number(id)) ?? members[0];
   const daysRemaining = differenceInCalendarDays(parseISO(member.expiryDate), new Date());
+  const startDate = member.startDate || member.registeredDate;
+
+  const totalPaid = memberPaymentHistory.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
+  const lastPayment = memberPaymentHistory[0];
 
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
+    { icon: Mail, label: "Email", value: member.email || "—" },
     { icon: CalendarDays, label: "Registration Date", value: format(parseISO(member.registeredDate), "MMM d, yyyy") },
     { icon: UserCheck, label: "Status", value: member.status, badge: true },
   ];
   const membership = [
     { label: "Current Plan", value: member.plan },
-    { label: "Start Date", value: format(parseISO(member.registeredDate), "MMM d, yyyy") },
+    { label: "Start Date", value: format(parseISO(startDate), "MMM d, yyyy") },
     { label: "Expiry Date", value: format(parseISO(member.expiryDate), "MMM d, yyyy") },
     { label: "Days Remaining", value: `${daysRemaining} days` },
     { label: "Payment Status", value: member.paymentStatus, badge: true },
+  ];
+  const paySummary = [
+    { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
+    { icon: DollarSign, label: "Last Payment", value: `$${lastPayment.amount}` },
+    { icon: CalendarDays, label: "Last Payment Date", value: format(parseISO(lastPayment.date), "MMM d, yyyy") },
+    { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
 
   return (
@@ -48,26 +59,26 @@ export default function MemberDetails() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit</button>
-              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew Membership</button>
               <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-5 border-t border-black/5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-black/5">
             {info.map((f) => (
               <div key={f.label} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><f.icon className="w-4 h-4" /></div>
-                <div>
+                <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center shrink-0"><f.icon className="w-4 h-4" /></div>
+                <div className="min-w-0">
                   <p className="text-xs text-black/40">{f.label}</p>
-                  {f.badge ? <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(f.value)}`}>{f.value}</span> : <p className="text-sm font-medium">{f.value}</p>}
+                  {f.badge ? <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(f.value)}`}>{f.value}</span> : <p className="text-sm font-medium truncate">{f.value}</p>}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Membership + Payment Summary */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Membership */}
           <div className="bg-white border border-black/10 rounded-xl p-5">
             <h3 className="font-semibold mb-4">Membership</h3>
             <div className="space-y-0">
@@ -80,34 +91,47 @@ export default function MemberDetails() {
             </div>
           </div>
 
-          {/* Payment history */}
           <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-5">
-            <h3 className="font-semibold mb-4">Payment History</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-black/10 text-left text-xs text-black/40">
-                  <th className="py-2 pr-3 font-medium">Amount</th><th className="py-2 pr-3 font-medium">Date</th>
-                  <th className="py-2 pr-3 font-medium">Method</th><th className="py-2 pr-3 font-medium">Status</th><th className="py-2 font-medium">Reference</th>
-                </tr></thead>
-                <tbody>
-                  {memberPaymentHistory.map((p) => (
-                    <tr key={p.id} className="border-b border-black/5 last:border-0">
-                      <td className="py-2.5 pr-3 font-medium tabular-nums">${p.amount}</td>
-                      <td className="py-2.5 pr-3 text-black/70">{format(parseISO(p.date), "MMM d, yyyy")}</td>
-                      <td className="py-2.5 pr-3 text-black/70">{p.method}</td>
-                      <td className="py-2.5 pr-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
-                      <td className="py-2.5 text-black/50 tabular-nums">{p.reference}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h3 className="font-semibold mb-4">Payment Summary</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {paySummary.map((c) => (
+                <div key={c.label} className="border border-black/10 rounded-xl p-4">
+                  <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center mb-2"><c.icon className="w-4 h-4" /></div>
+                  {c.badge ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(c.value)}`}>{c.value}</span> : <p className="text-lg font-bold">{c.value}</p>}
+                  <p className="text-xs text-black/50 mt-0.5">{c.label}</p>
+                </div>
+              ))}
             </div>
+          </div>
+        </div>
+
+        {/* Payment history */}
+        <div className="bg-white border border-black/10 rounded-xl p-5">
+          <h3 className="font-semibold mb-4">Payment History</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-black/10 text-left text-xs text-black/40">
+                <th className="py-2 pr-3 font-medium">Amount</th><th className="py-2 pr-3 font-medium">Date</th>
+                <th className="py-2 pr-3 font-medium">Method</th><th className="py-2 pr-3 font-medium">Status</th><th className="py-2 font-medium">Reference</th>
+              </tr></thead>
+              <tbody>
+                {memberPaymentHistory.map((p) => (
+                  <tr key={p.id} className="border-b border-black/5 last:border-0">
+                    <td className="py-2.5 pr-3 font-medium tabular-nums">${p.amount}</td>
+                    <td className="py-2.5 pr-3 text-black/70">{format(parseISO(p.date), "MMM d, yyyy")}</td>
+                    <td className="py-2.5 pr-3 text-black/70">{p.method}</td>
+                    <td className="py-2.5 pr-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
+                    <td className="py-2.5 text-black/50 tabular-nums">{p.reference}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         {/* Activity */}
         <div className="bg-white border border-black/10 rounded-xl p-5">
-          <h3 className="font-semibold mb-4">Activity Timeline</h3>
+          <h3 className="font-semibold mb-4">Recent Activity</h3>
           <div className="space-y-0">
             {memberActivity.map((a, i) => (
               <div key={a.id} className="flex gap-3">

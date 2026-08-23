@@ -2,10 +2,12 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
-import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw } from "lucide-react";
 import { members as mockMembers } from "@/lib/mockData";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
+const labelCls = "block text-sm font-medium mb-1.5";
+const sectionCls = "text-xs font-semibold uppercase tracking-wider text-black/40 mb-3";
 
 const filters = ["All", "Active", "Expiring Soon", "Expired", "Suspended"];
 const sortOptions = [
@@ -14,6 +16,10 @@ const sortOptions = [
   { key: "expiry", label: "Membership Expiry" },
   { key: "payment", label: "Payment Status" },
 ];
+const planOptions = ["Monthly", "3 Months", "6 Months", "Custom"];
+const payOptions = ["Paid", "Pending", "Overdue"];
+const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
+const statusOptions = ["Active", "Expiring Soon", "Expired", "Suspended"];
 
 const statusBadge = (s) => {
   if (s === "Active") return "bg-black text-white";
@@ -24,6 +30,8 @@ const statusBadge = (s) => {
 const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
+const emptyForm = { name: "", phone: "", email: "", plan: "Monthly", startDate: "", expiryDate: "", paymentStatus: "Paid", amount: "", paymentMethod: "Cash", status: "Active" };
+
 export default function Members() {
   const navigate = useNavigate();
   const [members, setMembers] = useState(mockMembers);
@@ -33,7 +41,7 @@ export default function Members() {
   const [sortOpen, setSortOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ name: "", phone: "", plan: "Monthly", fee: "" });
+  const [form, setForm] = useState(emptyForm);
 
   const summary = useMemo(() => ({
     total: members.length,
@@ -58,22 +66,36 @@ export default function Members() {
     return list;
   }, [members, query, filter, sort]);
 
-  const openAdd = () => { setEditingId(null); setForm({ name: "", phone: "", plan: "Monthly", fee: "" }); setModalOpen(true); };
-  const openEdit = (m) => { setEditingId(m.id); setForm({ name: m.name, phone: m.phone, plan: m.plan, fee: m.fee }); setModalOpen(true); };
+  const openAdd = () => {
+    setEditingId(null);
+    const today = new Date().toISOString().slice(0, 10);
+    setForm({ ...emptyForm, startDate: today });
+    setModalOpen(true);
+  };
+  const openEdit = (m) => {
+    setEditingId(m.id);
+    setForm({
+      name: m.name, phone: m.phone, email: m.email || "", plan: m.plan,
+      startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate,
+      paymentStatus: m.paymentStatus, amount: String(m.fee || ""), paymentMethod: m.paymentMethod || "Cash", status: m.status,
+    });
+    setModalOpen(true);
+  };
   const submit = () => {
     if (!form.name.trim() || !form.phone.trim()) return;
     if (editingId) {
-      setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.fee) || 0 } : m)));
+      setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.amount) || m.fee } : m)));
     } else {
       const id = Math.max(...members.map((m) => m.id), 0) + 1;
       setMembers((ms) => [{
-        id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.fee) || 0,
-        status: "Active", expiryDate: "2026-09-15", paymentStatus: "Paid", registeredDate: "2026-08-22", gym: "Downtown Iron",
+        id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.amount) || 0,
+        registeredDate: form.startDate || new Date().toISOString().slice(0, 10), gym: "Olympic Gym",
       }, ...ms]);
     }
     setModalOpen(false);
   };
   const remove = (id) => setMembers((ms) => ms.filter((m) => m.id !== id));
+  const clearFilters = () => { setQuery(""); setFilter("All"); setSort("recent"); };
 
   const summaryCards = [
     { label: "Total Members", value: summary.total, icon: Users },
@@ -81,6 +103,15 @@ export default function Members() {
     { label: "Expiring Soon", value: summary.expiring, icon: Clock },
     { label: "Expired", value: summary.expired, icon: UserX },
   ];
+
+  const EmptyState = () => (
+    <div className="bg-white border border-black/10 rounded-xl p-10 text-center">
+      <div className="w-14 h-14 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-4"><Users className="w-7 h-7 text-black/40" /></div>
+      <p className="text-base font-semibold">No members found</p>
+      <p className="text-sm text-black/50 mt-1">Try changing your search or filters.</p>
+      <button onClick={clearFilters} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><RotateCcw className="w-4 h-4" /> Clear filters</button>
+    </div>
+  );
 
   return (
     <Layout>
@@ -151,97 +182,147 @@ export default function Members() {
           </div>
         </div>
 
-        {/* Desktop table */}
-        <div className="hidden md:block bg-white border border-black/10 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-black/10 text-left text-xs text-black/40">
-                <th className="px-5 py-3 font-medium">Member</th>
-                <th className="px-5 py-3 font-medium">Member ID</th>
-                <th className="px-5 py-3 font-medium">Plan</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Expiry Date</th>
-                <th className="px-5 py-3 font-medium">Payment</th>
-                <th className="px-5 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-10 text-center text-sm text-black/40">No members match your search.</td></tr>
-              ) : filtered.map((m) => (
-                <tr key={m.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02] cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
-                      <div><p className="font-medium">{m.name}</p><p className="text-xs text-black/50">{m.gym}</p></div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-black/70 tabular-nums">{m.memberId}</td>
-                  <td className="px-5 py-3">{m.plan}</td>
-                  <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(m.status)}`}>{m.status}</span></td>
-                  <td className="px-5 py-3 text-black/70">{m.expiryDate}</td>
-                  <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(m.paymentStatus)}`}>{m.paymentStatus}</span></td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <button onClick={() => navigate(`/members/${m.id}`)} className="p-1.5 rounded-lg hover:bg-black/5" title="View"><Eye className="w-4 h-4" /></button>
-                      <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5" title="Delete"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile cards */}
-        <div className="md:hidden space-y-3">
-          {filtered.length === 0 ? (
-            <div className="bg-white border border-black/10 rounded-xl p-8 text-center text-sm text-black/40">No members match your search.</div>
-          ) : filtered.map((m) => (
-            <div key={m.id} className="bg-white border border-black/10 rounded-xl p-4" onClick={() => navigate(`/members/${m.id}`)}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{m.name}</p>
-                  <p className="text-xs text-black/50 truncate">{m.memberId} · {m.phone}</p>
-                </div>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5"><Pencil className="w-4 h-4" /></button>
-                  <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5"><Trash2 className="w-4 h-4" /></button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 text-xs">
-                <span className="text-black/50">{m.plan}</span>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(m.status)}`}>{m.status}</span>
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(m.paymentStatus)}`}>{m.paymentStatus}</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-2 text-xs text-black/50">
-                <span>Expires {m.expiryDate}</span>
-              </div>
+        {filtered.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white border border-black/10 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-black/10 text-left text-xs text-black/40">
+                    <th className="px-5 py-3 font-medium">Member</th>
+                    <th className="px-5 py-3 font-medium">Member ID</th>
+                    <th className="px-5 py-3 font-medium">Plan</th>
+                    <th className="px-5 py-3 font-medium">Status</th>
+                    <th className="px-5 py-3 font-medium">Expiry Date</th>
+                    <th className="px-5 py-3 font-medium">Payment</th>
+                    <th className="px-5 py-3 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((m) => (
+                    <tr key={m.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02] cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
+                          <div><p className="font-medium">{m.name}</p><p className="text-xs text-black/50">{m.phone}</p></div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-black/70 tabular-nums">{m.memberId}</td>
+                      <td className="px-5 py-3">{m.plan}</td>
+                      <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(m.status)}`}>{m.status}</span></td>
+                      <td className="px-5 py-3 text-black/70">{m.expiryDate}</td>
+                      <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(m.paymentStatus)}`}>{m.paymentStatus}</span></td>
+                      <td className="px-5 py-3">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => navigate(`/members/${m.id}`)} className="p-1.5 rounded-lg hover:bg-black/5" title="View"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
+                          <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {filtered.map((m) => (
+                <div key={m.id} className="bg-white border border-black/10 rounded-xl p-4" onClick={() => navigate(`/members/${m.id}`)}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{m.name}</p>
+                      <p className="text-xs text-black/50 truncate">{m.memberId} · {m.phone}</p>
+                    </div>
+                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 text-xs">
+                    <span className="text-black/50">{m.plan}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(m.status)}`}>{m.status}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(m.paymentStatus)}`}>{m.paymentStatus}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2 text-xs text-black/50">
+                    <span>Expires {m.expiryDate}</span>
+                    <button onClick={(e) => { e.stopPropagation(); navigate(`/members/${m.id}`); }} className="font-medium text-black/70">View</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Member" : "Add Member"}
         footer={<>
           <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">{editingId ? "Save" : "Add member"}</button>
+          <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">{editingId ? "Save Changes" : "Add Member"}</button>
         </>}>
-        <div className="space-y-4">
-          <div><label className="block text-sm font-medium mb-1.5">Name</label>
-            <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" /></div>
-          <div><label className="block text-sm font-medium mb-1.5">Phone</label>
-            <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" /></div>
-          <div><label className="block text-sm font-medium mb-1.5">Membership Plan</label>
-            <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-              <option>Monthly</option><option>3 Months</option><option>6 Months</option><option>Custom</option>
-            </select></div>
-          <div><label className="block text-sm font-medium mb-1.5">Monthly Fee ($)</label>
-            <input type="number" className={inputCls} value={form.fee} onChange={(e) => setForm({ ...form, fee: e.target.value })} placeholder="60" /></div>
+        <div className="space-y-6">
+          <div>
+            <p className={sectionCls}>Personal Information</p>
+            <div className="space-y-4">
+              <div><label className={labelCls}>Full Name</label>
+                <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" /></div>
+              <div><label className={labelCls}>Phone Number</label>
+                <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" /></div>
+              <div><label className={labelCls}>Email (optional)</label>
+                <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
+              <div><label className={labelCls}>Profile Photo</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-sm font-semibold">{form.name ? initials(form.name) : "—"}</div>
+                  <button type="button" className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Upload photo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className={sectionCls}>Membership</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div><label className={labelCls}>Membership Plan</label>
+                <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
+                  {planOptions.map((o) => <option key={o}>{o}</option>)}
+                </select></div>
+              <div><label className={labelCls}>Start Date</label>
+                <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+              <div><label className={labelCls}>Expiry Date</label>
+                <input type="date" className={inputCls} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
+            </div>
+          </div>
+
+          {!editingId ? (
+            <div>
+              <p className={sectionCls}>Payment</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div><label className={labelCls}>Payment Status</label>
+                  <select className={inputCls} value={form.paymentStatus} onChange={(e) => setForm({ ...form, paymentStatus: e.target.value })}>
+                    {payOptions.map((o) => <option key={o}>{o}</option>)}
+                  </select></div>
+                <div><label className={labelCls}>Amount ($)</label>
+                  <input type="number" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
+                <div><label className={labelCls}>Payment Method</label>
+                  <select className={inputCls} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
+                    {methodOptions.map((o) => <option key={o}>{o}</option>)}
+                  </select></div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className={sectionCls}>Status</p>
+              <div><label className={labelCls}>Member Status</label>
+                <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  {statusOptions.map((o) => <option key={o}>{o}</option>)}
+                </select></div>
+            </div>
+          )}
         </div>
       </Modal>
     </Layout>
