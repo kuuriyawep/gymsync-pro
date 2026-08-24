@@ -16,19 +16,21 @@ export const members = [
 ];
 
 export const payments = [
-  { id: 1, name: "Sarah Chen", plan: "Monthly", amount: 60, date: "2026-08-20", method: "Card", status: "Paid", reference: "TXN-2001" },
-  { id: 2, name: "Marcus Reed", plan: "3 Months", amount: 150, date: "2026-08-18", method: "Mobile Money", status: "Paid", reference: "TXN-2002" },
-  { id: 3, name: "Lena Park", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Cash", status: "Pending", reference: "TXN-2003" },
-  { id: 4, name: "Diego Santos", plan: "6 Months", amount: 300, date: "2026-08-10", method: "Card", status: "Overdue", reference: "TXN-2004" },
-  { id: 5, name: "Aisha Khan", plan: "Monthly", amount: 60, date: "2026-08-15", method: "Mobile Money", status: "Paid", reference: "TXN-2005" },
-  { id: 6, name: "Tom Walsh", plan: "3 Months", amount: 150, date: "2026-08-05", method: "Cash", status: "Pending", reference: "TXN-2006" },
-  { id: 7, name: "Nina Costa", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Card", status: "Paid", reference: "TXN-2007" },
-  { id: 8, name: "Omar Farah", plan: "Monthly", amount: 60, date: "2026-08-21", method: "Mobile Money", status: "Paid", reference: "TXN-2008" },
-  { id: 9, name: "Grace Lee", plan: "6 Months", amount: 300, date: "2026-08-12", method: "Cash", status: "Pending", reference: "TXN-2009" },
-  { id: 10, name: "Liam Doyle", plan: "Monthly", amount: 60, date: "2026-07-30", method: "Card", status: "Overdue", reference: "TXN-2010" },
-  { id: 11, name: "Hana Yusuf", plan: "3 Months", amount: 150, date: "2026-08-19", method: "Mobile Money", status: "Paid", reference: "TXN-2011" },
-  { id: 12, name: "Carlos Mendez", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Cash", status: "Paid", reference: "TXN-2012" },
+  { id: 1, paymentId: "PAY-1001", name: "Sarah Chen", plan: "Monthly", amount: 60, date: "2026-08-20", method: "Card", status: "Paid", reference: "TXN-2001", notes: "Monthly membership dues" },
+  { id: 2, paymentId: "PAY-1002", name: "Marcus Reed", plan: "3 Months", amount: 150, date: "2026-08-18", method: "Mobile Money", status: "Paid", reference: "TXN-2002", notes: "Quarterly plan renewal" },
+  { id: 3, paymentId: "PAY-1003", name: "Lena Park", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Cash", status: "Pending", reference: "TXN-2003", notes: "Awaiting confirmation" },
+  { id: 4, paymentId: "PAY-1004", name: "Diego Santos", plan: "6 Months", amount: 300, date: "2026-08-10", method: "Card", status: "Overdue", reference: "TXN-2004", notes: "Overdue - follow up required" },
+  { id: 5, paymentId: "PAY-1005", name: "Aisha Khan", plan: "Monthly", amount: 60, date: "2026-08-15", method: "Mobile Money", status: "Paid", reference: "TXN-2005", notes: "Monthly membership dues" },
+  { id: 6, paymentId: "PAY-1006", name: "Tom Walsh", plan: "3 Months", amount: 150, date: "2026-08-05", method: "Cash", status: "Pending", reference: "TXN-2006", notes: "Partial payment pending" },
+  { id: 7, paymentId: "PAY-1007", name: "Nina Costa", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Card", status: "Paid", reference: "TXN-2007", notes: "Monthly membership dues" },
+  { id: 8, paymentId: "PAY-1008", name: "Omar Farah", plan: "Monthly", amount: 60, date: "2026-08-21", method: "Mobile Money", status: "Paid", reference: "TXN-2008", notes: "Monthly membership dues" },
+  { id: 9, paymentId: "PAY-1009", name: "Grace Lee", plan: "6 Months", amount: 300, date: "2026-08-12", method: "Cash", status: "Pending", reference: "TXN-2009", notes: "Awaiting balance" },
+  { id: 10, paymentId: "PAY-1010", name: "Liam Doyle", plan: "Monthly", amount: 60, date: "2026-07-30", method: "Card", status: "Refunded", reference: "TXN-2010", notes: "Refunded - membership cancelled" },
+  { id: 11, paymentId: "PAY-1011", name: "Hana Yusuf", plan: "3 Months", amount: 150, date: "2026-08-19", method: "Mobile Money", status: "Paid", reference: "TXN-2011", notes: "Quarterly plan renewal" },
+  { id: 12, paymentId: "PAY-1012", name: "Carlos Mendez", plan: "Monthly", amount: 60, date: "2026-08-22", method: "Cash", status: "Paid", reference: "TXN-2012", notes: "Monthly membership dues" },
 ];
+
+export const gymInfo = { name: "Olympic Gym", address: "120 Market St, San Francisco, CA", phone: "+1 555 0100", email: "info@olympicgym.com" };
 
 export const activities = [
   { id: 1, type: "member", text: "New member registered: Carlos Mendez", time: "1h ago" },
@@ -126,7 +128,7 @@ export const memberActivity = [
 
 export const trainers = [
   {
-    id: 1, name: "Jake Miller", phone: "+1 555 0201", specialization: "Strength Training", assigned: 42, status: "Active",
+    id: 1, name: "James Miller", phone: "+1 555 0201", email: "james.miller@olympicgym.com", specialization: "Strength Training", assigned: 42, status: "Active", joinDate: "2024-03-15", notes: "Specializes in powerlifting and functional strength coaching.",
     assignedMembers: ["Sarah Chen", "Marcus Reed", "Aisha Khan", "Carlos Mendez"],
     activity: [
       { id: 1, text: "Trained Sarah Chen · Strength session", time: "2h ago" },
@@ -135,15 +137,7 @@ export const trainers = [
     ],
   },
   {
-    id: 2, name: "Emily Stone", phone: "+1 555 0202", specialization: "Yoga & Flexibility", assigned: 38, status: "Active",
-    assignedMembers: ["Lena Park", "Nina Costa", "Hana Yusuf"],
-    activity: [
-      { id: 1, text: "Led Yoga class · 12 attendees", time: "4h ago" },
-      { id: 2, text: "Trained Lena Park · Flexibility session", time: "1d ago" },
-    ],
-  },
-  {
-    id: 3, name: "David Park", phone: "+1 555 0203", specialization: "Cardio & HIIT", assigned: 35, status: "Active",
+    id: 2, name: "Daniel Carter", phone: "+1 555 0202", email: "daniel.carter@olympicgym.com", specialization: "Cardio & HIIT", assigned: 38, status: "Active", joinDate: "2024-06-01", notes: "Leads high-intensity interval and conditioning classes.",
     assignedMembers: ["Omar Farah", "Grace Lee"],
     activity: [
       { id: 1, text: "Led HIIT class · 18 attendees", time: "6h ago" },
@@ -151,20 +145,19 @@ export const trainers = [
     ],
   },
   {
-    id: 4, name: "Sofia Ramos", phone: "+1 555 0204", specialization: "Personal Training", assigned: 29, status: "Inactive",
+    id: 3, name: "Sarah Johnson", phone: "+1 555 0203", email: "sarah.johnson@olympicgym.com", specialization: "Yoga & Flexibility", assigned: 35, status: "Active", joinDate: "2024-08-20", notes: "Focuses on mobility, flexibility and recovery.",
+    assignedMembers: ["Lena Park", "Nina Costa", "Hana Yusuf"],
+    activity: [
+      { id: 1, text: "Led Yoga class · 12 attendees", time: "4h ago" },
+      { id: 2, text: "Trained Lena Park · Flexibility session", time: "1d ago" },
+    ],
+  },
+  {
+    id: 4, name: "Michael Lee", phone: "+1 555 0204", email: "michael.lee@olympicgym.com", specialization: "Personal Training", assigned: 29, status: "Inactive", joinDate: "2024-01-10", notes: "Currently on leave. Available for 1-on-1 sessions when active.",
     assignedMembers: ["Tom Walsh"],
     activity: [
       { id: 1, text: "Trained Tom Walsh · PT session", time: "5d ago" },
       { id: 2, text: "Status changed to Inactive", time: "4d ago" },
-    ],
-  },
-  {
-    id: 5, name: "Brian Lee", phone: "+1 555 0205", specialization: "CrossFit", assigned: 44, status: "Active",
-    assignedMembers: ["Diego Santos", "Liam Doyle"],
-    activity: [
-      { id: 1, text: "Led CrossFit class · 15 attendees", time: "3h ago" },
-      { id: 2, text: "Trained Diego Santos · CrossFit session", time: "1d ago" },
-      { id: 3, text: "Assigned new member: Liam Doyle", time: "2d ago" },
     ],
   },
 ];

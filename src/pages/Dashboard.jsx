@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
+import PageSkeleton from "@/components/PageSkeleton";
 import {
   Users, UserCheck, Clock, UserX, DollarSign, Dumbbell,
   UserPlus, RefreshCw, UserCog, CalendarCheck, AlarmClock,
@@ -25,7 +26,7 @@ const quickActions = [
   { label: "Add Member", icon: UserPlus, to: "/members" },
   { label: "Record Payment", icon: DollarSign, to: "/payments" },
   { label: "Renew Membership", icon: RefreshCw, to: "/membership" },
-  { label: "Add Trainer", icon: UserCog, to: null },
+  { label: "Add Trainer", icon: UserCog, to: "/trainers" },
 ];
 
 const rangeOptions = [
@@ -46,7 +47,11 @@ const activityIcon = { member: UserPlus, payment: DollarSign, renewal: RefreshCw
 
 export default function Dashboard() {
   const [range, setRange] = useState("6m");
+  const [loading, setLoading] = useState(true);
   const rangeLabel = rangeOptions.find((o) => o.key === range)?.label ?? "Last 6 months";
+
+  useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
+  if (loading) return <Layout><PageSkeleton /></Layout>;
 
   return (
     <Layout>

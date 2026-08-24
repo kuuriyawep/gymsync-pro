@@ -4,6 +4,8 @@ import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw } from "lucide-react";
 import { members as mockMembers } from "@/lib/mockData";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { useToast } from "@/components/ui/use-toast";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
@@ -42,6 +44,9 @@ export default function Members() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState({});
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const { toast } = useToast();
 
   const summary = useMemo(() => ({
     total: members.length,
@@ -70,6 +75,7 @@ export default function Members() {
     setEditingId(null);
     const today = new Date().toISOString().slice(0, 10);
     setForm({ ...emptyForm, startDate: today });
+    setErrors({});
     setModalOpen(true);
   };
   const openEdit = (m) => {
@@ -79,22 +85,32 @@ export default function Members() {
       startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate,
       paymentStatus: m.paymentStatus, amount: String(m.fee || ""), paymentMethod: m.paymentMethod || "Cash", status: m.status,
     });
+    setErrors({});
     setModalOpen(true);
   };
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (!form.phone.trim()) e.phone = "Phone is required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
   const submit = () => {
-    if (!form.name.trim() || !form.phone.trim()) return;
+    if (!validate()) return;
     if (editingId) {
       setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.amount) || m.fee } : m)));
+      toast({ title: "Member updated", description: form.name });
     } else {
       const id = Math.max(...members.map((m) => m.id), 0) + 1;
       setMembers((ms) => [{
         id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.amount) || 0,
         registeredDate: form.startDate || new Date().toISOString().slice(0, 10), gym: "Olympic Gym",
       }, ...ms]);
+      toast({ title: "Member added successfully", description: form.name });
     }
     setModalOpen(false);
   };
-  const remove = (id) => setMembers((ms) => ms.filter((m) => m.id !== id));
+  const remove = (id) => { setMembers((ms) => ms.filter((m) => m.id !== id)); toast({ title: "Member deleted" }); setConfirmDelete(null); };
   const clearFilters = () => { setQuery(""); setFilter("All"); setSort("recent"); };
 
   const summaryCards = [
@@ -218,7 +234,7 @@ export default function Members() {
                         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <button onClick={() => navigate(`/members/${m.id}`)} className="p-1.5 rounded-lg hover:bg-black/5" title="View"><Eye className="w-4 h-4" /></button>
                           <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
-                          <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => setConfirmDelete(m.id)} className="p-1.5 rounded-lg hover:bg-black/5" title="Delete"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -239,7 +255,7 @@ export default function Members() {
                     </div>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-black/5"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => remove(m.id)} className="p-1.5 rounded-lg hover:bg-black/5"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => setConfirmDelete(m.id)} className="p-1.5 rounded-lg hover:bg-black/5"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 text-xs">
@@ -270,9 +286,11 @@ export default function Members() {
             <p className={sectionCls}>Personal Information</p>
             <div className="space-y-4">
               <div><label className={labelCls}>Full Name</label>
-                <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" /></div>
+                <input className={`${inputCls} ${errors.name ? "border-black bg-black/5" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
+                {errors.name && <p className="text-xs text-black font-medium mt-1">{errors.name}</p>}</div>
               <div><label className={labelCls}>Phone Number</label>
-                <input className={inputCls} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" /></div>
+                <input className={`${inputCls} ${errors.phone ? "border-black bg-black/5" : ""}`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" />
+                {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}</div>
               <div><label className={labelCls}>Email (optional)</label>
                 <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
               <div><label className={labelCls}>Profile Photo</label>
@@ -325,6 +343,15 @@ export default function Members() {
           )}
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => remove(confirmDelete)}
+        title="Delete member?"
+        message="Are you sure you want to remove this member? This cannot be undone."
+        confirmLabel="Delete Member"
+      />
     </Layout>
   );
 }
