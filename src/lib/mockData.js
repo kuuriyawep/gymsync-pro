@@ -184,3 +184,18 @@ export const planPerformance = [
   { plan: "6 Months", members: 64, revenue: 19200, share: 14 },
   { plan: "Custom", members: 12, revenue: 3600, share: 3 },
 ];
+
+// Staff & access (Owner side). Staff belong to the owner's gym and are invited
+// by the owner — they are not separate gym owners. Frontend-only mock.
+export const staffRoles = ["Manager", "Front Desk", "Cashier"];
+export const staffPermissions = {
+  Manager: { label: "Manager", can: ["View & manage members", "Record payments", "View reports", "Manage trainers"] },
+  "Front Desk": { label: "Front Desk", can: ["View members", "Check-in members", "Record payments"] },
+  Cashier: { label: "Cashier", can: ["View payments", "Record payments"] },
+};
+export const staff = [
+  { id: 1, name: "Alex Kovac", email: "alex@olympicgym.com", role: "Owner", status: "Active", lastActive: "Active now" },
+  { id: 2, name: "Maria Gomez", email: "maria@olympicgym.com", role: "Manager", status: "Active", lastActive: "2h ago" },
+  { id: 3, name: "David Kim", email: "david@olympicgym.com", role: "Front Desk", status: "Active", lastActive: "1d ago" },
+  { id: 4, name: "Priya Shah", email: "priya@olympicgym.com", role: "Cashier", status: "Invited", lastActive: "—" },
+];

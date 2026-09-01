@@ -129,7 +129,7 @@ export default function Register() {
     <AuthLayout
       icon={UserPlus}
       title="Create your account"
-      subtitle="Sign up to get started"
+      subtitle="Create a gym management account"
       footer={
         <>
           Already have an account?{" "}
@@ -142,6 +142,9 @@ export default function Register() {
         </>
       }
     >
+      <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 mb-6">
+        This creates a <span className="font-medium text-foreground">gym management account</span> for owners & staff. Gym members should join through their gym instead.
+      </p>
       <Button
         variant="outline"
         className="w-full h-12 text-sm font-medium mb-6"

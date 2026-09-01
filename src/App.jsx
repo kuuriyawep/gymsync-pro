@@ -20,6 +20,12 @@ import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
+import JoinGym from '@/pages/JoinGym';
+import MemberDashboard from '@/pages/member/MemberDashboard';
+import MemberAttendance from '@/pages/member/MemberAttendance';
+import MemberPayments from '@/pages/member/MemberPayments';
+import MemberFeedback from '@/pages/member/MemberFeedback';
+import MemberProfile from '@/pages/member/MemberProfile';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -53,6 +59,7 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/join-gym" element={<JoinGym />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/members" element={<Members />} />
@@ -62,6 +69,11 @@ const AuthenticatedApp = () => {
         <Route path="/trainers" element={<Trainers />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/member" element={<MemberDashboard />} />
+        <Route path="/member/attendance" element={<MemberAttendance />} />
+        <Route path="/member/payments" element={<MemberPayments />} />
+        <Route path="/member/feedback" element={<MemberFeedback />} />
+        <Route path="/member/profile" element={<MemberProfile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

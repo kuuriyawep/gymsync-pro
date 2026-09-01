@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Camera, Monitor, LogOut } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Camera, Monitor, LogOut, UserCog, Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import Modal from "@/components/ui/Modal";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { staff as mockStaff, staffRoles, staffPermissions } from "@/lib/mockData";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
@@ -10,6 +13,7 @@ const sections = [
   { id: "membership", label: "Membership", icon: CreditCard, desc: "Default currency and payment method" },
   { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
   { id: "security", label: "Security", icon: Shield, desc: "Password, active sessions and sign out" },
+  { id: "staff", label: "Staff & Access", icon: UserCog, desc: "Invite staff and manage their gym access" },
 ];
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -32,8 +36,21 @@ export default function Settings() {
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const [gym, setGym] = useState({ name: "Olympic Gym", phone: "+1 555 0100", email: "info@olympicgym.com", address: "120 Market St, San Francisco, CA", description: "A premium fitness center offering strength training, cardio, group classes and personal training." });
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
+  const [staff, setStaff] = useState(mockStaff);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invite, setInvite] = useState({ email: "", role: "Front Desk" });
+  const [revoke, setRevoke] = useState(null);
   const { toast } = useToast();
   const handleSave = (msg) => toast({ title: msg || "Changes saved", description: "Your settings have been updated." });
+  const inviteStaff = () => {
+    if (!invite.email.trim()) return;
+    const id = Math.max(...staff.map((s) => s.id), 0) + 1;
+    const name = invite.email.split("@")[0].split(/[._-]/).map((p) => p[0].toUpperCase() + p.slice(1)).join(" ");
+    setStaff((ss) => [...ss, { id, name, email: invite.email.trim(), role: invite.role, status: "Invited", lastActive: "—" }]);
+    setInviteOpen(false);
+    setInvite({ email: "", role: "Front Desk" });
+    toast({ title: "Invite sent", description: `${invite.email} was invited as ${invite.role}.` });
+  };
   const activeItem = sections.find((s) => s.id === active);
 
   return (
@@ -62,7 +79,7 @@ export default function Settings() {
               <p className="text-sm text-black/50">{activeItem.desc}</p>
             </div>
             <AnimatePresence mode="wait">
-              <motion.div key={active} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+              <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-[300px]">
 
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
@@ -180,11 +197,71 @@ export default function Settings() {
                     </div>
                   </div>
                 )}
+
+                {active === "staff" && (
+                  <div className="space-y-4">
+                    <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2"><UserCog className="w-5 h-5" /><h3 className="font-semibold text-sm">Staff & Access</h3></div>
+                        <button onClick={() => setInviteOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><Plus className="w-4 h-4" /> Invite</button>
+                      </div>
+                      <p className="text-xs text-black/50 mb-4">Staff belong to your gym and are invited by you. They help manage your gym but are not gym owners.</p>
+                      <div className="space-y-2">
+                        {staff.map((s) => (
+                          <div key={s.id} className="flex items-center gap-3 p-3 border border-black/10 rounded-lg">
+                            <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-semibold">{s.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate">{s.name} {s.role === "Owner" && <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">You</span>}</p>
+                              <p className="text-xs text-black/50 truncate">{s.email} · {s.lastActive}</p>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/5 text-black/70">{s.role}</span>
+                            {s.role !== "Owner" && <button onClick={() => setRevoke(s)} className="text-black/40 hover:text-black p-1.5 rounded-lg hover:bg-black/5"><Trash2 className="w-4 h-4" /></button>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
         </div>
       </div>
+
+      <Modal open={inviteOpen} onClose={() => setInviteOpen(false)} title="Invite staff"
+        footer={<>
+          <button onClick={() => setInviteOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
+          <button onClick={inviteStaff} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Send invite</button>
+        </>}>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Email</label>
+            <input className={inputCls} value={invite.email} onChange={(e) => setInvite({ ...invite, email: e.target.value })} placeholder="staff@olympicgym.com" type="email" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Role</label>
+            <select className={inputCls} value={invite.role} onChange={(e) => setInvite({ ...invite, role: e.target.value })}>
+              {staffRoles.map((r) => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div className="bg-black/[0.02] rounded-lg p-3">
+            <p className="text-xs font-semibold mb-1.5">This role can:</p>
+            <ul className="space-y-1">
+              {staffPermissions[invite.role].can.map((c) => <li key={c} className="text-xs text-black/60 flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-black" /> {c}</li>)}
+            </ul>
+          </div>
+          <p className="text-xs text-black/40">Staff are not gym owners. They can only access what you allow.</p>
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!revoke}
+        onClose={() => setRevoke(null)}
+        onConfirm={() => { setStaff((ss) => ss.filter((s) => s.id !== revoke.id)); toast({ title: "Access revoked", description: revoke?.name }); setRevoke(null); }}
+        title="Revoke staff access?"
+        message={`Remove ${revoke?.name} from your gym? They will lose access immediately.`}
+        confirmLabel="Revoke"
+      />
     </Layout>
   );
 }
