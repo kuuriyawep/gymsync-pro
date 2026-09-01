@@ -454,7 +454,7 @@ Based on actual inspection (the app is mock-coupled and has no backend), the saf
 
 ## 20. REPORT FILE
 
-This report is saved as **`GYMSYNC_COMPLETE_PROJECT_AUDIT.md`** at the project root.
+This report is saved as **`GYMSYNC_COMPLETE_PROJECT_AUDIT.md`** at the project root (and a duplicate at `src/GYMSYNC_COMPLETE_PROJECT_AUDIT.md`).
 
 > A PDF version (`GYMSYNC_COMPLETE_PROJECT_AUDIT.pdf`) was **not** auto-generated because no PDF-generation tool was invoked and the task prohibited adding anything to the project. The Markdown file can be exported to PDF externally if needed.
 
