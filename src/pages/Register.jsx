@@ -46,6 +46,12 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
+      try {
+        if (sessionStorage.getItem("onboarding_role") === "owner") {
+          sessionStorage.removeItem("onboarding_role");
+          base44.functions.invoke("sendOwnerWelcomeEmail", { email, dashboardUrl: window.location.origin + "/" });
+        }
+      } catch (_) {}
       window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid verification code");

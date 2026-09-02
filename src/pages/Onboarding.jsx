@@ -8,8 +8,10 @@ import Paywall from "@/components/onboarding/Paywall";
 import WelcomePath from "@/components/onboarding/WelcomePath";
 import { DashboardPreview, PaymentsPreview, StaffPreview, ValueSummary } from "@/components/onboarding/OwnerVisuals";
 import { StreakVisual, MembershipCardVisual, ConnectedVisual, MemberDashboardPreview } from "@/components/onboarding/MemberVisuals";
+import ReportPreview from "@/components/onboarding/ReportPreview";
+import GymProfileSetup from "@/components/onboarding/GymProfileSetup";
 import { useToast } from "@/components/ui/use-toast";
-import { UserCog, Users, CalendarClock, ListChecks, Eye, CreditCard, Clock, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell } from "lucide-react";
+import { UserCog, Users, CalendarClock, ListChecks, Eye, CreditCard, Clock, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell, Building2, MapPin } from "lucide-react";
 
 const ownerSteps = [
   { id: "role", kind: "question", icon: UserCog, title: "What best describes you?", subtitle: "This helps us tailor your setup.", options: [
@@ -75,6 +77,8 @@ const ownerSteps = [
   { id: "solPayments", kind: "visual", icon: CreditCard, title: "Payments without the chase", subtitle: "Record payments, track balances, know who's outstanding.", visual: PaymentsPreview },
   { id: "solStaff", kind: "visual", icon: Users, title: "Staff & access, controlled", subtitle: "Invite your team and limit what each role can do.", visual: StaffPreview },
   { id: "value", kind: "visual", icon: Sparkles, title: "Built for how you run your gym", subtitle: "Here's what GymSync means for you.", visual: ValueSummary, useAnswers: true },
+  { id: "solReports", kind: "visual", icon: BarChart3, title: "Reports that answer your questions", subtitle: "Tap between Member and Revenue reports to explore.", visual: ReportPreview },
+  { id: "gymProfile", kind: "gymProfile", icon: Building2, title: "Set up your gym profile", subtitle: "Add your logo, gym name and location. You can change these later." },
   { id: "paywall", kind: "paywall" },
 ];
 
@@ -97,7 +101,11 @@ export default function Onboarding() {
   const current = steps[step];
   const nextIsPaywall = steps[step + 1]?.kind === "paywall";
 
-  const choose = (p) => { setPath(p); setStep(0); setAnswers({}); };
+  const choose = (p) => {
+    setPath(p); setStep(0); setAnswers({});
+    if (p === "owner") sessionStorage.setItem("onboarding_role", "owner");
+    else sessionStorage.removeItem("onboarding_role");
+  };
   const next = () => (step < steps.length - 1 ? setStep(step + 1) : finish());
   const back = () => (step === 0 ? setPath(null) : setStep(step - 1));
   const finish = () => navigate(path === "owner" ? "/login" : "/join-gym");
@@ -127,6 +135,14 @@ export default function Onboarding() {
       </VisualScreen>
     );
     footer = <button onClick={next} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">{nextIsPaywall ? "See GymSync Pro" : "Continue"}</button>;
+  } else if (current.kind === "gymProfile") {
+    const gp = answers.gymProfile || {};
+    content = (
+      <VisualScreen icon={current.icon} title={current.title} subtitle={current.subtitle}>
+        <GymProfileSetup value={gp} onChange={(v) => { const updated = { ...gp, ...v }; setAnswers((a) => ({ ...a, gymProfile: updated })); localStorage.setItem("gym_profile", JSON.stringify(updated)); }} />
+      </VisualScreen>
+    );
+    footer = <button onClick={next} disabled={!gp.name || !gp.location} className={`w-full py-3 text-sm font-semibold rounded-xl transition-colors ${gp.name && gp.location ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>Continue</button>;
   } else if (current.kind === "paywall") {
     content = <Paywall onContinue={() => navigate("/register")} onLater={() => navigate("/login")} onRestore={() => toast({ title: "Restore purchase", description: "No purchase found (demo)." })} />;
   } else if (current.kind === "cta") {
