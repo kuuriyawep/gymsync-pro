@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, ChevronDown, Menu, X } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, ChevronDown, Menu, X, LogOut, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
+import AppFeedbackModal from "@/components/AppFeedbackModal";
+import { useGym } from "@/lib/gymStore";
+import { base44 } from "@/api/base44Client";
+import { Image } from "@/components/ui/image";
 import { members, payments, trainers } from "@/lib/mockData";
 
 const primaryNav = [
@@ -15,6 +19,7 @@ const secondaryNav = [
   { label: "Payments", path: "/payments", icon: CreditCard },
   { label: "Trainers", path: "/trainers", icon: UserCog },
   { label: "Membership", path: "/membership", icon: Ticket },
+  { label: "Feedback", path: "/feedback", icon: MessageSquare },
 ];
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -25,6 +30,8 @@ export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
+  const gym = useGym();
+  const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
@@ -67,13 +74,19 @@ export default function Layout({ children }) {
         </nav>
         <div className="p-4 border-t border-black/10">
           <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">AK</div><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">Alex Kovac</p><p className="text-xs text-black/50 truncate">Owner</p></div></div>
+          <button onClick={() => setAppFeedbackOpen(true)} className="mt-3 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Send feedback</button>
+          <button onClick={() => base44.auth.logout("/login")} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/10 h-16 flex items-center px-4 md:px-6 gap-3">
           <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-black/5" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></button>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-black/15 hover:bg-black/5 transition-colors"><span className="w-2 h-2 rounded-full bg-black" /><span className="text-sm font-semibold">Olympic Gym</span><ChevronDown className="w-4 h-4 text-black/50" /></button>
+          <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-black/15 hover:bg-black/5 transition-colors max-w-[55vw]">
+            {gym.logoUrl ? <Image src={gym.logoUrl} className="w-5 h-5 rounded-full" fittingType="fill" /> : <span className="w-2 h-2 rounded-full bg-black" />}
+            <span className="text-sm font-semibold truncate">{gym.name}</span>
+            <ChevronDown className="w-4 h-4 text-black/50 shrink-0" />
+          </button>
           <div className="flex-1" />
           <div className="relative hidden lg:block w-64">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/5">
@@ -129,11 +142,16 @@ export default function Layout({ children }) {
                 {primaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
                 <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Manage</p>
                 {secondaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
+                <div className="pt-4 mt-2 border-t border-black/10 space-y-1">
+                  <button onClick={() => setAppFeedbackOpen(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-black/70 hover:bg-black/5 w-full"><MessageSquare className="w-4.5 h-4.5" /> Send feedback</button>
+                  <button onClick={() => base44.auth.logout("/login")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-black/70 hover:bg-black/5 w-full"><LogOut className="w-4.5 h-4.5" /> Log out</button>
+                </div>
               </nav>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+      <AppFeedbackModal open={appFeedbackOpen} onClose={() => setAppFeedbackOpen(false)} />
     </div>
   );
 }

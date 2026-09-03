@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet } from "lucide-react";
-import { members, memberPaymentHistory, memberActivity } from "@/lib/mockData";
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
+import { memberPaymentHistory, memberActivity } from "@/lib/mockData";
+import { useMembers } from "@/lib/memberStore";
+import QuickMessageModal from "@/components/QuickMessageModal";
+import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : s === "Expiring Soon" ? "bg-black/10 text-black" : s === "Expired" ? "bg-black/5 text-black/50" : "bg-black/10 text-black/60");
@@ -12,9 +14,15 @@ const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" 
 export default function MemberDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const member = members.find((m) => m.id === Number(id)) ?? members[0];
-  const daysRemaining = differenceInCalendarDays(parseISO(member.expiryDate), new Date());
+  const [quickMsg, setQuickMsg] = useState(false);
+  const allMembers = useMembers();
+  const member = allMembers.find((m) => m.id === Number(id)) ?? allMembers[0];
   const startDate = member.startDate || member.registeredDate;
+  const expiry = member.expiryDate ? parseISO(member.expiryDate) : null;
+  const start = startDate ? parseISO(startDate) : null;
+  const registered = member.registeredDate ? parseISO(member.registeredDate) : null;
+  const daysRemaining = expiry && isValid(expiry) ? differenceInCalendarDays(expiry, new Date()) : null;
+  const fmt = (d) => (d && isValid(d) ? format(d, "MMM d, yyyy") : "—");
 
   const totalPaid = memberPaymentHistory.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
   const lastPayment = memberPaymentHistory[0];
@@ -22,20 +30,21 @@ export default function MemberDetails() {
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
     { icon: Mail, label: "Email", value: member.email || "—" },
-    { icon: CalendarDays, label: "Registration Date", value: format(parseISO(member.registeredDate), "MMM d, yyyy") },
+    { icon: CalendarDays, label: "Registration Date", value: fmt(registered) },
     { icon: UserCheck, label: "Status", value: member.status, badge: true },
   ];
   const membership = [
     { label: "Current Plan", value: member.plan },
-    { label: "Start Date", value: format(parseISO(startDate), "MMM d, yyyy") },
-    { label: "Expiry Date", value: format(parseISO(member.expiryDate), "MMM d, yyyy") },
-    { label: "Days Remaining", value: `${daysRemaining} days` },
+    { label: "Preferred Time", value: member.preferredTime || "Flexible" },
+    { label: "Start Date", value: fmt(start) },
+    { label: "Expiry Date", value: fmt(expiry) },
+    { label: "Days Remaining", value: daysRemaining != null ? `${daysRemaining} days` : "—" },
     { label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
     { icon: DollarSign, label: "Last Payment", value: `$${lastPayment.amount}` },
-    { icon: CalendarDays, label: "Last Payment Date", value: format(parseISO(lastPayment.date), "MMM d, yyyy") },
+    { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
     { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
 
@@ -59,6 +68,7 @@ export default function MemberDetails() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button onClick={() => setQuickMsg(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Quick Message</button>
               <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
               <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew Membership</button>
               <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
@@ -129,6 +139,12 @@ export default function MemberDetails() {
           </div>
         </div>
 
+        {/* Internal note */}
+        <div className="bg-white border border-black/10 rounded-xl p-5">
+          <h3 className="font-semibold mb-3">Internal Note</h3>
+          {member.note ? <p className="text-sm text-black/70 whitespace-pre-wrap">{member.note}</p> : <p className="text-sm text-black/40">No note added. Edit the member to add a private note.</p>}
+        </div>
+
         {/* Activity */}
         <div className="bg-white border border-black/10 rounded-xl p-5">
           <h3 className="font-semibold mb-4">Recent Activity</h3>
@@ -149,6 +165,7 @@ export default function MemberDetails() {
           </div>
         </div>
       </div>
+      <QuickMessageModal open={quickMsg} onClose={() => setQuickMsg(false)} member={member} />
     </Layout>
   );
 }

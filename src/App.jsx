@@ -16,6 +16,7 @@ import Payments from '@/pages/Payments';
 import Membership from '@/pages/Membership';
 import MemberDetails from '@/pages/MemberDetails';
 import Trainers from '@/pages/Trainers';
+import Feedback from '@/pages/Feedback';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/payments" element={<Payments />} />
         <Route path="/membership" element={<Membership />} />
         <Route path="/trainers" element={<Trainers />} />
+        <Route path="/feedback" element={<Feedback />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/member" element={<MemberDashboard />} />

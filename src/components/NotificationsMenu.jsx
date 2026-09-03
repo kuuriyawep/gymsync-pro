@@ -59,9 +59,9 @@ export default function NotificationsMenu() {
 
       <AnimatePresence>
         {allOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div className="fixed inset-0 z-50">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40" onClick={() => setAllOpen(false)} />
-            <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} className="relative bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[80vh]">
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white flex flex-col">
               <div className="flex items-center justify-between px-5 h-14 border-b border-black/10 shrink-0">
                 <h3 className="font-semibold">All Notifications</h3>
                 <button onClick={() => setAllOpen(false)} className="p-1.5 rounded-lg hover:bg-black/5"><X className="w-5 h-5" /></button>

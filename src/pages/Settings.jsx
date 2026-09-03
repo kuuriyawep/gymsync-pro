@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Camera, Monitor, LogOut, UserCog, Plus, Trash2 } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import SaveButton from "@/components/SaveButton";
+import PhotoPicker from "@/components/PhotoPicker";
+import { useGym, setGym } from "@/lib/gymStore";
+import { base44 } from "@/api/base44Client";
 import { staff as mockStaff, staffRoles, staffPermissions } from "@/lib/mockData";
 
 const sections = [
@@ -14,6 +18,7 @@ const sections = [
   { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
   { id: "security", label: "Security", icon: Shield, desc: "Password, active sessions and sign out" },
   { id: "staff", label: "Staff & Access", icon: UserCog, desc: "Invite staff and manage their gym access" },
+  { id: "danger", label: "Danger Zone", icon: AlertTriangle, desc: "Irreversible account actions" },
 ];
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -34,14 +39,17 @@ const sessions = [
 export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
-  const [gym, setGym] = useState({ name: "Olympic Gym", phone: "+1 555 0100", email: "info@olympicgym.com", address: "120 Market St, San Francisco, CA", description: "A premium fitness center offering strength training, cardio, group classes and personal training." });
+  const gymStore = useGym();
+  const [gym, setGymLocal] = useState(gymStore);
+  const [profile, setProfile] = useState({ name: "Alex Kovac", email: "alex@olympicgym.com", phone: "+1 555 0100", photoUrl: null });
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const [staff, setStaff] = useState(mockStaff);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ email: "", role: "Front Desk" });
   const [revoke, setRevoke] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { toast } = useToast();
-  const handleSave = (msg) => toast({ title: msg || "Changes saved", description: "Your settings have been updated." });
+
   const inviteStaff = () => {
     if (!invite.email.trim()) return;
     const id = Math.max(...staff.map((s) => s.id), 0) + 1;
@@ -83,54 +91,42 @@ export default function Settings() {
 
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-lg font-bold">AK</div>
-                      <div>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Camera className="w-4 h-4" /> Change photo</button>
-                        <p className="text-xs text-black/40 mt-1.5">JPG or PNG. Max 2MB.</p>
-                      </div>
-                    </div>
+                    <PhotoPicker value={profile.photoUrl} onChange={(url) => setProfile({ ...profile, photoUrl: url })} onRemove={() => setProfile({ ...profile, photoUrl: null })} size="w-16 h-16" placeholder="AK" hint="JPG or PNG. Max 2MB." />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Full name"><input className={inputCls} defaultValue="Alex Kovac" /></Field>
-                      <Field label="Email"><input className={inputCls} defaultValue="alex@olympicgym.com" /></Field>
-                      <Field label="Phone"><input className={inputCls} defaultValue="+1 555 0100" /></Field>
+                      <Field label="Full name"><input className={inputCls} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
+                      <Field label="Email"><input className={inputCls} value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
+                      <Field label="Phone"><input className={inputCls} value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
                       <Field label="Role"><input className={inputCls} defaultValue="Owner" disabled /></Field>
                     </div>
                     <div className="pt-4 border-t border-black/5">
                       <h3 className="font-semibold mb-3 text-sm">Change Password</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Field label="Current"><input type="password" className={inputCls} defaultValue="password" /></Field>
-                        <Field label="New"><input type="password" className={inputCls} /></Field>
-                        <Field label="Confirm"><input type="password" className={inputCls} /></Field>
+                        <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
+                        <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
+                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                       </div>
                     </div>
-                    <div className="flex justify-end pt-2"><button onClick={() => handleSave("Profile updated")} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save changes</button></div>
+                    <div className="flex justify-end pt-2"><SaveButton onSave={() => toast({ title: "Profile updated", description: "Your profile has been updated." })} /></div>
                   </div>
                 )}
 
                 {active === "gym" && (
                   <div className="space-y-4">
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-xl bg-black text-white flex items-center justify-center text-xl font-bold">OG</div>
-                        <div>
-                          <button className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Camera className="w-4 h-4" /> Upload logo</button>
-                          <p className="text-xs text-black/40 mt-1.5">PNG or SVG. Max 1MB.</p>
-                        </div>
-                      </div>
+                      <PhotoPicker value={gym.logoUrl} onChange={(url) => setGymLocal({ ...gym, logoUrl: url })} onRemove={() => setGymLocal({ ...gym, logoUrl: null })} shape="rounded" size="w-16 h-16" placeholder="OG" hint="PNG or JPG. Max 1MB." />
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="Gym name"><input className={inputCls} value={gym.name} onChange={(e) => setGym({ ...gym, name: e.target.value })} /></Field>
-                        <Field label="Phone"><input className={inputCls} value={gym.phone} onChange={(e) => setGym({ ...gym, phone: e.target.value })} /></Field>
-                        <Field label="Email"><input className={inputCls} value={gym.email} onChange={(e) => setGym({ ...gym, email: e.target.value })} /></Field>
-                        <Field label="Address"><input className={inputCls} value={gym.address} onChange={(e) => setGym({ ...gym, address: e.target.value })} /></Field>
-                        <div className="sm:col-span-2"><Field label="Description"><textarea rows={3} className={inputCls} value={gym.description} onChange={(e) => setGym({ ...gym, description: e.target.value })} /></Field></div>
+                        <Field label="Gym name"><input className={inputCls} value={gym.name} onChange={(e) => setGymLocal({ ...gym, name: e.target.value })} /></Field>
+                        <Field label="Phone"><input className={inputCls} value={gym.phone} onChange={(e) => setGymLocal({ ...gym, phone: e.target.value })} /></Field>
+                        <Field label="Email"><input className={inputCls} value={gym.email} onChange={(e) => setGymLocal({ ...gym, email: e.target.value })} /></Field>
+                        <Field label="Address"><input className={inputCls} value={gym.address} onChange={(e) => setGymLocal({ ...gym, address: e.target.value })} /></Field>
+                        <div className="sm:col-span-2"><Field label="Description"><textarea rows={3} className={inputCls} value={gym.description} onChange={(e) => setGymLocal({ ...gym, description: e.target.value })} /></Field></div>
                       </div>
-                      <div className="flex justify-end pt-2"><button onClick={() => handleSave("Gym profile saved")} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save profile</button></div>
+                      <div className="flex justify-end pt-2"><SaveButton label="Save profile" successLabel="Saved" onSave={() => { setGym(gym); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); }} /></div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5">
                       <h3 className="font-semibold mb-3 text-sm">Preview</h3>
                       <div className="flex items-start gap-4 p-4 border border-black/10 rounded-xl">
-                        <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center text-lg font-bold">OG</div>
+                        <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center text-lg font-bold overflow-hidden">{gym.logoUrl ? <img src={gym.logoUrl} alt="" className="w-full h-full object-cover" /> : "OG"}</div>
                         <div><p className="font-semibold">{gym.name}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {gym.address}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" /> {gym.phone} · <Mail className="w-3 h-3" /> {gym.email}</p></div>
                       </div>
                     </div>
@@ -148,7 +144,7 @@ export default function Settings() {
                       <div><p className="text-sm font-medium">Auto-renew memberships</p><p className="text-xs text-black/50">Automatically renew members on expiry</p></div>
                       <Toggle on={membership.autoRenew} onClick={() => setMembership({ ...membership, autoRenew: !membership.autoRenew })} />
                     </div>
-                    <div className="flex justify-end pt-2"><button onClick={() => handleSave("Membership settings saved")} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Save changes</button></div>
+                    <div className="flex justify-end pt-2"><SaveButton onSave={() => toast({ title: "Membership settings saved", description: "Your membership defaults have been updated." })} /></div>
                   </div>
                 )}
 
@@ -161,7 +157,7 @@ export default function Settings() {
                     ].map((n) => (
                       <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
                         <div className="pr-4"><p className="text-sm font-medium">{n.label}</p><p className="text-xs text-black/50">{n.desc}</p></div>
-                        <Toggle on={notif[n.key]} onClick={() => setNotif({ ...notif, [n.key]: !notif[n.key] })} />
+                        <Toggle on={notif[n.key]} onClick={() => { setNotif({ ...notif, [n.key]: !notif[n.key] }); toast({ title: `${n.label} ${!notif[n.key] ? "enabled" : "disabled"}` }); }} />
                       </div>
                     ))}
                   </div>
@@ -172,11 +168,11 @@ export default function Settings() {
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
                       <h3 className="font-semibold mb-3 text-sm">Password</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Field label="Current"><input type="password" className={inputCls} defaultValue="password" /></Field>
-                        <Field label="New"><input type="password" className={inputCls} /></Field>
-                        <Field label="Confirm"><input type="password" className={inputCls} /></Field>
+                        <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
+                        <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
+                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                       </div>
-                      <div className="flex justify-end mt-4"><button onClick={() => handleSave("Password updated")} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Update password</button></div>
+                      <div className="flex justify-end mt-4"><SaveButton label="Update password" successLabel="Updated" onSave={() => toast({ title: "Password updated", description: "Your password has been changed." })} /></div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
                       <h3 className="font-semibold mb-4 text-sm">Active Sessions</h3>
@@ -187,13 +183,13 @@ export default function Settings() {
                               <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><Monitor className="w-4 h-4" /></div>
                               <div><p className="text-sm font-medium">{s.device} {s.current && <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">Current</span>}</p><p className="text-xs text-black/50">{s.location} · {s.time}</p></div>
                             </div>
-                            {!s.current && <button className="text-xs font-medium text-black/60 hover:text-black">Revoke</button>}
+                            {!s.current && <button onClick={() => toast({ title: "Session revoked" })} className="text-xs font-medium text-black/60 hover:text-black">Revoke</button>}
                           </div>
                         ))}
                       </div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
-                      <button onClick={() => toast({ title: "Signed out", description: "You have been signed out (mock)." })} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
+                      <button onClick={() => base44.auth.logout("/login")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
                     </div>
                   </div>
                 )}
@@ -220,6 +216,14 @@ export default function Settings() {
                         ))}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {active === "danger" && (
+                  <div className="border border-black/15 rounded-xl p-5 md:p-6">
+                    <div className="flex items-center gap-2 mb-1"><AlertTriangle className="w-5 h-5" /><h3 className="font-semibold text-sm">Delete Account</h3></div>
+                    <p className="text-sm text-black/50 mb-4">Permanently delete your GymSync account and all associated gym data. This action cannot be undone.</p>
+                    <button onClick={() => setDeleteOpen(true)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black text-black hover:bg-black hover:text-white transition-colors">Delete account</button>
                   </div>
                 )}
               </motion.div>
@@ -261,6 +265,15 @@ export default function Settings() {
         title="Revoke staff access?"
         message={`Remove ${revoke?.name} from your gym? They will lose access immediately.`}
         confirmLabel="Revoke"
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => { setDeleteOpen(false); toast({ title: "Account deletion requested", description: "This is a demo — no data was deleted." }); }}
+        title="Delete your account?"
+        message="This permanently deletes your account and all gym data. This action cannot be undone."
+        confirmLabel="Delete account"
       />
     </Layout>
   );

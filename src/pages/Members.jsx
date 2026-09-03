@@ -2,8 +2,9 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
-import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw } from "lucide-react";
-import { members as mockMembers } from "@/lib/mockData";
+import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
+import { useMembers, setMembers } from "@/lib/memberStore";
+import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -32,11 +33,12 @@ const statusBadge = (s) => {
 const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-const emptyForm = { name: "", phone: "", email: "", plan: "Monthly", startDate: "", expiryDate: "", paymentStatus: "Paid", amount: "", paymentMethod: "Cash", status: "Active" };
+const emptyForm = { name: "", phone: "", email: "", plan: "Monthly", startDate: "", expiryDate: "", paymentStatus: "Paid", amount: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };
 
 export default function Members() {
   const navigate = useNavigate();
-  const [members, setMembers] = useState(mockMembers);
+  const members = useMembers();
+  const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [sort, setSort] = useState("recent");
@@ -74,7 +76,8 @@ export default function Members() {
   const openAdd = () => {
     setEditingId(null);
     const today = new Date().toISOString().slice(0, 10);
-    setForm({ ...emptyForm, startDate: today });
+    const expiry = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    setForm({ ...emptyForm, startDate: today, expiryDate: expiry });
     setErrors({});
     setModalOpen(true);
   };
@@ -84,6 +87,7 @@ export default function Members() {
       name: m.name, phone: m.phone, email: m.email || "", plan: m.plan,
       startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate,
       paymentStatus: m.paymentStatus, amount: String(m.fee || ""), paymentMethod: m.paymentMethod || "Cash", status: m.status,
+      note: m.note || "", preferredTime: m.preferredTime || "Flexible", photoUrl: m.photoUrl || null,
     });
     setErrors({});
     setModalOpen(true);
@@ -97,18 +101,22 @@ export default function Members() {
   };
   const submit = () => {
     if (!validate()) return;
-    if (editingId) {
-      setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.amount) || m.fee } : m)));
-      toast({ title: "Member updated", description: form.name });
-    } else {
-      const id = Math.max(...members.map((m) => m.id), 0) + 1;
-      setMembers((ms) => [{
-        id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.amount) || 0,
-        registeredDate: form.startDate || new Date().toISOString().slice(0, 10), gym: "Olympic Gym",
-      }, ...ms]);
-      toast({ title: "Member added successfully", description: form.name });
-    }
-    setModalOpen(false);
+    setSaving(true);
+    setTimeout(() => {
+      if (editingId) {
+        setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.amount) || m.fee } : m)));
+        toast({ title: "Member updated", description: form.name });
+      } else {
+        const id = Math.max(...members.map((m) => m.id), 0) + 1;
+        setMembers((ms) => [{
+          id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.amount) || 0,
+          registeredDate: form.startDate || new Date().toISOString().slice(0, 10), gym: "Olympic Gym",
+        }, ...ms]);
+        toast({ title: "Member added successfully", description: form.name });
+      }
+      setSaving(false);
+      setModalOpen(false);
+    }, 600);
   };
   const remove = (id) => { setMembers((ms) => ms.filter((m) => m.id !== id)); toast({ title: "Member deleted" }); setConfirmDelete(null); };
   const clearFilters = () => { setQuery(""); setFilter("All"); setSort("recent"); };
@@ -279,7 +287,7 @@ export default function Members() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Member" : "Add Member"}
         footer={<>
           <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">{editingId ? "Save Changes" : "Add Member"}</button>
+          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-80 inline-flex items-center gap-2">{saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : editingId ? "Save Changes" : "Add Member"}</button>
         </>}>
         <div className="space-y-6">
           <div>
@@ -294,10 +302,7 @@ export default function Members() {
               <div><label className={labelCls}>Email (optional)</label>
                 <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
               <div><label className={labelCls}>Profile Photo</label>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-sm font-semibold">{form.name ? initials(form.name) : "—"}</div>
-                  <button type="button" className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Upload photo</button>
-                </div>
+                <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-12 h-12" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
               </div>
             </div>
           </div>
@@ -313,7 +318,17 @@ export default function Members() {
                 <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
               <div><label className={labelCls}>Expiry Date</label>
                 <input type="date" className={inputCls} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
+              <div className="sm:col-span-3"><label className={labelCls}>Preferred gym time</label>
+                <select className={inputCls} value={form.preferredTime} onChange={(e) => setForm({ ...form, preferredTime: e.target.value })}>
+                  {["Morning", "Afternoon", "Evening", "Flexible"].map((t) => <option key={t}>{t}</option>)}
+                </select></div>
             </div>
+          </div>
+
+          <div>
+            <p className={sectionCls}>Internal notes</p>
+            <div><label className={labelCls}>Private note (only you can see this)</label>
+              <textarea rows={3} className={inputCls} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Prefers evening workouts. Payment usually made on the 5th." /></div>
           </div>
 
           {!editingId ? (

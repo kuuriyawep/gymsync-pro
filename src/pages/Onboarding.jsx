@@ -10,6 +10,7 @@ import { DashboardPreview, PaymentsPreview, StaffPreview, ValueSummary } from "@
 import { StreakVisual, MembershipCardVisual, ConnectedVisual, MemberDashboardPreview } from "@/components/onboarding/MemberVisuals";
 import ReportPreview from "@/components/onboarding/ReportPreview";
 import GymProfileSetup from "@/components/onboarding/GymProfileSetup";
+import { setGym } from "@/lib/gymStore";
 import { useToast } from "@/components/ui/use-toast";
 import { UserCog, Users, CalendarClock, ListChecks, Eye, CreditCard, Clock, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell, Building2, MapPin } from "lucide-react";
 
@@ -139,7 +140,7 @@ export default function Onboarding() {
     const gp = answers.gymProfile || {};
     content = (
       <VisualScreen icon={current.icon} title={current.title} subtitle={current.subtitle}>
-        <GymProfileSetup value={gp} onChange={(v) => { const updated = { ...gp, ...v }; setAnswers((a) => ({ ...a, gymProfile: updated })); localStorage.setItem("gym_profile", JSON.stringify(updated)); }} />
+        <GymProfileSetup value={gp} onChange={(v) => { const updated = { ...gp, ...v }; setAnswers((a) => ({ ...a, gymProfile: updated })); setGym({ name: updated.name, location: updated.location, logoUrl: updated.logoUrl }); }} />
       </VisualScreen>
     );
     footer = <button onClick={next} disabled={!gp.name || !gp.location} className={`w-full py-3 text-sm font-semibold rounded-xl transition-colors ${gp.name && gp.location ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>Continue</button>;
