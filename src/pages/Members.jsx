@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
-import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2, Tag, X, UserPlus } from "lucide-react";
 import { useMembers, setMembers } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -48,6 +48,11 @@ export default function Members() {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkTagOpen, setBulkTagOpen] = useState(false);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [tagValue, setTagValue] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("Active");
   const { toast } = useToast();
 
   const summary = useMemo(() => ({
@@ -121,6 +126,22 @@ export default function Members() {
   const remove = (id) => { setMembers((ms) => ms.filter((m) => m.id !== id)); toast({ title: "Member deleted" }); setConfirmDelete(null); };
   const clearFilters = () => { setQuery(""); setFilter("All"); setSort("recent"); };
 
+  const toggle = (id) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allSelected = filtered.length > 0 && filtered.every((m) => selected.has(m.id));
+  const toggleAll = () => setSelected((s) => { const n = new Set(s); if (allSelected) filtered.forEach((m) => n.delete(m.id)); else filtered.forEach((m) => n.add(m.id)); return n; });
+  const clearSelection = () => setSelected(new Set());
+  const applyTag = () => {
+    if (!tagValue.trim()) return;
+    setMembers((ms) => ms.map((m) => selected.has(m.id) ? { ...m, tags: Array.from(new Set([...(m.tags || []), tagValue.trim()])) } : m));
+    toast({ title: `Tagged ${selected.size} member${selected.size > 1 ? "s" : ""}`, description: tagValue.trim() });
+    setTagValue(""); setBulkTagOpen(false); clearSelection();
+  };
+  const applyStatus = () => {
+    setMembers((ms) => ms.map((m) => selected.has(m.id) ? { ...m, status: bulkStatus } : m));
+    toast({ title: `Updated ${selected.size} member${selected.size > 1 ? "s" : ""}`, description: `Status set to ${bulkStatus}` });
+    setBulkStatusOpen(false); clearSelection();
+  };
+
   const summaryCards = [
     { label: "Total Members", value: summary.total, icon: Users },
     { label: "Active", value: summary.active, icon: UserCheck },
@@ -145,9 +166,14 @@ export default function Members() {
             <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Members</h1>
             <p className="text-sm text-black/50 mt-0.5">Manage and track all your gym members</p>
           </div>
-          <button onClick={openAdd} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-            <Plus className="w-4 h-4" /> Add Member
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate("/member-onboarding")} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
+              <UserPlus className="w-4 h-4" /> Onboard
+            </button>
+            <button onClick={openAdd} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+              <Plus className="w-4 h-4" /> Add Member
+            </button>
+          </div>
         </div>
 
         {/* Summary */}
@@ -206,6 +232,20 @@ export default function Members() {
           </div>
         </div>
 
+        {selected.size > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black text-white rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <button onClick={clearSelection} className="p-1 rounded-lg hover:bg-white/10"><X className="w-4 h-4" /></button>
+              <span className="text-sm font-medium">{selected.size} selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setBulkTagOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20"><Tag className="w-3.5 h-3.5" /> Tag</button>
+              <button onClick={() => setBulkStatusOpen(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-white/10 hover:bg-white/20">Set status</button>
+              <button onClick={clearSelection} className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-white/10">Clear</button>
+            </div>
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <EmptyState />
         ) : (
@@ -215,6 +255,9 @@ export default function Members() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-black/10 text-left text-xs text-black/40">
+                    <th className="px-5 py-3 w-10">
+                      <input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 rounded border-black/30 accent-black" />
+                    </th>
                     <th className="px-5 py-3 font-medium">Member</th>
                     <th className="px-5 py-3 font-medium">Member ID</th>
                     <th className="px-5 py-3 font-medium">Plan</th>
@@ -226,7 +269,10 @@ export default function Members() {
                 </thead>
                 <tbody>
                   {filtered.map((m) => (
-                    <tr key={m.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02] cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
+                    <tr key={m.id} className={`border-b border-black/5 last:border-0 hover:bg-black/[0.02] cursor-pointer ${selected.has(m.id) ? "bg-black/[0.03]" : ""}`} onClick={() => navigate(`/members/${m.id}`)}>
+                      <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="w-4 h-4 rounded border-black/30 accent-black" />
+                      </td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
@@ -254,8 +300,11 @@ export default function Members() {
             {/* Mobile cards */}
             <div className="md:hidden space-y-3">
               {filtered.map((m) => (
-                <div key={m.id} className="bg-white border border-black/10 rounded-xl p-4" onClick={() => navigate(`/members/${m.id}`)}>
+                <div key={m.id} className={`bg-white border border-black/10 rounded-xl p-4 ${selected.has(m.id) ? "border-black bg-black/[0.03]" : ""}`} onClick={() => navigate(`/members/${m.id}`)}>
                   <div className="flex items-center gap-3">
+                    <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                      <input type="checkbox" checked={selected.has(m.id)} onChange={() => toggle(m.id)} className="w-4 h-4 rounded border-black/30 accent-black" />
+                    </div>
                     <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{m.name}</p>
@@ -367,6 +416,32 @@ export default function Members() {
         message="Are you sure you want to remove this member? This cannot be undone."
         confirmLabel="Delete Member"
       />
+
+      <Modal open={bulkTagOpen} onClose={() => setBulkTagOpen(false)} title="Tag selected members"
+        footer={<>
+          <button onClick={() => setBulkTagOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
+          <button onClick={applyTag} disabled={!tagValue.trim()} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-40">Apply tag</button>
+        </>}>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium mb-1.5">Tag</label>
+          <input className={inputCls} value={tagValue} onChange={(e) => setTagValue(e.target.value)} placeholder="e.g. VIP, Trial, Renewal" />
+          <p className="text-xs text-black/50">Adds this tag to {selected.size} selected member{selected.size > 1 ? "s" : ""}.</p>
+        </div>
+      </Modal>
+
+      <Modal open={bulkStatusOpen} onClose={() => setBulkStatusOpen(false)} title="Update membership status"
+        footer={<>
+          <button onClick={() => setBulkStatusOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
+          <button onClick={applyStatus} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Apply to {selected.size}</button>
+        </>}>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium mb-1.5">New status</label>
+          <select className={inputCls} value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
+            {statusOptions.map((o) => <option key={o}>{o}</option>)}
+          </select>
+          <p className="text-xs text-black/50">Updates {selected.size} selected member{selected.size > 1 ? "s" : ""}.</p>
+        </div>
+      </Modal>
     </Layout>
   );
 }

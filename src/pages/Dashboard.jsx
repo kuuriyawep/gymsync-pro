@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import PageSkeleton from "@/components/PageSkeleton";
@@ -9,9 +9,11 @@ import {
 } from "lucide-react";
 import {
   ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+  PieChart, Pie, Cell,
 } from "recharts";
 import { motion } from "framer-motion";
 import { analyticsData, dashboardStats, expiryOverview, activities } from "@/lib/mockData";
+import { useMembers } from "@/lib/memberStore";
 
 const statCards = [
   { key: "totalMembers", label: "Total Members", icon: Users, change: "+12.5%", up: true },
@@ -49,6 +51,18 @@ export default function Dashboard() {
   const [range, setRange] = useState("6m");
   const [loading, setLoading] = useState(true);
   const rangeLabel = rangeOptions.find((o) => o.key === range)?.label ?? "Last 6 months";
+  const members = useMembers();
+  const statusCounts = useMemo(() => ({
+    active: members.filter((m) => m.status === "Active").length,
+    expiring: members.filter((m) => m.status === "Expiring Soon").length,
+    expired: members.filter((m) => m.status === "Expired").length,
+  }), [members]);
+  const statusData = [
+    { name: "Active", value: statusCounts.active, color: "#000000" },
+    { name: "Expiring Soon", value: statusCounts.expiring, color: "#00000066" },
+    { name: "Expired", value: statusCounts.expired, color: "#0000001a" },
+  ];
+  const statusTotal = statusCounts.active + statusCounts.expiring + statusCounts.expired;
 
   useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
   if (loading) return <Layout><PageSkeleton /></Layout>;
@@ -111,6 +125,36 @@ export default function Dashboard() {
               <button key={a.label} type="button" className="text-left">{content}</button>
             );
           })}
+        </div>
+
+        {/* Membership status summary */}
+        <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 md:gap-6">
+            <div className="relative w-40 h-40 md:w-44 md:h-44 shrink-0 mx-auto sm:mx-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={statusData} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="100%" paddingAngle={2} stroke="none">
+                    {statusData.map((d) => <Cell key={d.name} fill={d.color} />)}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-bold">{statusTotal}</span>
+                <span className="text-[10px] text-black/50">Members</span>
+              </div>
+            </div>
+            <div className="flex-1 grid grid-cols-3 gap-2 sm:gap-3">
+              {statusData.map((d) => (
+                <div key={d.name} className="flex flex-col items-center sm:items-start justify-center sm:justify-start text-center sm:text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                    <span className="text-xs text-black/50">{d.name}</span>
+                  </div>
+                  <span className="text-xl md:text-2xl font-bold mt-1">{d.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Analytics */}

@@ -28,6 +28,11 @@ import MemberAttendance from '@/pages/member/MemberAttendance';
 import MemberPayments from '@/pages/member/MemberPayments';
 import MemberFeedback from '@/pages/member/MemberFeedback';
 import MemberProfile from '@/pages/member/MemberProfile';
+import MemberOnboarding from '@/pages/MemberOnboarding';
+import StaffDirectory from '@/pages/StaffDirectory';
+import NotificationCenter from '@/pages/NotificationCenter';
+import FacilityAccess from '@/pages/FacilityAccess';
+import StaffRoles from '@/pages/StaffRoles';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -78,6 +83,11 @@ const AuthenticatedApp = () => {
         <Route path="/member/payments" element={<MemberPayments />} />
         <Route path="/member/feedback" element={<MemberFeedback />} />
         <Route path="/member/profile" element={<MemberProfile />} />
+        <Route path="/member-onboarding" element={<MemberOnboarding />} />
+        <Route path="/staff-directory" element={<StaffDirectory />} />
+        <Route path="/notifications" element={<NotificationCenter />} />
+        <Route path="/facility-access" element={<FacilityAccess />} />
+        <Route path="/staff-roles" element={<StaffRoles />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
