@@ -20,10 +20,6 @@ const secondaryNav = [
   { label: "Trainers", path: "/trainers", icon: UserCog },
   { label: "Membership", path: "/membership", icon: Ticket },
   { label: "Feedback", path: "/feedback", icon: MessageSquare },
-  { label: "Staff Directory", path: "/staff-directory", icon: Contact },
-  { label: "Notifications", path: "/notifications", icon: Bell },
-  { label: "Facility Access", path: "/facility-access", icon: DoorOpen },
-  { label: "Staff Roles", path: "/staff-roles", icon: ShieldCheck },
 ];
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
