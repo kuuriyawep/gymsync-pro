@@ -28,11 +28,6 @@ import MemberAttendance from '@/pages/member/MemberAttendance';
 import MemberPayments from '@/pages/member/MemberPayments';
 import MemberFeedback from '@/pages/member/MemberFeedback';
 import MemberProfile from '@/pages/member/MemberProfile';
-import WorkoutHome from '@/pages/member/workout/WorkoutHome';
-import WorkoutPlanner from '@/pages/member/workout/WorkoutPlanner';
-import WorkoutTemplates from '@/pages/member/workout/WorkoutTemplates';
-import WorkoutSession from '@/pages/member/workout/WorkoutSession';
-import WorkoutComplete from '@/pages/member/workout/WorkoutComplete';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -83,11 +78,6 @@ const AuthenticatedApp = () => {
         <Route path="/member/payments" element={<MemberPayments />} />
         <Route path="/member/feedback" element={<MemberFeedback />} />
         <Route path="/member/profile" element={<MemberProfile />} />
-        <Route path="/member/workout" element={<WorkoutHome />} />
-        <Route path="/member/workout/create" element={<WorkoutPlanner />} />
-        <Route path="/member/workout/templates" element={<WorkoutTemplates />} />
-        <Route path="/member/workout/session/:dayIndex" element={<WorkoutSession />} />
-        <Route path="/member/workout/complete" element={<WorkoutComplete />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
