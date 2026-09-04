@@ -1,356 +1,1300 @@
 [
   {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
-  },
-  {
-    "exercises": []
+    "id": "EX001",
+    "name": "Barbell Bench Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX002",
+    "name": "Incline Barbell Bench Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX003",
+    "name": "Dumbbell Bench Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX004",
+    "name": "Incline Dumbbell Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX005",
+    "name": "Decline Bench Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX006",
+    "name": "Dumbbell Fly",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX007",
+    "name": "Cable Chest Fly",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX008",
+    "name": "Pec Deck",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX009",
+    "name": "Push-Up",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX010",
+    "name": "Chest Dip",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX011",
+    "name": "Machine Chest Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX012",
+    "name": "Cable Chest Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX013",
+    "name": "Dumbbell Floor Press",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX014",
+    "name": "Cable Crossover",
+    "category": "Chest",
+    "primaryMuscle": "Chest",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX015",
+    "name": "Conventional Deadlift",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Advanced",
+    "animation": "Required"
+  },
+  {
+    "id": "EX016",
+    "name": "Barbell Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX017",
+    "name": "Pendlay Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX018",
+    "name": "One-Arm Dumbbell Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX019",
+    "name": "Seated Cable Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX020",
+    "name": "Chest-Supported Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX021",
+    "name": "Lat Pulldown",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX022",
+    "name": "Pull-Up",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX023",
+    "name": "Chin-Up",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX024",
+    "name": "Straight-Arm Pulldown",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX025",
+    "name": "T-Bar Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX026",
+    "name": "Machine Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX027",
+    "name": "Back Extension",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX028",
+    "name": "Assisted Pull-Up",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX029",
+    "name": "Inverted Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX030",
+    "name": "Dumbbell Pullover",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX031",
+    "name": "Cable Pullover",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX032",
+    "name": "Landmine Row",
+    "category": "Back",
+    "primaryMuscle": "Back",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX033",
+    "name": "Back Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX034",
+    "name": "Front Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX035",
+    "name": "Goblet Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX036",
+    "name": "Leg Press",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX037",
+    "name": "Hack Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX038",
+    "name": "Bulgarian Split Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX039",
+    "name": "Walking Lunge",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX040",
+    "name": "Reverse Lunge",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX041",
+    "name": "Romanian Deadlift",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX042",
+    "name": "Stiff-Leg Deadlift",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX043",
+    "name": "Leg Curl",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX044",
+    "name": "Leg Extension",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX045",
+    "name": "Hip Thrust",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX046",
+    "name": "Glute Bridge",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX047",
+    "name": "Standing Calf Raise",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX048",
+    "name": "Seated Calf Raise",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX049",
+    "name": "Sumo Deadlift",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX050",
+    "name": "Smith Machine Squat",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX051",
+    "name": "Smith Romanian Deadlift",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX052",
+    "name": "Cable Pull-Through",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX053",
+    "name": "Cable Kickback",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX054",
+    "name": "Hip Abduction Machine",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX055",
+    "name": "Hip Adduction Machine",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX056",
+    "name": "Step-Up",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX057",
+    "name": "Nordic Hamstring Curl",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Advanced",
+    "animation": "Required"
+  },
+  {
+    "id": "EX058",
+    "name": "Good Morning",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX059",
+    "name": "Reverse Hyperextension",
+    "category": "Legs",
+    "primaryMuscle": "Legs",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Machine",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX060",
+    "name": "Overhead Press",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX061",
+    "name": "Dumbbell Shoulder Press",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX062",
+    "name": "Arnold Press",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX063",
+    "name": "Dumbbell Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX064",
+    "name": "Cable Lateral Raise",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX065",
+    "name": "Front Raise",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX066",
+    "name": "Rear Delt Fly",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX067",
+    "name": "Face Pull",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX068",
+    "name": "Barbell Shrug",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX069",
+    "name": "Dumbbell Shrug",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX070",
+    "name": "Landmine Press",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX071",
+    "name": "Cable Y-Raise",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX072",
+    "name": "Dumbbell Reverse Fly",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX073",
+    "name": "Cable Rear Delt Fly",
+    "category": "Shoulders",
+    "primaryMuscle": "Shoulders",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX074",
+    "name": "Barbell Biceps Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX075",
+    "name": "Dumbbell Biceps Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX076",
+    "name": "Hammer Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX077",
+    "name": "Incline Dumbbell Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX078",
+    "name": "Preacher Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX079",
+    "name": "Cable Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX080",
+    "name": "Concentration Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX081",
+    "name": "EZ-Bar Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX082",
+    "name": "Close-Grip Bench Press",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX083",
+    "name": "Rope Triceps Pushdown",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX084",
+    "name": "Straight-Bar Triceps Pushdown",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX085",
+    "name": "Overhead Triceps Extension",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX086",
+    "name": "Skull Crusher",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX087",
+    "name": "Triceps Dip",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX088",
+    "name": "Diamond Push-Up",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX089",
+    "name": "Single-Arm Cable Triceps Extension",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX090",
+    "name": "Reverse Curl",
+    "category": "Arms",
+    "primaryMuscle": "Biceps / Triceps",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Barbell / Dumbbell / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX091",
+    "name": "Plank",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Beginner",
+    "animation": "Required"
+  },
+  {
+    "id": "EX092",
+    "name": "Side Plank",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX093",
+    "name": "Hanging Knee Raise",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX094",
+    "name": "Hanging Leg Raise",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX095",
+    "name": "Cable Crunch",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX096",
+    "name": "Ab Wheel Rollout",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Advanced",
+    "animation": "Required"
+  },
+  {
+    "id": "EX097",
+    "name": "Russian Twist",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX098",
+    "name": "Dead Bug",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX099",
+    "name": "Mountain Climber",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX100",
+    "name": "Bird Dog",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX101",
+    "name": "Cable Wood Chop",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX102",
+    "name": "Pallof Press",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX103",
+    "name": "Reverse Crunch",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX104",
+    "name": "Bicycle Crunch",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX105",
+    "name": "Decline Sit-Up",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX106",
+    "name": "Hollow Body Hold",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX107",
+    "name": "Suitcase Carry",
+    "category": "Core",
+    "primaryMuscle": "Core",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Bodyweight / Cable",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX108",
+    "name": "Push Press",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX109",
+    "name": "Kettlebell Swing",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX110",
+    "name": "Turkish Get-Up",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Advanced",
+    "animation": "Required"
+  },
+  {
+    "id": "EX111",
+    "name": "Dumbbell Thruster",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX112",
+    "name": "Burpee",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX113",
+    "name": "Box Jump",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Advanced",
+    "animation": "Required"
+  },
+  {
+    "id": "EX114",
+    "name": "Battle Rope Slam",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX115",
+    "name": "Sled Push",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX116",
+    "name": "Sled Pull",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX117",
+    "name": "Bear Crawl",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
+  },
+  {
+    "id": "EX118",
+    "name": "Farmer's Carry",
+    "category": "Full Body",
+    "primaryMuscle": "Full Body",
+    "secondaryMuscles": "Context dependent",
+    "equipment": "Mixed",
+    "movement": "Exercise-specific",
+    "difficulty": "Intermediate",
+    "animation": "Required"
   }
 ]
