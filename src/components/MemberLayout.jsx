@@ -6,9 +6,9 @@ import { memberProfile, memberNotifications } from "@/lib/memberMockData";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
+  { label: "Workout", path: "/member/workout", icon: Dumbbell },
   { label: "Attendance", path: "/member/attendance", icon: Flame },
   { label: "Payments", path: "/member/payments", icon: CreditCard },
-  { label: "Feedback", path: "/member/feedback", icon: MessageSquare },
   { label: "Profile", path: "/member/profile", icon: User },
 ];
 

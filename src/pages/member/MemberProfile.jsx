@@ -5,6 +5,9 @@ import { base44 } from "@/api/base44Client";
 import { Phone, Mail, Calendar, Dumbbell, LogOut, ChevronRight, MessageSquare, Megaphone } from "lucide-react";
 import { memberProfile, memberMembership, membershipProgress } from "@/lib/memberMockData";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
+import ProfileProgress from "@/components/workout/ProfileProgress";
+import { useWorkoutSessions } from "@/lib/workout/workoutStore";
+import { computeStreak } from "@/lib/workout/workoutUtils";
 
 const statusTone = { Active: "bg-black text-white", "Expiring Soon": "bg-black/10 text-black", Expired: "bg-black/5 text-black/50" };
 const Row = ({ icon: Icon, label, value }) => (
@@ -19,9 +22,12 @@ export default function MemberProfile() {
   const [appFeedback, setAppFeedback] = useState(false);
   const navigate = useNavigate();
   useEffect(() => { const t = setTimeout(() => setLoading(false), 400); return () => clearTimeout(t); }, []);
+  const sessions = useWorkoutSessions();
   if (loading) return <MemberLayout title="Profile" back="/member"><div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 rounded-xl bg-black/5 animate-pulse" />)}</div></MemberLayout>;
 
   const prog = membershipProgress(memberMembership.startDate, memberMembership.expiryDate);
+  const workoutCount = sessions.filter((s) => s.completedAt).length;
+  const streak = computeStreak(sessions);
 
   return (
     <MemberLayout title="Profile" back="/member">
@@ -31,7 +37,15 @@ export default function MemberProfile() {
           <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center text-2xl font-bold">{memberProfile.avatar}</div>
           <h1 className="text-xl font-heading font-bold mt-3">{memberProfile.name}</h1>
           <p className="text-sm text-black/50">{memberProfile.memberId} · {memberProfile.gym}</p>
+          <div className="flex items-center gap-5 mt-3">
+            <div className="text-center"><p className="text-base font-bold">{workoutCount}</p><p className="text-[11px] text-black/50">Workouts</p></div>
+            <div className="w-px h-7 bg-black/10" />
+            <div className="text-center"><p className="text-base font-bold">{streak}</p><p className="text-[11px] text-black/50">Streak</p></div>
+          </div>
         </div>
+
+        {/* Fitness progress */}
+        <ProfileProgress />
 
         {/* Membership card */}
         <div className="bg-white border border-black/10 rounded-2xl p-5">
