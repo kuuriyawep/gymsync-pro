@@ -301,6 +301,7 @@ alter table public.notifications     enable row level security;
 alter table public.audit_logs        enable row level security;
 
 -- GYMS
+-- Gym rows are provisioned by the authenticated Base44 backend service.
 create policy "gyms read own"   on public.gyms for select using (id = public.current_gym_id());
 create policy "gyms update owner" on public.gyms for update using (public.is_owner(id)) with check (public.is_owner(id));
 

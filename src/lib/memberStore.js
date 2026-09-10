@@ -1,30 +1,39 @@
-import { useSyncExternalStore } from "react";
-import { members as seed } from "@/lib/mockData";
+import { useEffect, useSyncExternalStore } from "react";
+import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 
-const KEY = "gymsync_members";
 const listeners = new Set();
-let state;
+let members = [];
+let loaded = false;
+let loadingPromise = null;
 
-function seedMembers() {
-  return seed.map((m) => ({ ...m, note: m.note || "", preferredTime: m.preferredTime || "Flexible", photoUrl: m.photoUrl || null }));
-}
-function read() {
-  if (state !== undefined) return state;
-  try {
-    const raw = localStorage.getItem(KEY);
-    state = raw ? JSON.parse(raw) : seedMembers();
-  } catch {
-    state = seedMembers();
-  }
-  return state;
-}
-function emit() { listeners.forEach((l) => l()); }
-function persist() { localStorage.setItem(KEY, JSON.stringify(state)); emit(); }
+function emit() { listeners.forEach((listener) => listener()); }
+function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+function getSnapshot() { return members; }
 
-export function getMembers() { return read(); }
-export function setMembers(updater) {
-  state = typeof updater === "function" ? updater(read()) : updater;
-  persist();
+async function run(operation, payload = {}) {
+  const { data } = await supabase.auth.getSession();
+  const response = await base44.functions.invoke("membersData", { operation, accessToken: data.session?.access_token, ...payload });
+  members = response.data.members;
+  loaded = true;
+  emit();
+  return members;
 }
-export function subscribe(l) { listeners.add(l); return () => listeners.delete(l); }
-export function useMembers() { return useSyncExternalStore(subscribe, getMembers, getMembers); }
+
+export function loadMembers(force = false) {
+  if (loaded && !force) return Promise.resolve(members);
+  if (!loadingPromise) loadingPromise = run("bootstrap").finally(() => { loadingPromise = null; });
+  return loadingPromise;
+}
+
+export function addMember(member) { return run("create", { member }); }
+export function updateMember(id, member) { return run("update", { id, member }); }
+export function deleteMember(id) { return run("delete", { id }); }
+export function getMembers() { return members; }
+export function setMembers(next) { members = typeof next === "function" ? next(members) : next; emit(); }
+
+export function useMembers() {
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useEffect(() => { loadMembers(); }, []);
+  return snapshot;
+}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
-import { useMembers, setMembers } from "@/lib/memberStore";
+import { useMembers, addMember, updateMember, deleteMember } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -99,26 +99,33 @@ export default function Members() {
     setErrors(e);
     return Object.keys(e).length === 0;
   };
-  const submit = () => {
+  const submit = async () => {
     if (!validate()) return;
     setSaving(true);
-    setTimeout(() => {
+    try {
       if (editingId) {
-        setMembers((ms) => ms.map((m) => (m.id === editingId ? { ...m, ...form, fee: Number(form.amount) || m.fee } : m)));
+        await updateMember(editingId, form);
         toast({ title: "Member updated", description: form.name });
       } else {
-        const id = Math.max(...members.map((m) => m.id), 0) + 1;
-        setMembers((ms) => [{
-          id, memberId: `GYM-${1000 + id}`, ...form, fee: Number(form.amount) || 0,
-          registeredDate: form.startDate || new Date().toISOString().slice(0, 10), gym: "Olympic Gym",
-        }, ...ms]);
+        await addMember(form);
         toast({ title: "Member added successfully", description: form.name });
       }
-      setSaving(false);
       setModalOpen(false);
-    }, 600);
+    } catch (error) {
+      toast({ title: "Unable to save member", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
-  const remove = (id) => { setMembers((ms) => ms.filter((m) => m.id !== id)); toast({ title: "Member deleted" }); setConfirmDelete(null); };
+  const remove = async (id) => {
+    try {
+      await deleteMember(id);
+      toast({ title: "Member deleted" });
+      setConfirmDelete(null);
+    } catch (error) {
+      toast({ title: "Unable to delete member", description: error.message, variant: "destructive" });
+    }
+  };
   const clearFilters = () => { setQuery(""); setFilter("All"); setSort("recent"); };
 
   const summaryCards = [
