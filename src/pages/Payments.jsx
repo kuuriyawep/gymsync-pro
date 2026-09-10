@@ -5,8 +5,9 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
-import { payments as mockPayments, members, gymInfo } from "@/lib/mockData";
-import { format, parseISO, isToday, isThisWeek, isThisMonth } from "date-fns";
+import { payments as mockPayments, gymInfo } from "@/lib/mockData";
+import { useMembers } from "@/lib/memberStore";
+import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
@@ -32,6 +33,8 @@ const emptyForm = { name: "", plan: "Monthly", amount: "", method: "Cash", date:
 
 export default function Payments() {
   const [loading, setLoading] = useState(true);
+  const members = useMembers();
+  const [formError, setFormError] = useState("");
   const [payments, setPayments] = useState(mockPayments);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -77,7 +80,7 @@ export default function Payments() {
     return list;
   }, [payments, query, statusFilter, methodFilter, dateFilter, sort]);
 
-  const openRecord = () => { setForm(emptyForm); setRecordOpen(true); };
+  const openRecord = () => { setForm({ ...emptyForm, date: format(new Date(), "yyyy-MM-dd") }); setFormError(""); setRecordOpen(true); };
   const openDetails = (p) => { setViewing(p); setDetailsOpen(true); };
   const openReceipt = (p) => { setViewing(p); setReceiptOpen(true); setDetailsOpen(false); };
 
@@ -86,7 +89,10 @@ export default function Payments() {
     setForm((f) => ({ ...f, name, plan: m?.plan || "Monthly", amount: m ? String(m.fee) : "" }));
   };
   const submit = () => {
-    if (!form.name.trim() || !form.amount) return;
+    if (!members.some((m) => m.name === form.name)) { setFormError("Select a member."); return; }
+    if (!Number.isFinite(Number(form.amount)) || Number(form.amount) <= 0) { setFormError("Enter an amount greater than zero."); return; }
+    if (!form.date || !isValid(parseISO(form.date))) { setFormError("Enter a valid payment date."); return; }
+    setFormError("");
     const id = Math.max(...payments.map((p) => p.id), 0) + 1;
     setPayments((ps) => [{ id, paymentId: `PAY-${1000 + id}`, ...form, amount: Number(form.amount) || 0, reference: `TXN-${2000 + id}` }, ...ps]);
     setRecordOpen(false);
@@ -221,6 +227,7 @@ export default function Payments() {
           <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Record Payment</button>
         </>}>
         <div className="space-y-4">
+          {formError && <p role="alert" className="text-sm font-medium text-foreground">{formError}</p>}
           <div><label className={labelCls}>Member</label>
             <select className={inputCls} value={form.name} onChange={(e) => onMemberSelect(e.target.value)}>
               <option value="">Select a member…</option>

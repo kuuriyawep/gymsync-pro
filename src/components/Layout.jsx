@@ -7,7 +7,8 @@ import AppFeedbackModal from "@/components/AppFeedbackModal";
 import { useGym } from "@/lib/gymStore";
 import { base44 } from "@/api/base44Client";
 import { Image } from "@/components/ui/image";
-import { members, payments, trainers } from "@/lib/mockData";
+import { payments, trainers } from "@/lib/mockData";
+import { useMembers } from "@/lib/memberStore";
 
 const primaryNav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -32,6 +33,7 @@ export default function Layout({ children }) {
   const [search, setSearch] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
+  const members = useMembers();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
@@ -44,7 +46,7 @@ export default function Layout({ children }) {
       payments: payments.filter((p) => p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.name, sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
       trainers: trainers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name, sub: t.specialization, to: "/trainers" })),
     };
-  }, [search]);
+  }, [search, members]);
   const totalResults = results.members.length + results.payments.length + results.trainers.length;
 
   const renderLink = (item, active, onClick) => (

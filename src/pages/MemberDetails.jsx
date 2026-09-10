@@ -16,7 +16,16 @@ export default function MemberDetails() {
   const navigate = useNavigate();
   const [quickMsg, setQuickMsg] = useState(false);
   const allMembers = useMembers();
-  const member = allMembers.find((m) => m.id === Number(id)) ?? allMembers[0];
+  const member = allMembers.find((m) => String(m.id) === id);
+  if (!member) return (
+    <Layout>
+      <div className="space-y-3">
+        <h1 className="text-2xl font-heading font-bold">Member not found</h1>
+        <p className="text-sm text-muted-foreground">This member may have been removed or the link is incorrect.</p>
+        <button onClick={() => navigate("/members")} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground">Back to Members</button>
+      </div>
+    </Layout>
+  );
   const startDate = member.startDate || member.registeredDate;
   const expiry = member.expiryDate ? parseISO(member.expiryDate) : null;
   const start = startDate ? parseISO(startDate) : null;

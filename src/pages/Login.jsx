@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { signInWithEmail, signInWithProvider } from "@/lib/supabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email, password);
+      await signInWithEmail(email, password);
       window.location.href = returnTo;
     } catch (err) {
       setError(err.message || "Invalid email or password");
@@ -31,8 +31,8 @@ export default function Login() {
     }
   };
 
-  const ownerGoogle = () => base44.auth.loginWithProvider("google", returnTo);
-  const memberGoogle = () => base44.auth.loginWithProvider("google", "/member");
+  const ownerGoogle = async () => { try { await signInWithProvider("google", window.location.origin + returnTo); } catch (err) { setError(err.message || "Google sign in is unavailable"); } };
+  const memberGoogle = async () => { try { await signInWithProvider("google", window.location.origin + "/member"); } catch (err) { setError(err.message || "Google sign in is unavailable"); } };
 
   const Toggle = () => (
     <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted mb-6">
