@@ -24,8 +24,14 @@ const sections = [
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
 const Toggle = ({ on, onClick }) => (
-  <button onClick={onClick} className={`w-11 h-6 rounded-full transition-colors relative ${on ? "bg-black" : "bg-black/15"}`}>
-    <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    onClick={onClick}
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-black/10 transition-colors ${on ? "bg-black" : "bg-black/10"}`}
+  >
+    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
   </button>
 );
 const Field = ({ label, children }) => (<div><label className={labelCls}>{label}</label>{children}</div>);
