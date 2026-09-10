@@ -20,12 +20,6 @@ const ownerSteps = [
     { value: "manager", label: "Gym Manager", icon: Users },
     { value: "staff", label: "Staff / Administrator", icon: ListChecks },
   ]},
-  { id: "gymAge", kind: "question", icon: CalendarClock, title: "How long has your gym been running?", options: [
-    { value: "<6m", label: "Less than 6 months" },
-    { value: "6-12m", label: "6–12 months" },
-    { value: "1-3y", label: "1–3 years" },
-    { value: "3y+", label: "3+ years" },
-  ]},
   { id: "memberCount", kind: "question", icon: Users, title: "How many members do you have?", options: [
     { value: "1–50", label: "1–50" },
     { value: "51–100", label: "51–100" },
@@ -48,37 +42,29 @@ const ownerSteps = [
     { value: "performance", label: "Understanding performance" },
     { value: "organized", label: "Keeping everything organized" },
   ]},
-  { id: "payment", kind: "question", icon: CreditCard, title: "How do you track payments & balances?", subtitle: "We'll show you a better way.", options: [
-    { value: "manual", label: "By hand / memory" },
-    { value: "sheets", label: "Spreadsheets" },
-    { value: "whatsapp", label: "WhatsApp notes" },
-    { value: "app", label: "Another app" },
+  { id: "outcome", kind: "question", multi: true, icon: Zap, title: "What would make GymSync a win for you?", subtitle: "Choose up to 2.", maxSelections: 2, options: [
+    { value: "time", label: "Save time every day" },
+    { value: "renewals", label: "Never miss renewals" },
+    { value: "payments", label: "Keep payments organized" },
+    { value: "performance", label: "Understand my gym better" },
+    { value: "members", label: "Manage members more easily" },
+    { value: "staff", label: "Give my team better tools" },
+    { value: "engagement", label: "Keep members engaged" },
   ]},
-  { id: "time", kind: "question", icon: Clock, title: "How much time on admin each day?", options: [
-    { value: "<30m", label: "Less than 30 min" },
-    { value: "30-1h", label: "30 min – 1 hour" },
-    { value: "1-2h", label: "1–2 hours" },
-    { value: "2h+", label: "2+ hours" },
-  ]},
-  { id: "visibility", kind: "question", icon: BarChart3, title: "Can you quickly answer how your gym is doing?", subtitle: "Revenue, active members, who's expiring.", options: [
+  { id: "visibility", kind: "question", icon: BarChart3, title: "Can you quickly answer how your gym is doing?", subtitle: "Revenue, active members and who's expiring.", options: [
     { value: "easily", label: "Yes, easily" },
     { value: "some-effort", label: "With some effort" },
     { value: "hard", label: "It's hard" },
     { value: "no", label: "Not really" },
   ]},
-  { id: "automation", kind: "question", multi: true, icon: Zap, title: "What should GymSync handle for you?", subtitle: "Select all that apply.", options: [
-    { value: "reminders", label: "Expiry reminders" },
-    { value: "payments", label: "Payment tracking" },
-    { value: "attendance", label: "Attendance & streaks" },
-    { value: "reports", label: "Reports & analytics" },
-    { value: "staff", label: "Staff access" },
-    { value: "members", label: "Member management" },
-  ]},
+  { id: "value", kind: "visual", icon: Sparkles, title: "Your GymSync setup", subtitle: "A workspace shaped around what you want to improve.", visual: ValueSummary, useAnswers: true },
+  { id: "solDashboard", kind: "visual", icon: BarChart3, title: "See your gym at a glance", subtitle: "Revenue, members and expiry — all in one dashboard.", visual: DashboardPreview },
+  { id: "solPayments", kind: "visual", icon: CreditCard, title: "Payments without the chase", subtitle: "Record payments, track balances and know what's outstanding.", visual: PaymentsPreview },
+  { id: "solStaff", kind: "visual", icon: Users, title: "Staff & access, controlled", subtitle: "Give your team access without losing control.", visual: StaffPreview },
+  { id: "account", kind: "account" },
   { id: "solDashboard", kind: "visual", icon: BarChart3, title: "See your gym at a glance", subtitle: "Revenue, members and expiry — all in one dashboard.", visual: DashboardPreview },
   { id: "solPayments", kind: "visual", icon: CreditCard, title: "Payments without the chase", subtitle: "Record payments, track balances, know who's outstanding.", visual: PaymentsPreview },
   { id: "solStaff", kind: "visual", icon: Users, title: "Staff & access, controlled", subtitle: "Invite your team and limit what each role can do.", visual: StaffPreview },
-  { id: "value", kind: "visual", icon: Sparkles, title: "Built for how you run your gym", subtitle: "Here's what GymSync means for you.", visual: ValueSummary, useAnswers: true },
-  { id: "solReports", kind: "visual", icon: BarChart3, title: "Reports that answer your questions", subtitle: "Tap between Member and Revenue reports to explore.", visual: ReportPreview },
   { id: "gymProfile", kind: "gymProfile", icon: Building2, title: "Set up your gym profile", subtitle: "Add your logo, gym name and location. You can change these later." },
   { id: "paywall", kind: "paywall" },
 ];
@@ -125,9 +111,21 @@ export default function Onboarding() {
   if (current.kind === "question") {
     const answered = current.multi ? (answers[current.id] || []).length > 0 : !!answers[current.id];
     content = (
-      <QuestionScreen icon={current.icon} title={current.title} subtitle={current.subtitle} options={current.options} multi={current.multi} value={answers[current.id]} onChange={(v) => setAnswers((a) => ({ ...a, [current.id]: v }))} />
+      <QuestionScreen icon={current.icon} title={current.title} subtitle={current.subtitle} options={current.options} multi={current.multi} value={answers[current.id]} maxSelections={current.maxSelections} onChange={(v) => setAnswers((a) => ({ ...a, [current.id]: v }))} />
     );
     footer = <button onClick={next} disabled={!answered} className={`w-full py-3 text-sm font-semibold rounded-xl transition-colors ${answered ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>Continue</button>;
+  } else if (current.kind === "account") {
+    content = (
+      <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync.">
+        <div className="space-y-3">
+          <button onClick={() => navigate("/register")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Continue with Email</button>
+          <button onClick={() => navigate("/register?provider=google")} className="w-full py-3 text-sm font-medium rounded-xl border border-black/15 hover:bg-black/5">Continue with Google</button>
+          <button onClick={() => navigate("/register?provider=apple")} className="w-full py-3 text-sm font-medium rounded-xl border border-black/15 hover:bg-black/5">Continue with Apple</button>
+          <p className="text-xs text-black/40 text-center pt-1">Free to start. No payment required.</p>
+        </div>
+      </VisualScreen>
+    );
+    footer = null;
   } else if (current.kind === "visual") {
     const Visual = current.visual;
     content = (
