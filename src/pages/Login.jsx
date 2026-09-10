@@ -32,7 +32,7 @@ export default function Login() {
   };
 
   const ownerGoogle = async () => { try { await signInWithProvider("google", window.location.origin + returnTo); } catch (err) { setError(err.message || "Google sign in is unavailable"); } };
-  const memberGoogle = async () => { try { await signInWithProvider("google", window.location.origin + "/member"); } catch (err) { setError(err.message || "Google sign in is unavailable"); } };
+  const memberGoogle = async () => { try { await signInWithProvider("google", window.location.origin + "/join-gym"); } catch (err) { setError(err.message || "Google sign in is unavailable"); } };
 
   const Toggle = () => (
     <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted mb-6">

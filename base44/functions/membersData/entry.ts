@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
+import { createSupabaseRestClient } from '../../shared/supabaseRest.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -9,7 +10,7 @@ export default async function(req: Request): Promise<Response> {
     if (!['bootstrap', 'create', 'update', 'delete'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
-    const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' };
+    const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
     let user: any = null;
     let supabaseUser = false;
     if (body.accessToken) {
@@ -19,16 +20,6 @@ export default async function(req: Request): Promise<Response> {
       user = await base44.auth.me();
     }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const request = async (path: string, options: RequestInit = {}) => {
-      const response = await fetch(`${restUrl}/${path}`, { ...options, headers: { ...headers, ...(options.headers || {}) } });
-      if (!response.ok) throw new Error((await response.text()) || 'Supabase request failed');
-      if (response.status === 204) return null;
-      return response.json();
-    };
-    const select = (table: string, query: string) => request(`${table}?${query}`);
-    const insert = (table: string, data: unknown) => request(table, { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
-    const update = (table: string, query: string, data: unknown) => request(`${table}?${query}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(data) });
 
     const ownerEmail = user.email || `${user.id}@gymsync.local`;
     let gyms = supabaseUser ? await select('gyms', `owner_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`) : [];

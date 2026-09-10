@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Dumbbell, Home, Flame, CreditCard, MessageSquare, User, Bell, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { memberProfile, memberNotifications } from "@/lib/memberMockData";
+import { useMemberPortal } from "@/lib/memberPortalStore";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
@@ -16,6 +16,8 @@ export default function MemberLayout({ children, title, back }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [bellOpen, setBellOpen] = useState(false);
+  const { data } = useMemberPortal();
+  const memberNotifications = data?.notifications || [];
   const isActive = (path) => location.pathname === path || (path !== "/member" && location.pathname.startsWith(path));
   const unread = memberNotifications.filter((n) => !n.read).length;
 
@@ -48,7 +50,7 @@ export default function MemberLayout({ children, title, back }) {
                     {memberNotifications.map((n) => (
                       <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-black/5 last:border-0 ${n.read ? "" : "bg-black/[0.02]"}`}>
                         <div className="w-2 h-2 rounded-full bg-black mt-1.5 shrink-0" />
-                        <div className="flex-1 min-w-0"><p className="text-sm font-medium leading-tight">{n.title}</p><p className="text-xs text-black/50 mt-0.5 leading-tight">{n.description}</p><p className="text-xs text-black/40 mt-1">{n.time}</p></div>
+                        <div className="flex-1 min-w-0"><p className="text-sm font-medium leading-tight">{n.title}</p><p className="text-xs text-black/50 mt-0.5 leading-tight">{n.description}</p><p className="text-xs text-black/40 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</p></div>
                       </div>
                     ))}
                   </div>
