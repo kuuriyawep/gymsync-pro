@@ -4,9 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 // all access is gated by Row Level Security (see supabase/schema.sql).
 // Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env file.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://wheeaxbuxpuhgcabcskv.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const configuredAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey = configuredAnonKey || 'preview-placeholder';
 
-if (!supabaseAnonKey) {
+if (!configuredAnonKey) {
   // eslint-disable-next-line no-console
   console.warn('[GymSync] VITE_SUPABASE_ANON_KEY is not set — Supabase calls will fail until it is configured in .env');
 }
@@ -19,4 +20,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-export const isSupabaseConfigured = Boolean(supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(configuredAnonKey);
