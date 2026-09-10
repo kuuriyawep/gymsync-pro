@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MemberLayout from "@/components/MemberLayout";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Phone, Mail, Calendar, Dumbbell, LogOut, ChevronRight, MessageSquare, Megaphone } from "lucide-react";
 import { memberProfile, memberMembership, membershipProgress } from "@/lib/memberMockData";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
@@ -72,7 +72,7 @@ export default function MemberProfile() {
         </button>
 
         {/* Sign out */}
-        <button onClick={() => base44.auth.logout("/login")} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl border border-black/15 hover:bg-black/5">
+        <button onClick={() => supabase.auth.signOut().then(() => { window.location.href = "/login"; })} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl border border-black/15 hover:bg-black/5">
           <LogOut className="w-4 h-4" /> Sign out
         </button>
       </div>

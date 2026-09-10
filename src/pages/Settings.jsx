@@ -8,7 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SaveButton from "@/components/SaveButton";
 import PhotoPicker from "@/components/PhotoPicker";
 import { useGym, setGym } from "@/lib/gymStore";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { staff as mockStaff, staffRoles, staffPermissions } from "@/lib/mockData";
 
 const sections = [
@@ -195,7 +195,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
-                      <button onClick={() => base44.auth.logout("/login")} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
+                      <button onClick={() => supabase.auth.signOut().then(() => { window.location.href = "/login"; })} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
                     </div>
                   </div>
                 )}
