@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, Mail, Lock, Loader2, Dumbbell } from "lucide-react";
 import AuthLayout from "@/components/AuthLayout";
+import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
 export default function Login() {
@@ -57,7 +58,8 @@ export default function Login() {
       }
     >
       <Toggle />
-
+      <SocialAuthButtons redirectTo={window.location.origin + (role === "member" ? "/join-gym" : returnTo)} onError={setError} />
+      <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">or</span></div></div>
       {error && <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

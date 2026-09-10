@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabaseClient';
 
 export async function signInWithEmail(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
@@ -23,6 +23,13 @@ export async function signInWithProvider(provider, redirectTo) {
   });
   if (error) throw error;
   return data;
+}
+
+export async function getSocialProviders() {
+  const response = await fetch(`${supabaseUrl}/auth/v1/settings`, { headers: { apikey: supabaseAnonKey } });
+  if (!response.ok) throw new Error('Unable to check social sign-in');
+  const settings = await response.json();
+  return { google: Boolean(settings?.external?.google), apple: Boolean(settings?.external?.apple) };
 }
 
 export async function signOut() {

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
 import { useGym } from "@/lib/gymStore";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
 import { Image } from "@/components/ui/image";
 import { payments, trainers } from "@/lib/mockData";
 import { useMembers } from "@/lib/memberStore";
@@ -34,6 +34,7 @@ export default function Layout({ children }) {
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
   const members = useMembers();
+  const { logout } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
@@ -78,7 +79,7 @@ export default function Layout({ children }) {
         <div className="p-4 border-t border-black/10">
           <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">AK</div><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">Alex Kovac</p><p className="text-xs text-black/50 truncate">Owner</p></div></div>
           <button onClick={() => setAppFeedbackOpen(true)} className="mt-3 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Send feedback</button>
-          <button onClick={() => base44.auth.logout("/login")} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
+          <button onClick={() => logout()} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
         </div>
       </aside>
 
@@ -147,7 +148,7 @@ export default function Layout({ children }) {
                 {secondaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
                 <div className="pt-4 mt-2 border-t border-black/10 space-y-1">
                   <button onClick={() => setAppFeedbackOpen(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-black/70 hover:bg-black/5 w-full"><MessageSquare className="w-4.5 h-4.5" /> Send feedback</button>
-                  <button onClick={() => base44.auth.logout("/login")} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-black/70 hover:bg-black/5 w-full"><LogOut className="w-4.5 h-4.5" /> Log out</button>
+                  <button onClick={() => logout()} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-black/70 hover:bg-black/5 w-full"><LogOut className="w-4.5 h-4.5" /> Log out</button>
                 </div>
               </nav>
             </motion.div>

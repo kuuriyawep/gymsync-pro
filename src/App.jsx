@@ -24,6 +24,7 @@ import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import JoinGym from '@/pages/JoinGym';
 import Onboarding from '@/pages/Onboarding';
+import WelcomeLobby from '@/pages/WelcomeLobby';
 import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberAttendance from '@/pages/member/MemberAttendance';
 import MemberPayments from '@/pages/member/MemberPayments';
@@ -63,7 +64,8 @@ const AuthenticatedApp = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/join-gym" element={<JoinGym />} />
-      <Route path="/welcome" element={<Onboarding />} />
+      <Route path="/welcome" element={<WelcomeLobby />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/members" element={<Members />} />
