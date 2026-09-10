@@ -51,11 +51,11 @@ export default function Paywall({ answers = {}, onContinue, onLater, onRestore }
       <div className="bg-white border border-black/10 rounded-2xl p-4 mb-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-black/40">Pro plan</p>
         <div className="flex items-baseline gap-1 mt-1"><span className="text-3xl font-bold">$29</span><span className="text-black/50 text-sm">/month</span></div>
-        <p className="text-xs text-black/50 mt-1">Working launch price. Billing will be connected securely during backend setup.</p>
+        <p className="text-xs text-black/50 mt-1">30-day Pro trial. No card required to start. Billing will be connected securely before paid renewal.</p>
       </div>
 
       <div className="space-y-2 mt-auto">
-        <button onClick={onContinue} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Start with Pro</button>
+        <button onClick={onContinue} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Start 30-day Pro trial</button>
         <button onClick={onLater} className="w-full py-3 text-sm font-medium rounded-xl border border-black/15 hover:bg-black/5">Continue with Free</button>
         <button onClick={onRestore} className="w-full text-xs text-black/50 hover:text-black py-1">Restore purchase</button>
       </div>
