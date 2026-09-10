@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getProfile } from "@/lib/supabaseAuth";
+import { base44 } from "@/api/base44Client";
 
 const AuthContext = createContext();
 
@@ -28,7 +29,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
-      await loadSession(data.session);
+      if (data.session) {
+        await loadSession(data.session);
+      } else {
+        const builder = await base44.auth.me();
+        setUser(builder);
+        setProfile({ id: builder.id, role: builder.role || "owner", gym_id: null });
+        setIsAuthenticated(true);
+        setAuthError(null);
+      }
     } catch (error) {
       setUser(null); setProfile(null); setIsAuthenticated(false);
       setAuthError({ type: "auth_error", message: error.message || "Authentication failed" });
@@ -38,7 +47,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     checkUserAuth();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      loadSession(session).finally(() => { setIsLoadingAuth(false); setAuthChecked(true); });
+      const refresh = session ? loadSession(session) : checkUserAuth();
+      refresh.finally(() => { setIsLoadingAuth(false); setAuthChecked(true); });
     });
     return () => listener.subscription.unsubscribe();
   }, [checkUserAuth, loadSession]);
