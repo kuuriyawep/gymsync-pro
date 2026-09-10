@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, ChevronDown, Menu, X, LogOut, MessageSquare } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, ChevronDown, Menu, X, LogOut, MessageSquare, LifeBuoy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
@@ -20,6 +20,7 @@ const secondaryNav = [
   { label: "Trainers", path: "/trainers", icon: UserCog },
   { label: "Membership", path: "/membership", icon: Ticket },
   { label: "Feedback", path: "/feedback", icon: MessageSquare },
+  { label: "Support", path: "/support", icon: LifeBuoy },
 ];
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();

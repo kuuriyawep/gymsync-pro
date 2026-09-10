@@ -17,6 +17,7 @@ import Membership from '@/pages/Membership';
 import MemberDetails from '@/pages/MemberDetails';
 import Trainers from '@/pages/Trainers';
 import Feedback from '@/pages/Feedback';
+import Support from '@/pages/Support';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/membership" element={<Membership />} />
         <Route path="/trainers" element={<Trainers />} />
         <Route path="/feedback" element={<Feedback />} />
+        <Route path="/support" element={<Support />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/member" element={<MemberDashboard />} />
