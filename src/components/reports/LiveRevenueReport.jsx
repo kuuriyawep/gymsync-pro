@@ -1,0 +1,12 @@
+import React from "react";
+import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+const colors = ["#000", "#00000066", "#00000033"];
+export default function LiveRevenueReport({ data, label }) {
+  const cards = Object.entries(data.revenue);
+  return <section className="space-y-4"><h2 className="text-xs font-semibold uppercase tracking-wider text-black/40">Revenue</h2>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">{cards.map(([name, value]) => <div key={name} className="bg-white border border-black/10 rounded-xl p-4"><p className="text-lg md:text-xl font-bold">${value.toLocaleString()}</p><p className="text-xs text-black/50 capitalize">{name} Revenue</p></div>)}</div>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4"><div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-4 md:p-5"><h3 className="font-semibold">Revenue Trend</h3><p className="text-xs text-black/50 mb-4">{label}</p><div className="h-64"><ResponsiveContainer width="100%" height="100%"><LineChart data={data.series}><CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} /><XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} /><Tooltip /><Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="#000" strokeWidth={2.5} /></LineChart></ResponsiveContainer></div></div>
+      <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5"><h3 className="font-semibold text-sm">Payment Status</h3><div className="h-40"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={data.paymentStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={38} outerRadius={60}>{data.paymentStatus.map((_, i) => <Cell key={i} fill={colors[i]} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer></div>{data.paymentStatus.map((item, i) => <div key={item.name} className="flex justify-between text-xs py-1"><span><span className="inline-block w-2 h-2 rounded-full mr-2" style={{ background: colors[i] }} />{item.name}</span><b>{item.value}</b></div>)}</div>
+    </div>
+  </section>;
+}

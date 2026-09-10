@@ -100,9 +100,20 @@ export default async function(req: Request): Promise<Response> {
       const status = metadata.status || titleCase(member.status || 'active');
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
-      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', plan: plan?.name || 'Monthly', fee: amountDue, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null };
+      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', plan: plan?.name || 'Monthly', fee: amountDue, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, createdAt: member.created_at, updatedAt: member.updated_at };
     });
-    return Response.json({ members: result });
+    const names = new Map(members.map((member: any) => [member.id, member.full_name]));
+    const memberActivities = members.map((member: any) => ({ id: `member-${member.id}`, type: 'member', text: `${member.full_name} was added as a member`, occurredAt: member.created_at }));
+    const paymentActivities = payments.map((payment: any) => ({ id: `payment-${payment.id}`, type: 'payment', text: `$${Number(payment.amount || 0).toLocaleString()} payment received from ${names.get(payment.member_id) || 'a member'}`, occurredAt: payment.paid_at || payment.created_at }));
+    const updateActivities = members.filter((member: any) => member.updated_at && new Date(member.updated_at).getTime() - new Date(member.created_at).getTime() > 1000).map((member: any) => ({ id: `update-${member.id}`, type: 'update', text: `${member.full_name}'s profile was updated`, occurredAt: member.updated_at }));
+    const recentActivities = [...memberActivities, ...paymentActivities, ...updateActivities].filter((item: any) => item.occurredAt).sort((a: any, b: any) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 10);
+    const analytics = {
+      payments: payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', paidAt: payment.paid_at || payment.created_at })),
+      memberships: memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })),
+      plans: plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), isActive: plan.is_active })),
+      recentActivities
+    };
+    return Response.json({ members: result, analytics });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Unable to load members' }, { status: 500 });
   }
