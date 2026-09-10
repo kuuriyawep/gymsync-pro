@@ -1,12 +1,13 @@
 import React from "react";
 import OptionCard from "@/components/onboarding/OptionCard";
 
-export default function QuestionScreen({ icon: Icon, title, subtitle, options, multi, value, onChange }) {
+export default function QuestionScreen({ icon: Icon, title, subtitle, options, multi, value, maxSelections, onChange }) {
   const selected = (v) => (multi ? (value || []).includes(v) : value === v);
   const toggle = (v) => {
     if (multi) {
       const arr = value || [];
-      onChange(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+      if (arr.includes(v)) onChange(arr.filter((x) => x !== v));
+      else if (!maxSelections || arr.length < maxSelections) onChange([...arr, v]);
     } else {
       onChange(v);
     }
@@ -23,7 +24,7 @@ export default function QuestionScreen({ icon: Icon, title, subtitle, options, m
           <OptionCard key={o.value} selected={selected(o.value)} onClick={() => toggle(o.value)} icon={o.icon} label={o.label} description={o.description} />
         ))}
       </div>
-      {multi && <p className="text-xs text-black/40 mt-4">Select all that apply.</p>}
+      {multi && <p className="text-xs text-black/40 mt-4">{maxSelections ? `Select up to ${maxSelections}.` : "Select all that apply."}</p>}
     </div>
   );
 }
