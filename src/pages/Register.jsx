@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { signUpWithEmail, signInWithProvider } from "@/lib/supabaseAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,7 +30,7 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      await signUpWithEmail(email, password);
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -42,16 +43,12 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
+      const { data, error } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: otpCode, type: "signup" });
+      if (error) throw error;
+      if (!data?.session) {
+        window.location.href = safeReturnTo();
+        return;
       }
-      try {
-        if (sessionStorage.getItem("onboarding_role") === "owner") {
-          sessionStorage.removeItem("onboarding_role");
-          base44.functions.invoke("sendOwnerWelcomeEmail", { email, dashboardUrl: window.location.origin + "/" });
-        }
-      } catch (_) {}
       window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid verification code");
@@ -63,7 +60,7 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      await base44.auth.resendOtp(email);
+      await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
       toast({
         title: "Code sent",
         description: "Check your email for the new code.",
@@ -73,8 +70,9 @@ export default function Register() {
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", safeReturnTo());
+  const handleGoogle = async () => {
+    try { await signInWithProvider("google", window.location.origin + safeReturnTo()); }
+    catch (err) { setError(err.message || "Google sign in is unavailable"); }
   };
 
   if (showOtp) {
