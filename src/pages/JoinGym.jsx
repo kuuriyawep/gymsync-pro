@@ -2,13 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dumbbell, Phone, User, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import GoogleIcon from "@/components/GoogleIcon";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
+import { signInWithProvider } from "@/lib/supabaseAuth";
+import { useAuth } from "@/lib/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Frontend-only demo verification. The backend will perform the real lookup
-// against registered members; this never exposes other members' information.
-const DEMO_PHONE = "+1 555 0101";
-const DEMO_NAME = "Sarah Chen";
+
 const inputCls = "w-full px-3 py-3 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 
 export default function JoinGym() {
@@ -17,20 +16,23 @@ export default function JoinGym() {
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const { isAuthenticated } = useAuth();
 
-  const verify = (e) => {
+  const verify = async (e) => {
     e.preventDefault();
     setError("");
+    if (!isAuthenticated) { setError("Sign in first so we can securely link your membership to your account."); return; }
     setStep("verifying");
-    setTimeout(() => {
-      const ok = phone.trim() === DEMO_PHONE && name.trim().toLowerCase() === DEMO_NAME.toLowerCase();
-      setStep(ok ? "success" : "error");
-    }, 1100);
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke("join-gym", { body: { phone: phone.trim(), full_name: name.trim() } });
+      if (invokeError || !data?.success) throw new Error("We couldn't verify those details. Check them and try again.");
+      setStep("success");
+    } catch (err) { setError(err.message || "Verification failed"); setStep("error"); }
   };
 
-  const continueWithGoogle = () => {
-    // Real linking happens server-side later. For now, sign in and enter the member app.
-    base44.auth.loginWithProvider("google", "/member");
+  const continueWithGoogle = async () => {
+    try { await signInWithProvider("google", window.location.origin + "/join-gym"); }
+    catch (err) { setError(err.message || "Google sign in is unavailable"); }
   };
 
   return (
@@ -49,6 +51,8 @@ export default function JoinGym() {
               <motion.div key="form" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
                 <h1 className="text-2xl font-heading font-bold tracking-tight">Join your gym</h1>
                 <p className="text-sm text-black/50 mt-1 mb-6">Enter the phone number and full name registered at your gym so we can verify your membership.</p>
+                {!isAuthenticated && <div className="mb-5 p-4 rounded-xl bg-black/[0.03] border border-black/10"><p className="text-sm font-semibold">Sign in to link your membership</p><p className="text-xs text-black/50 mt-1 mb-3">Your gym membership can only be linked to an authenticated account.</p><button type="button" onClick={continueWithGoogle} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><GoogleIcon className="w-5 h-5" /> Continue with Google</button></div>}
+                {error && <div className="mb-4 p-3 rounded-lg bg-black/5 text-sm text-black/70">{error}</div>}
                 <form onSubmit={verify} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Registered phone number</label>
@@ -83,9 +87,9 @@ export default function JoinGym() {
               <motion.div key="s" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-center">
                 <div className="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8" /></div>
                 <h1 className="text-2xl font-heading font-bold tracking-tight">Membership verified</h1>
-                <p className="text-sm text-black/50 mt-1 mb-6">We found your membership at <span className="font-semibold text-black">Olympic Gym</span>. Continue with Google to link your account and access the member app.</p>
-                <button onClick={continueWithGoogle} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">
-                  <GoogleIcon className="w-5 h-5" /> Continue with Google
+                <p className="text-sm text-black/50 mt-1 mb-6">Your membership has been securely linked to your account. You can now access the member app.</p>
+                <button onClick={() => navigate("/member")} className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+                  Continue to member app
                 </button>
                 <p className="text-xs text-black/40 mt-4">This links your Google account to your existing member profile. It does not create a new membership.</p>
               </motion.div>
