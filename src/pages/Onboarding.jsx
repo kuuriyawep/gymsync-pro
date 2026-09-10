@@ -128,6 +128,9 @@ export default function Onboarding() {
   } else if (current.kind === "visual") {
     const Visual = current.visual; content = <VisualScreen icon={current.icon} title={current.title} subtitle={current.subtitle}><Visual answers={answers} /></VisualScreen>;
     footer = <button onClick={next} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">{nextIsPaywall ? "See GymSync Pro" : "Continue"}</button>;
+  } else if (current.kind === "access") {
+    content = <VisualScreen icon={Users} title={current.title} subtitle={current.subtitle}><div className="space-y-3"><div className="bg-black text-white rounded-2xl p-5"><p className="font-semibold">You do not need to create a gym.</p><p className="text-sm text-white/70 mt-1">Your owner can invite you and assign the right permissions. This keeps gym ownership and data secure.</p></div><p className="text-xs text-black/45 text-center">Already invited? Continue to sign in.</p></div></VisualScreen>;
+    footer = <button onClick={() => navigate("/login")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Go to sign in</button>;
   } else if (current.kind === "account") {
     content = <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync."><div className="space-y-3"><button onClick={() => navigate("/register?returnTo=" + encodeURIComponent("/onboarding?resume=1"))} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Create account</button><p className="text-xs text-black/40 text-center">Free to start. No payment required.</p></div></VisualScreen>;
   } else if (current.kind === "gymProfile") {
@@ -145,6 +148,7 @@ export default function Onboarding() {
 
 function buildOwnerSteps(answers) {
   const q = ownerQuestions;
+  if (answers.role && answers.role !== "owner") return [q[0], { id: "access", kind: "access", icon: Users, title: "Your gym admin controls access", subtitle: "Managers and staff join a gym through an invitation from the gym owner." }];
   const challenge = answers.challenge; const outcomes = answers.outcome || [];
   const showPayments = outcomes.includes("payments") || challenge === "payments";
   const showStaff = outcomes.includes("staff") || ["manager", "staff"].includes(answers.role) || challenge === "staff";
