@@ -88,5 +88,37 @@
 
   body {
     @apply bg-background text-foreground font-body;
+    transition: background-color 150ms ease, color 150ms ease;
   }
+
+  html.dark {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  .dark [class~="bg-white"],
+  .dark [class~="bg-white/90"] { background-color: hsl(var(--background)) !important; }
+  .dark [class~="text-black"] { color: hsl(var(--foreground)) !important; }
+  .dark [class~="text-black/40"],
+  .dark [class~="text-black/45"],
+  .dark [class~="text-black/50"],
+  .dark [class~="text-black/60"],
+  .dark [class~="text-black/65"],
+  .dark [class~="text-black/70"],
+  .dark [class~="text-black/75"] { color: hsl(var(--muted-foreground)) !important; }
+  .dark [class~="border-black/5"],
+  .dark [class~="border-black/10"],
+  .dark [class~="border-black/15"] { border-color: hsl(var(--border)) !important; }
+  .dark [class~="bg-black/5"],
+  .dark [class~="bg-black/[0.02]"],
+  .dark [class~="bg-black/[0.025]"],
+  .dark [class~="bg-black/[0.03]"],
+  .dark [class~="bg-black/[0.055]"],
+  .dark [class~="bg-black/10"] { background-color: hsl(var(--muted)) !important; }
+  .dark [class~="bg-black"] { background-color: hsl(var(--primary)) !important; }
+  .dark [class~="text-white"] { color: hsl(var(--primary-foreground)) !important; }
+  .dark [class~="ring-white"] { --tw-ring-color: hsl(var(--background)) !important; }
+  .dark [class~="hover:bg-black/5"]:hover,
+  .dark [class~="hover:bg-black/[0.025]"]:hover { background-color: hsl(var(--muted)) !important; }
 }

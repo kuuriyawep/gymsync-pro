@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Dumbbell, Home, Flame, CreditCard, MessageSquare, User, Bell, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemberPortal } from "@/lib/memberPortalStore";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
@@ -22,8 +23,8 @@ export default function MemberLayout({ children, title, back }) {
   const unread = memberNotifications.filter((n) => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-white text-black flex flex-col">
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/10 h-14 flex items-center px-4 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border h-14 flex items-center px-4 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {back ? (
           <button onClick={() => navigate(back)} className="p-2 -ml-2 rounded-lg hover:bg-black/5"><ChevronLeft className="w-5 h-5" /></button>
         ) : (
@@ -35,6 +36,7 @@ export default function MemberLayout({ children, title, back }) {
         <div className="flex-1 min-w-0 text-center">
           {title && <span className="text-sm font-semibold truncate">{title}</span>}
         </div>
+        <ThemeToggle />
         <div className="relative">
           <button onClick={() => setBellOpen((o) => !o)} className="relative p-2 rounded-lg hover:bg-black/5" aria-label="Notifications">
             <Bell className="w-5 h-5" />
@@ -63,7 +65,7 @@ export default function MemberLayout({ children, title, back }) {
 
       <main className="flex-1 p-4 max-w-2xl w-full mx-auto pb-20">{children}</main>
 
-      <nav className="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-black/10 flex items-center justify-around h-16 px-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav className="fixed bottom-0 inset-x-0 z-30 bg-background border-t border-border flex items-center justify-around h-16 px-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {nav.map((item, i) => {
           const active = isActive(item.path);
           return (
