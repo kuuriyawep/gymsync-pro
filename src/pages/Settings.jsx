@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2, ArrowLeft, Palette } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import Modal from "@/components/ui/Modal";
@@ -16,14 +16,12 @@ import { useStaffAccess } from "@/lib/staffStore";
 import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
 import ProfileImage from "@/components/ProfileImage";
 import SettingsMenu from "@/components/settings/SettingsMenu";
-import AppearanceSettings from "@/components/settings/AppearanceSettings";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
   { id: "gym", label: "Gym Profile", icon: Building2, desc: "Your gym's information and branding" },
   { id: "membership", label: "Membership", icon: CreditCard, desc: "Default currency and payment method" },
   { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
-  { id: "appearance", label: "Appearance", icon: Palette, desc: "Choose light or dark mode" },
   { id: "security", label: "Security", icon: Shield, desc: "Password, active sessions and sign out" },
   { id: "staff", label: "Staff & Access", icon: UserCog, desc: "Invite staff and manage their gym access" },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle, desc: "Irreversible account actions" },
@@ -186,8 +184,6 @@ export default function Settings() {
                     ))}
                   </div>
                 )}
-
-                {active === "appearance" && <AppearanceSettings />}
 
                 {active === "security" && (
                   <div className="space-y-4">
