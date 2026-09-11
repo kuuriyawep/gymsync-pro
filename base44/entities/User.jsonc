@@ -2,14 +2,6 @@
   "name": "User",
   "type": "object",
   "properties": {
-    "role": {
-      "type": "string",
-      "description": "Base44 platform role",
-      "enum": [
-        "admin",
-        "user"
-      ]
-    },
     "app_role": {
       "type": "string",
       "description": "GymSync business role",
@@ -27,8 +19,5 @@
       "type": "string",
       "maxLength": 2000
     }
-  },
-  "required": [
-    "role"
-  ]
+  }
 }
