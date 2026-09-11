@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = body.operation;
-    if (!['bootstrap', 'create', 'update', 'delete'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
+    if (!['bootstrap', 'create', 'update', 'delete', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
@@ -75,6 +75,36 @@ export default async function(req: Request): Promise<Response> {
       await request(`members?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
     }
 
+    if (operation === 'createPlan' || operation === 'updatePlan') {
+      const input = body.plan || {};
+      const name = String(input.name || '').trim();
+      const price = Number(input.price);
+      const durationMonths = Math.max(1, Number.parseInt(String(input.duration), 10) || 1);
+      if (!name || !Number.isFinite(price) || price < 0) return Response.json({ error: 'Valid plan name, price and duration are required' }, { status: 400 });
+      const values = { name, price, duration_months: durationMonths, is_active: input.status !== 'Inactive' };
+      if (operation === 'createPlan') await insert('membership_plans', { gym_id: gym.id, ...values });
+      else {
+        const id = encodeURIComponent(String(body.id || ''));
+        const owned = await select('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}&select=id&limit=1`);
+        if (!owned[0]) return Response.json({ error: 'Membership plan not found' }, { status: 404 });
+        await update('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}`, values);
+      }
+    }
+
+    if (operation === 'togglePlan') {
+      const id = encodeURIComponent(String(body.id || ''));
+      const owned = await select('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}&select=id,is_active&limit=1`);
+      if (!owned[0]) return Response.json({ error: 'Membership plan not found' }, { status: 404 });
+      await update('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}`, { is_active: !owned[0].is_active });
+    }
+
+    if (operation === 'deletePlan') {
+      const id = encodeURIComponent(String(body.id || ''));
+      const used = await select('memberships', `plan_id=eq.${id}&gym_id=eq.${gymFilter}&select=id&limit=1`);
+      if (used[0]) return Response.json({ error: 'A plan assigned to members cannot be deleted' }, { status: 409 });
+      await request(`membership_plans?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
+    }
+
     const [members, memberships, plans, payments] = await Promise.all([
       select('members', `gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
       select('memberships', `gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
@@ -101,7 +131,7 @@ export default async function(req: Request): Promise<Response> {
     const analytics = {
       payments: payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', paidAt: payment.paid_at || payment.created_at })),
       memberships: memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })),
-      plans: plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), isActive: plan.is_active })),
+      plans: plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })),
       recentActivities
     };
     return Response.json({ members: result, analytics });

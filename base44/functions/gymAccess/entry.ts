@@ -29,9 +29,12 @@ export default async function(req: Request): Promise<Response> {
       return gyms[0] || null;
     };
 
+    const findLinkedMembers = async () => supabaseUser
+      ? select('members', `user_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`)
+      : select('members', `email=eq.${encodeURIComponent(String(user.email || '').toLowerCase())}&select=*&limit=1`);
+
     const loadMemberData = async () => {
-      if (!supabaseUser) return null;
-      const memberRows = await select('members', `user_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`);
+      const memberRows = await findLinkedMembers();
       const member = memberRows[0];
       if (!member) return null;
       const gymFilter = encodeURIComponent(member.gym_id);
@@ -65,16 +68,19 @@ export default async function(req: Request): Promise<Response> {
     };
 
     if (operation === 'join') {
-      if (!supabaseUser) return Response.json({ error: 'Sign in before joining your gym' }, { status: 401 });
       const phone = String(body.phone || '').trim();
       const fullName = String(body.fullName || '').trim();
       if (!phone || !fullName) return Response.json({ error: 'Phone and full name are required' }, { status: 400 });
       const matches = await select('members', `phone=eq.${encodeURIComponent(phone)}&full_name=ilike.${encodeURIComponent(fullName)}&select=*&limit=2`);
       if (matches.length !== 1) return Response.json({ error: 'Member details did not match exactly' }, { status: 404 });
       const member = matches[0];
-      if (member.user_id && member.user_id !== user.id) return Response.json({ error: 'This membership is already linked to another account' }, { status: 409 });
-      await update('members', `id=eq.${encodeURIComponent(member.id)}`, { user_id: user.id });
-      await insert('profiles?on_conflict=id', { id: user.id, gym_id: member.gym_id, role: 'member', full_name: member.full_name, phone: member.phone, avatar_url: member.avatar_url || null }, 'resolution=merge-duplicates,return=representation');
+      if (supabaseUser && member.user_id && member.user_id !== user.id) return Response.json({ error: 'This membership is already linked to another account' }, { status: 409 });
+      if (supabaseUser) {
+        await update('members', `id=eq.${encodeURIComponent(member.id)}`, { user_id: user.id });
+        await insert('profiles?on_conflict=id', { id: user.id, gym_id: member.gym_id, role: 'member', full_name: member.full_name, phone: member.phone, avatar_url: member.avatar_url || null }, 'resolution=merge-duplicates,return=representation');
+      } else {
+        await update('members', `id=eq.${encodeURIComponent(member.id)}`, { email: String(user.email || '').toLowerCase() });
+      }
       return Response.json({ success: true, member: await loadMemberData() });
     }
 
@@ -87,7 +93,7 @@ export default async function(req: Request): Promise<Response> {
     if (operation === 'createFeedback') {
       const memberData = await loadMemberData();
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
-      const memberRows = await select('members', `user_id=eq.${encodeURIComponent(user.id)}&select=id,gym_id&limit=1`);
+      const memberRows = await findLinkedMembers();
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
       await insert('feedback_requests', { gym_id: memberRows[0].gym_id, member_id: memberRows[0].id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });

@@ -1,6 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { base44 } from "@/api/base44Client";
-import { supabase } from "@/lib/supabaseClient";
 
 const listeners = new Set();
 let members = [];
@@ -15,8 +14,7 @@ function getAnalyticsSnapshot() { return analytics; }
 function getLoadedSnapshot() { return loaded; }
 
 async function run(operation, payload = {}) {
-  const { data } = await supabase.auth.getSession();
-  const response = await base44.functions.invoke("membersData", { operation, accessToken: data.session?.access_token, ...payload });
+  const response = await base44.functions.invoke("membersData", { operation, ...payload });
   members = response.data.members;
   analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
   loaded = true;
@@ -33,6 +31,9 @@ export function loadMembers(force = false) {
 export function addMember(member) { return run("create", { member }); }
 export function updateMember(id, member) { return run("update", { id, member }); }
 export function deleteMember(id) { return run("delete", { id }); }
+export function createMembershipPlan(plan) { return run("createPlan", { plan }); }
+export function updateMembershipPlan(id, plan) { return run("updatePlan", { id, plan }); }
+export function toggleMembershipPlan(id) { return run("togglePlan", { id }); }
 export function getMembers() { return members; }
 export function setMembers(next) { members = typeof next === "function" ? next(members) : next; emit(); }
 
