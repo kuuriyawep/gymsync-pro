@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { base44 } from "@/api/base44Client";
+import { gymData } from "@/lib/gymDataClient";
 
 const listeners = new Set();
 let members = [];
@@ -14,9 +14,9 @@ function getAnalyticsSnapshot() { return analytics; }
 function getLoadedSnapshot() { return loaded; }
 
 async function run(operation, payload = {}) {
-  const response = await base44.functions.invoke("membersData", { operation, ...payload });
-  members = response.data.members;
-  analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
+  const response = await gymData(operation, payload);
+  if (response.members) members = response.members;
+  if (response.analytics) analytics = response.analytics;
   loaded = true;
   emit();
   return members;
@@ -31,10 +31,10 @@ export function loadMembers(force = false) {
 export function addMember(member) { return run("create", { member }); }
 export function updateMember(id, member) { return run("update", { id, member }); }
 export function deleteMember(id) { return run("delete", { id }); }
-export function recordPayment(payment) { return run("recordPayment", { payment }); }
-export function createMembershipPlan(plan) { return run("createPlan", { plan }); }
-export function updateMembershipPlan(id, plan) { return run("updatePlan", { id, plan }); }
-export function toggleMembershipPlan(id) { return run("togglePlan", { id }); }
+export async function recordPayment(payment) { const response = await gymData("recordPayment", { payment }); members = response.members || members; analytics = response.analytics || analytics; loaded = true; emit(); return analytics; }
+export async function createMembershipPlan(plan) { const plans = await gymData("createPlan", { plan }); analytics = { ...analytics, plans }; emit(); return plans; }
+export async function updateMembershipPlan(id, plan) { const plans = await gymData("updatePlan", { id, plan }); analytics = { ...analytics, plans }; emit(); return plans; }
+export async function toggleMembershipPlan(id) { const plans = await gymData("togglePlan", { id }); analytics = { ...analytics, plans }; emit(); return plans; }
 export function getMembers() { return members; }
 export function setMembers(next) { members = typeof next === "function" ? next(members) : next; emit(); }
 
