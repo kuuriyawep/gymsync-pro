@@ -180,6 +180,7 @@ async function loadOwnerData(supabase: any, context: any) {
 }
 
 async function completeOnboarding(supabase: any, base44: any, user: any, body: any) {
+  if (user.app_role && user.app_role !== "owner") throw new Error("This account is already linked as a gym member or staff member");
   if (body?.role && body.role !== "owner") throw new Error("Only a gym owner can create a gym workspace");
   const onboardingData = body?.onboardingData || {};
   if (onboardingData.role && onboardingData.role !== "owner") throw new Error("Only a gym owner can create a gym workspace");
