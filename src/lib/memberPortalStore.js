@@ -30,9 +30,10 @@ export async function loadMemberPortal(force = false, userId = "") {
 }
 
 export async function joinGym(phone, fullName) {
-  const result = await invoke("join", { phone, fullName });
+  await invoke("join", { phone, fullName });
+  const result = await invoke("memberData");
   state = { data: result.member || null, loaded: true, loading: false, error: "", userId: "" }; emit();
-  return result;
+  return result.member;
 }
 export async function createMemberFeedback(feedback) { const result = await invoke("createFeedback", { feedback }); state = { ...state, data: result.member, loaded: true, loading: false, error: "" }; emit(); return result.member; }
 export async function markMemberNotificationRead(id) {
