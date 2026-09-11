@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import Modal from "@/components/ui/Modal";
@@ -15,6 +15,7 @@ import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
 import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
 import ProfileImage from "@/components/ProfileImage";
+import SettingsMenu from "@/components/settings/SettingsMenu";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
@@ -50,7 +51,7 @@ const sessions = [
 export default function Settings() {
   const location = useLocation();
   const requestedTab = new URLSearchParams(location.search).get("tab");
-  const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
+  const [active, setActive] = useState(sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
   const ownerProfile = useOwnerProfile();
@@ -66,7 +67,7 @@ export default function Settings() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (requestedTab === "gym") setActive("gym");
+    setActive(sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   }, [requestedTab]);
 
   useEffect(() => {
@@ -91,21 +92,18 @@ export default function Settings() {
         </div>
 
         <div className="space-y-6">
-          <div className="w-full">
-            <div className="grid grid-cols-1 gap-1">
-              {sections.map((s) => (
-                <button key={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
-                  {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-black" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
-                  <span className="relative flex items-center gap-3"><s.icon className="w-4.5 h-4.5" />{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
+          {!active ? (
+            <SettingsMenu sections={sections} onSelect={setActive} />
+          ) : (
           <div className="flex-1 min-w-0">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">{activeItem.label}</h2>
-              <p className="text-sm text-black/50">{activeItem.desc}</p>
+            <div className="mb-4 flex items-start gap-3">
+              <button type="button" onClick={() => setActive(null)} className="p-2 -ml-2 rounded-lg hover:bg-black/5" aria-label="Back to all settings">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div>
+                <h2 className="text-lg font-semibold">{activeItem.label}</h2>
+                <p className="text-sm text-black/50">{activeItem.desc}</p>
+              </div>
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-[300px]">
@@ -230,6 +228,7 @@ export default function Settings() {
               </motion.div>
             </AnimatePresence>
           </div>
+          )}
         </div>
       </div>
 
