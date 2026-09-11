@@ -34,11 +34,11 @@ async function getContext(supabase: any, user: any) {
       await supabase.from("staff").update({ base44_user_id: uid, status: "active", joined_at: staff.data.joined_at || new Date().toISOString() }).eq("id", staff.data.id);
       const linked = await supabase.from("profiles").select("*").eq("email", email).maybeSingle();
       if (linked.data) {
-        const updated = await supabase.from("profiles").update({ base44_user_id: uid, gym_id: staff.data.gym_id, role: "staff", full_name: user.full_name || staff.data.full_name, email }).eq("id", linked.data.id).select("*").single();
+        const updated = await supabase.from("profiles").update({ base44_user_id: uid, gym_id: staff.data.gym_id, role: "staff", staff_role: staff.data.role, full_name: user.full_name || staff.data.full_name, email }).eq("id", linked.data.id).select("*").single();
         if (updated.error) throw updated.error;
         profile = updated.data;
       } else {
-        const created = await supabase.from("profiles").insert({ gym_id: staff.data.gym_id, role: "staff", full_name: user.full_name || staff.data.full_name, email, base44_user_id: uid }).select("*").single();
+        const created = await supabase.from("profiles").insert({ gym_id: staff.data.gym_id, role: "staff", staff_role: staff.data.role, full_name: user.full_name || staff.data.full_name, email, base44_user_id: uid }).select("*").single();
         if (created.error) throw created.error;
         profile = created.data;
       }
@@ -165,13 +165,13 @@ async function loadOwnerData(supabase: any, context: any) {
     memberId: p.member_id,
     memberName: mappedMembers.find((m: any) => m.id === p.member_id)?.name || "Unknown",
     amount: Number(p.amount || 0),
-    amountPaid: Number(p.amount_paid ?? p.amount ?? 0),
-    balance: Number(p.balance || 0),
+    amountPaid: Number(p.amount || 0),
+    balance: 0,
     method: p.method || "cash",
     paidAt: p.paid_at,
     reference: p.reference || "",
     note: p.note || "",
-    status: p.status || "Paid",
+    status: "Paid",
   }));
 
   return { gym, members: mappedMembers, analytics: { payments: mappedPayments, memberships, plans: mappedPlans, recentActivities: [] } };
@@ -209,9 +209,9 @@ async function createMember(supabase: any, context: any, body: any) {
     email: body.member.email ? emailOf(body.member.email) : null,
     avatar_url: body.member.photoUrl || null,
     joined_at: body.member.startDate ? new Date(`${body.member.startDate}T00:00:00Z`).toISOString() : new Date().toISOString(),
-    registration_time: body.member.preferredTime || null,
+    registration_time: normalizeRegistrationTime(body.member.preferredTime),
     notes: clean(body.member.note, 1000) || null,
-    status: String(body.member.status || "Active").toLowerCase(),
+    status: memberStatus(body.member.status || "Active"),
   };
   const created = await supabase.from("members").insert(memberPayload).select("*").single();
   if (created.error) throw created.error;
@@ -221,11 +221,11 @@ async function createMember(supabase: any, context: any, body: any) {
   const startDate = body.member.startDate || new Date().toISOString().slice(0, 10);
   const expiryDate = body.member.expiryDate || new Date(Date.parse(`${startDate}T00:00:00Z`) + duration * 30 * 86400000).toISOString().slice(0, 10);
   const plan = await findOrCreatePlan(supabase, gym.id, body.member.plan || "Monthly", Number(body.member.amount || gym.membership_default_price || 15), duration);
-  const membership = await supabase.from("memberships").insert({ gym_id: gym.id, member_id: member.id, plan_id: plan.id, start_date: startDate, end_date: expiryDate, amount_due: Number(body.member.amount || plan.price || 0), amount_paid: body.member.paymentStatus === "Paid" ? Number(body.member.amount || plan.price || 0) : 0, status: statusLower(body.member.status || "Active"), auto_renew: false }).select("*").single();
+  const membership = await supabase.from("memberships").insert({ gym_id: gym.id, member_id: member.id, plan_id: plan.id, start_date: startDate, end_date: expiryDate, amount_due: Number(body.member.amount || plan.price || 0), amount_paid: body.member.paymentStatus === "Paid" ? Number(body.member.amount || plan.price || 0) : 0, status: membershipStatus(body.member.status || "Active"), auto_renew: false }).select("*").single();
   if (membership.error) throw membership.error;
 
   if (body.member.paymentStatus === "Paid" && Number(body.member.amount || 0) > 0) {
-    const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: member.id, membership_id: membership.data.id, amount: Number(body.member.amount), currency: gym.currency || "USD", method: String(body.member.paymentMethod || "Cash").toLowerCase().replace(/\s+/g, "_"), paid_at: body.member.startDate ? new Date(`${body.member.startDate}T00:00:00Z`).toISOString() : new Date().toISOString(), recorded_by: context.profile.id, note: clean(body.member.note, 1000) || null }).select("*").single();
+    const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: member.id, membership_id: membership.data.id, amount: Number(body.member.amount), currency: gym.currency || "USD", method: normalizePaymentMethod(body.member.paymentMethod), paid_at: body.member.startDate ? new Date(`${body.member.startDate}T00:00:00Z`).toISOString() : new Date().toISOString(), recorded_by: null, note: clean(body.member.note, 1000) || null }).select("*").single();
     if (payment.error) throw payment.error;
   }
   return (await loadOwnerData(supabase, context)).members;
@@ -238,7 +238,12 @@ async function nextMemberCode(supabase: any, gymId: string) {
   return `GYM-${next}`;
 }
 
-function statusLower(value: string) { return String(value || "active").toLowerCase().replace(/\s+/g, "_") === "expiring_soon" ? "expiring_soon" : String(value || "active").toLowerCase(); }
+function memberStatus(value: string) { const v = String(value || "active").toLowerCase(); if (v === "expired") return "expired"; if (v === "pending") return "pending"; if (v === "suspended") return "suspended"; return "active"; }
+function membershipStatus(value: string) { const v = String(value || "active").toLowerCase(); if (["expired", "pending", "cancelled"].includes(v)) return v; return "active"; }
+function normalizeRegistrationTime(value: unknown) { const v = String(value || "").toLowerCase(); return ["morning", "afternoon", "evening", "night"].includes(v) ? v : null; }
+function normalizePaymentMethod(value: unknown) { const v = String(value || "cash").toLowerCase().replace(/\s+/g, "_"); return ["cash", "card", "bank_transfer", "mobile_money", "other"].includes(v) ? v : "other"; }
+function normalizeFeedbackType(value: unknown) { const v = String(value || "feedback").toLowerCase().replace(/\s+/g, "_"); const map: Record<string,string> = { feedback:"feedback", complaint:"complaint", feature_request:"feature_request", bug:"bug", coach_request:"coach_request", machine_request:"machine_request", other:"other" }; return map[v] || "other"; }
+function feedbackStatus(value: unknown) { const v=String(value||"").toLowerCase(); if(v==="in_progress") return "In Progress"; if(v==="resolved"||v==="closed") return "Resolved"; return "Open"; }
 
 async function findOrCreatePlan(supabase: any, gymId: string, name: string, price: number, durationMonths: number) {
   const existing = await supabase.from("membership_plans").select("*").eq("gym_id", gymId).eq("name", name).maybeSingle();
@@ -295,13 +300,13 @@ async function recordPayment(supabase: any, context: any, body: any) {
   if (!memberId || !Number.isFinite(amount) || amount <= 0) throw new Error("Valid member and payment amount are required");
   const membership = await supabase.from("memberships").select("*").eq("member_id", memberId).eq("gym_id", gym.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (membership.error) throw membership.error;
-  const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: memberId, membership_id: membership.data?.id || null, amount, currency: gym.currency || "USD", method: String(body.payment.method || "Cash").toLowerCase().replace(/\s+/g, "_"), paid_at: body.payment.date ? new Date(`${body.payment.date}T00:00:00Z`).toISOString() : new Date().toISOString(), recorded_by: context.profile.id, note: clean(body.payment.notes, 1000) || null, reference: clean(body.payment.reference, 200) || null }).select("*").single();
+  const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: memberId, membership_id: membership.data?.id || null, amount, currency: gym.currency || "USD", method: String(body.payment.method || "Cash").toLowerCase().replace(/\s+/g, "_"), paid_at: body.payment.date ? new Date(`${body.payment.date}T00:00:00Z`).toISOString() : new Date().toISOString(), recorded_by: null, note: clean(body.payment.notes, 1000) || null, reference: clean(body.payment.reference, 200) || null }).select("*").single();
   if (payment.error) throw payment.error;
   if (membership.data) {
     const newPaid = Number(membership.data.amount_paid || 0) + amount;
     const newBalance = Math.max(0, Number(membership.data.amount_due || 0) - newPaid);
     await supabase.from("memberships").update({ amount_paid: newPaid }).eq("id", membership.data.id).eq("gym_id", gym.id);
-    await supabase.from("payments").update({ amount_paid: amount, balance: newBalance, status: newBalance <= 0 ? "paid" : "outstanding" }).eq("id", payment.data.id);
+    
   }
   return (await loadOwnerData(supabase, context)).analytics;
 }
@@ -333,7 +338,7 @@ async function staffAccess(supabase: any, base44: any, context: any, operation: 
   if (operation === "list") {
     const result = await supabase.from("staff").select("*").eq("gym_id", gym.id).order("created_at", { ascending: false });
     if (result.error) throw result.error;
-    return result.data || [];
+    return (result.data || []).map((item: any) => ({ ...item, name: item.full_name, lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : "Invited", role: item.role.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) }));
   }
   if (operation === "invite") {
     const email = emailOf(body.email);
@@ -341,7 +346,7 @@ async function staffAccess(supabase: any, base44: any, context: any, operation: 
     if (!email) throw new Error("Email is required");
     if (!["manager", "front_desk", "cashier", "trainer"].includes(role)) throw new Error("Invalid staff role");
     await base44.auth.inviteUser(email, "user");
-    const result = await supabase.from("staff").upsert({ gym_id: gym.id, email, role, full_name: email.split("@")[0], permissions: [], status: "invited", invited_at: new Date().toISOString(), invited_by: context.profile.id }, { onConflict: "gym_id,email" }).select("*").single();
+    const result = await supabase.from("staff").upsert({ gym_id: gym.id, email, role, full_name: email.split("@")[0], permissions: [], status: "invited", invited_at: new Date().toISOString() }, { onConflict: "gym_id,email" }).select("*").single();
     if (result.error) throw result.error;
     return (await staffAccess(supabase, base44, context, "list", {}));
   }
@@ -362,16 +367,16 @@ async function trainers(supabase: any, context: any, operation: string, body: an
   }
   if (operation === "create") {
     const t = body.trainer || {};
-    const result = await supabase.from("staff").insert({ gym_id: gym.id, full_name: clean(t.name, 160), phone: clean(t.phone, 40) || null, email: emailOf(t.email) || null, role: "trainer", permissions: [], status: String(t.status || "Active").toLowerCase(), shift: clean(t.specialization, 120) || null, joined_at: t.joinDate ? new Date(`${t.joinDate}T00:00:00Z`).toISOString() : new Date().toISOString() }).select("*").single();
+    const result = await supabase.from("staff").insert({ gym_id: gym.id, full_name: clean(t.name, 160), phone: clean(t.phone, 40) || null, email: emailOf(t.email) || null, role: "trainer", permissions: [], status: "active", shift: clean(t.specialization, 120) || null, joined_at: t.joinDate ? new Date(`${t.joinDate}T00:00:00Z`).toISOString() : new Date().toISOString() }).select("*").single();
     if (result.error) throw result.error;
   } else if (operation === "update") {
     const t = body.trainer || {};
-    const result = await supabase.from("staff").update({ full_name: clean(t.name, 160), phone: clean(t.phone, 40) || null, email: emailOf(t.email) || null, shift: clean(t.specialization, 120) || null, status: String(t.status || "Active").toLowerCase(), joined_at: t.joinDate ? new Date(`${t.joinDate}T00:00:00Z`).toISOString() : undefined }).eq("id", clean(body.id, 80)).eq("gym_id", gym.id).eq("role", "trainer");
+    const result = await supabase.from("staff").update({ full_name: clean(t.name, 160), phone: clean(t.phone, 40) || null, email: emailOf(t.email) || null, shift: clean(t.specialization, 120) || null, status: String(t.status || "Active").toLowerCase() === "inactive" ? "revoked" : "active", joined_at: t.joinDate ? new Date(`${t.joinDate}T00:00:00Z`).toISOString() : undefined }).eq("id", clean(body.id, 80)).eq("gym_id", gym.id).eq("role", "trainer");
     if (result.error) throw result.error;
   } else if (operation === "toggle") {
     const existing = await supabase.from("staff").select("status").eq("id", clean(body.id, 80)).eq("gym_id", gym.id).eq("role", "trainer").single();
     if (existing.error) throw existing.error;
-    const result = await supabase.from("staff").update({ status: existing.data.status === "active" ? "inactive" : "active" }).eq("id", clean(body.id, 80)).eq("gym_id", gym.id);
+    const result = await supabase.from("staff").update({ status: existing.data.status === "active" ? "revoked" : "active" }).eq("id", clean(body.id, 80)).eq("gym_id", gym.id);
     if (result.error) throw result.error;
   } else if (operation === "delete") {
     const result = await supabase.from("staff").delete().eq("id", clean(body.id, 80)).eq("gym_id", gym.id).eq("role", "trainer");
@@ -403,13 +408,13 @@ async function memberPortal(supabase: any, context: any, operation: string, body
     balance: { price, paid, balance, status: balance <= 0 ? "Paid" : "Balance Due", renewalDate: membership?.end_date },
     payments: payments.map((p: any) => ({ id: p.id, amount: Number(p.amount_paid ?? p.amount ?? 0), method: p.method || "cash", date: p.paid_at?.slice(0,10), reference: p.reference || "" })),
     attendance: (attendanceRes.data || []).map((a: any) => ({ id: a.id, checkedInAt: a.check_in_at, date: a.check_in_at?.slice(0,10) })),
-    feedback: (feedbackRes.data || []).map((f: any) => ({ id: f.id, type: f.type, title: f.subject || f.title || "Request", body: f.message || f.body || "", status: titleStatus(f.status), response: f.response || null, date: f.created_at?.slice(0,10) })),
+    feedback: (feedbackRes.data || []).map((f: any) => ({ id: f.id, type: f.type, title: f.subject || f.title || "Request", body: f.message || f.body || "", status: feedbackStatus(f.status), response: f.response || null, date: f.created_at?.slice(0,10) })),
     notifications: (notificationsRes.data || []).map((n: any) => ({ id: n.id, title: n.title, description: n.message || n.body || "", read: Boolean(n.read_at), createdAt: n.created_at })),
   };
   if (operation === "get") return data;
   if (operation === "feedback") {
     const f = body.feedback || {};
-    const created = await supabase.from("feedback_requests").insert({ gym_id: gym.id, member_id: member.id, user_id: null, channel: "member", type: clean(f.type, 40), subject: clean(f.title, 160), message: clean(f.body, 2000), status: "pending", priority: "normal" }).select("*").single();
+    const created = await supabase.from("feedback_requests").insert({ gym_id: gym.id, member_id: member.id, user_id: null, channel: "gym", type: normalizeFeedbackType(f.type), subject: clean(f.title, 160), message: clean(f.body, 2000), status: "open", priority: "normal" }).select("*").single();
     if (created.error) throw created.error;
     return memberPortal(supabase, context, "get", {});
   }
