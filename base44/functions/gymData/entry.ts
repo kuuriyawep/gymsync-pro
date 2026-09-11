@@ -179,7 +179,7 @@ async function loadOwnerData(supabase: any, context: any) {
   return { gym, members: mappedMembers, analytics: { payments: mappedPayments, memberships, plans: mappedPlans, recentActivities: [] } };
 }
 
-async function completeOnboarding(supabase: any, user: any, body: any) {
+async function completeOnboarding(supabase: any, base44: any, user: any, body: any) {
   if (body?.role && body.role !== "owner") throw new Error("Only a gym owner can create a gym workspace");
   const onboardingData = body?.onboardingData || {};
   if (onboardingData.role && onboardingData.role !== "owner") throw new Error("Only a gym owner can create a gym workspace");
@@ -193,6 +193,7 @@ async function completeOnboarding(supabase: any, user: any, body: any) {
     p_onboarding_data: onboardingData,
   });
   if (error) throw error;
+  await base44.auth.updateMe({ app_role: "owner" });
   return { gymId: data };
 }
 
@@ -457,7 +458,7 @@ async function memberPortal(supabase: any, context: any, operation: string, body
   }
 }
 
-async function joinGym(supabase: any, user: any, body: any) {
+async function joinGym(supabase: any, base44: any, user: any, body: any) {
   const phone = clean(body.phone, 40);
   const fullName = clean(body.fullName, 160);
   if (!phone || !fullName) throw new Error("Phone number and full name are required");
@@ -469,6 +470,7 @@ async function joinGym(supabase: any, user: any, body: any) {
   if (updated.error) throw updated.error;
   const profile = await supabase.from("profiles").upsert({ gym_id: result.data.gym_id, role: "member", full_name: result.data.full_name, email: emailOf(user.email) || result.data.email, phone: result.data.phone, avatar_url: result.data.avatar_url, base44_user_id: user.id }, { onConflict: "base44_user_id" }).select("*").single();
   if (profile.error) throw profile.error;
+  await base44.auth.updateMe({ app_role: "member" });
   return { memberId: result.data.id, gymId: result.data.gym_id };
 }
 
@@ -480,11 +482,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const operation = clean(body.operation, 80);
 
-    if (operation === "completeOnboarding") return json(await completeOnboarding(supabase, user, body));
-    if (operation === "join") return json(await joinGym(supabase, user, body));
+    if (operation === "completeOnboarding") return json(await completeOnboarding(supabase, base44, user, body));
+    if (operation === "join") return json(await joinGym(supabase, base44, user, body));
 
     const context = await getContext(supabase, user);
     if (!context.profile) return json({ profile: null, onboardingRequired: true }, 200);
+    const desiredAppRole = context.profile.role === "owner" ? "owner" : context.profile.role === "member" ? "member" : "staff";
+    if (user.app_role !== desiredAppRole) { try { await base44.auth.updateMe({ app_role: desiredAppRole }); } catch (_) {} }
 
     if (operation === "context") return json({ profile: context.profile, member: context.member });
     if (operation === "bootstrap") return json(await loadOwnerData(supabase, context));
