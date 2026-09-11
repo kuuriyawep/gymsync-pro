@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
-import { useMembers, useGymAnalytics } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, loadMembers } from "@/lib/memberStore";
 import { gymData } from "@/lib/gymDataClient";
 import { useToast } from "@/components/ui/use-toast";
 import QuickMessageModal from "@/components/QuickMessageModal";
@@ -86,7 +86,7 @@ export default function MemberDetails() {
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setQuickMsg(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Quick Message</button>
               <button onClick={() => navigate(`/members?edit=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
-              <button disabled={renewing} onClick={async () => { setRenewing(true); try { await gymData("renewMember", { id: member.id, plan: member.plan, amount: member.fee, durationMonths: 1, paymentStatus: "Paid", paymentMethod: member.paymentMethod || "Cash" }); toast({ title: "Membership renewed", description: `${member.name} is active for another month.` }); window.location.reload(); } catch (error) { toast({ title: "Renewal failed", description: error.message, variant: "destructive" }); } finally { setRenewing(false); } }} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5 disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${renewing ? "animate-spin" : ""}`} /> {renewing ? "Renewing…" : "Renew Membership"}</button>
+              <button disabled={renewing} onClick={async () => { setRenewing(true); try { await gymData("renewMember", { id: member.id, plan: member.plan, amount: member.fee, durationMonths: 1, paymentStatus: "Paid", paymentMethod: member.paymentMethod || "Cash" }); toast({ title: "Membership renewed", description: `${member.name} is active for another month.` }); await loadMembers(true); } catch (error) { toast({ title: "Renewal failed", description: error.message, variant: "destructive" }); } finally { setRenewing(false); } }} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5 disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${renewing ? "animate-spin" : ""}`} /> {renewing ? "Renewing…" : "Renew Membership"}</button>
               <button onClick={() => navigate(`/payments?memberId=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
             </div>
           </div>
