@@ -13,7 +13,7 @@ import { base44 } from "@/api/base44Client";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
-import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
+import { useAuth } from "@/lib/AuthContext";
 import ProfileImage from "@/components/ProfileImage";
 import SettingsMenu from "@/components/settings/SettingsMenu";
 
@@ -54,9 +54,9 @@ export default function Settings() {
   const [active, setActive] = useState(sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
-  const ownerProfile = useOwnerProfile();
+  const { user } = useAuth();
   const [gym, setGymLocal] = useState(gymStore);
-  const [profile, setProfile] = useState(ownerProfile);
+  const [profile, setProfile] = useState({ name: user?.full_name || "", email: user?.email || "", phone: user?.phone || "", photoUrl: user?.photo_url || null });
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -70,9 +70,8 @@ export default function Settings() {
     setActive(sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   }, [requestedTab]);
 
-  useEffect(() => {
-    setGymLocal(gymStore);
-  }, [gymStore]);
+  useEffect(() => { setGymLocal(gymStore); }, [gymStore]);
+  useEffect(() => { setProfile({ name: user?.full_name || "", email: user?.email || "", phone: user?.phone || "", photoUrl: user?.photo_url || null }); }, [user?.id]);
 
   const handleInviteStaff = async () => {
     if (!invite.email.trim()) return;
@@ -125,7 +124,7 @@ export default function Settings() {
                         <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                       </div>
                     </div>
-                    <div className="flex justify-end pt-2"><SaveButton onSave={() => { setOwnerProfile(profile); toast({ title: "Profile updated", description: "Your profile has been updated." }); }} /></div>
+                    <div className="flex justify-end pt-2"><SaveButton onSave={async () => { await base44.auth.updateMe({ full_name: profile.name, phone: profile.phone, photo_url: profile.photoUrl }); toast({ title: "Profile updated", description: "Your profile has been updated." }); }} /></div>
                   </div>
                 )}
 
