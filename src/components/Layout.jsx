@@ -8,7 +8,6 @@ import { useGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 import { payments, trainers } from "@/lib/mockData";
 import { useMembers } from "@/lib/memberStore";
-import { useOwnerProfile } from "@/lib/ownerProfileStore";
 import ProfileImage from "@/components/ProfileImage";
 
 const primaryNav = [
@@ -34,7 +33,6 @@ export default function Layout({ children }) {
   const [search, setSearch] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
-  const ownerProfile = useOwnerProfile();
   const members = useMembers();
   const { logout } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
@@ -79,7 +77,7 @@ export default function Layout({ children }) {
           </div>
         </nav>
         <div className="p-4 border-t border-black/10">
-          <div className="flex items-center gap-3"><ProfileImage src={ownerProfile.photoUrl} alt={ownerProfile.name} fallback={initials(ownerProfile.name)} className="w-10 h-10 text-sm" dark /><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">{ownerProfile.name}</p><p className="text-xs text-black/50 truncate">Owner</p></div></div>
+          <button onClick={() => navigate("/settings?tab=gym")} className="flex items-center gap-3 w-full rounded-lg text-left hover:bg-black/5" aria-label="Open gym profile"><ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark /><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">{gym.name}</p><p className="text-xs text-black/50 truncate">Gym Profile</p></div></button>
           <button onClick={() => setAppFeedbackOpen(true)} className="mt-3 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Send feedback</button>
           <button onClick={() => logout()} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
         </div>
@@ -88,8 +86,7 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/10 h-16 flex items-center px-4 md:px-6 gap-3">
           <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-black/5" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></button>
-          <div className="flex items-center gap-2 min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.name}`}>
-            <ProfileImage src={gym.logoUrl} alt={gym.name} fallback="" className="w-7 h-7" shape="rounded" dark />
+          <div className="min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.name}`}>
             <span className="text-sm font-semibold truncate">{gym.name}</span>
           </div>
           <div className="flex-1" />
@@ -113,7 +110,9 @@ export default function Layout({ children }) {
             </AnimatePresence>
           </div>
           <NotificationsMenu />
-          <ProfileImage src={ownerProfile.photoUrl} alt={ownerProfile.name} fallback={initials(ownerProfile.name)} className="w-10 h-10 text-sm" dark />
+          <button onClick={() => navigate("/settings?tab=gym")} className="rounded-xl" aria-label="Open gym profile">
+            <ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark />
+          </button>
         </header>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,7 +48,9 @@ const sessions = [
 ];
 
 export default function Settings() {
-  const [active, setActive] = useState("profile");
+  const location = useLocation();
+  const requestedTab = new URLSearchParams(location.search).get("tab");
+  const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
   const ownerProfile = useOwnerProfile();
@@ -61,6 +64,10 @@ export default function Settings() {
   const [revoke, setRevoke] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (requestedTab === "gym") setActive("gym");
+  }, [requestedTab]);
 
   const handleInviteStaff = async () => {
     if (!invite.email.trim()) return;
