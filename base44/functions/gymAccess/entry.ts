@@ -102,6 +102,7 @@ export default async function(req: Request): Promise<Response> {
 
     const gym = await getGym();
     if (!gym) return Response.json({ error: 'Gym not found' }, { status: 404 });
+
     if (operation === 'inviteStaff') {
       const email = String(body.email || '').trim().toLowerCase();
       const role = String(body.role || 'Front Desk');

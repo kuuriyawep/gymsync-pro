@@ -1,0 +1,54 @@
+{
+  "name": "Trainer",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "specialization": {
+      "type": "string"
+    },
+    "joinDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Inactive"
+      ],
+      "default": "Active"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "assigned": {
+      "type": "number",
+      "default": 0
+    },
+    "assignedMembers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "activity": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "default": []
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

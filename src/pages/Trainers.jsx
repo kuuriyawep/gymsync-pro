@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -6,7 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Pencil, Eye, Trash2, Users, UserCheck, UserX, UserCog, Phone, Mail, Calendar, Activity, Power } from "lucide-react";
-import { trainers as mockTrainers } from "@/lib/mockData";
+import { useTrainers } from "@/lib/trainerStore";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
@@ -15,17 +15,16 @@ const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : "bg-black/1
 const emptyForm = { name: "", phone: "", email: "", specialization: "", joinDate: "", status: "Active", notes: "" };
 
 export default function Trainers() {
-  const [loading, setLoading] = useState(true);
-  const [trainers, setTrainers] = useState(mockTrainers);
+  const { trainers, loading, createTrainer, updateTrainer, toggleTrainer, deleteTrainer } = useTrainers();
   const [formModal, setFormModal] = useState(false);
   const [detailsModal, setDetailsModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [confirm, setConfirm] = useState(null);
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
 
   const summary = useMemo(() => ({
     total: trainers.length,
@@ -33,27 +32,27 @@ export default function Trainers() {
     inactive: trainers.filter((t) => t.status === "Inactive").length,
   }), [trainers]);
 
-  const openAdd = () => { setEditingId(null); setForm(emptyForm); setFormModal(true); };
-  const openEdit = (t) => { setEditingId(t.id); setForm({ name: t.name, phone: t.phone, email: t.email, specialization: t.specialization, joinDate: t.joinDate, status: t.status, notes: t.notes || "" }); setFormModal(true); };
+  const openAdd = () => { setEditingId(null); setForm(emptyForm); setFormError(""); setFormModal(true); };
+  const openEdit = (t) => { setEditingId(t.id); setForm({ name: t.name, phone: t.phone, email: t.email, specialization: t.specialization, joinDate: t.joinDate, status: t.status, notes: t.notes || "" }); setFormError(""); setFormModal(true); };
   const openView = (t) => { setViewing(t); setDetailsModal(true); };
-  const submit = () => {
-    if (!form.name.trim()) return;
-    if (editingId) {
-      setTrainers((ts) => ts.map((t) => (t.id === editingId ? { ...t, ...form } : t)));
-      toast({ title: "Trainer updated", description: form.name });
-    } else {
-      const id = Math.max(...trainers.map((t) => t.id), 0) + 1;
-      setTrainers((ts) => [{ id, ...form, assigned: 0, assignedMembers: [], activity: [] }, ...ts]);
-      toast({ title: "Trainer added successfully", description: form.name });
-    }
-    setFormModal(false);
+  const submit = async () => {
+    if (!form.name.trim()) return setFormError("Trainer name is required");
+    setBusy(true); setFormError("");
+    try {
+      if (editingId) { await updateTrainer(editingId, form); toast({ title: "Trainer updated", description: form.name }); }
+      else { await createTrainer(form); toast({ title: "Trainer added successfully", description: form.name }); }
+      setFormModal(false);
+    } catch (error) { setFormError(error.message); }
+    finally { setBusy(false); }
   };
-  const toggleStatus = (t) => {
-    const next = t.status === "Active" ? "Inactive" : "Active";
-    setTrainers((ts) => ts.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
-    toast({ title: next === "Active" ? "Trainer activated" : "Trainer deactivated", description: t.name });
+  const toggleStatus = async (t) => {
+    try { await toggleTrainer(t.id); const next = t.status === "Active" ? "Inactive" : "Active"; toast({ title: next === "Active" ? "Trainer activated" : "Trainer deactivated", description: t.name }); }
+    catch (error) { toast({ title: "Unable to update trainer", description: error.message }); }
   };
-  const remove = (id) => { setTrainers((ts) => ts.filter((t) => t.id !== id)); toast({ title: "Trainer deleted" }); };
+  const remove = async (id) => {
+    try { await deleteTrainer(id); toast({ title: "Trainer deleted" }); }
+    catch (error) { toast({ title: "Unable to delete trainer", description: error.message }); }
+  };
 
   const summaryCards = [
     { label: "Total Trainers", value: summary.total, icon: UserCog },
@@ -120,9 +119,10 @@ export default function Trainers() {
       <Modal open={formModal} onClose={() => setFormModal(false)} title={editingId ? "Edit Trainer" : "Add Trainer"}
         footer={<>
           <button onClick={() => setFormModal(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">{editingId ? "Save Trainer" : "Add Trainer"}</button>
+          <button onClick={submit} disabled={busy} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-50">{busy ? "Saving…" : editingId ? "Save Trainer" : "Add Trainer"}</button>
         </>}>
         <div className="space-y-4">
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center text-sm font-semibold">{form.name ? initials(form.name) : "—"}</div>
             <button type="button" className="px-3 py-1.5 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Upload photo</button>
@@ -182,9 +182,9 @@ export default function Trainers() {
       <ConfirmDialog
         open={!!confirm}
         onClose={() => setConfirm(null)}
-        onConfirm={() => {
-          if (confirm?.type === "delete") remove(confirm.trainer.id);
-          else if (confirm?.type === "toggle") toggleStatus(confirm.trainer);
+        onConfirm={async () => {
+          if (confirm?.type === "delete") await remove(confirm.trainer.id);
+          else if (confirm?.type === "toggle") await toggleStatus(confirm.trainer);
           setConfirm(null);
         }}
         title={confirm?.type === "delete" ? "Delete trainer?" : confirm?.trainer?.status === "Active" ? "Deactivate trainer?" : "Activate trainer?"}
