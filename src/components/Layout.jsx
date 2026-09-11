@@ -6,8 +6,8 @@ import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
 import { useGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
-import { payments, trainers } from "@/lib/mockData";
-import { useMembers } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics } from "@/lib/memberStore";
+import { useTrainers } from "@/lib/trainerStore";
 import ProfileImage from "@/components/ProfileImage";
 
 const primaryNav = [
@@ -34,6 +34,8 @@ export default function Layout({ children }) {
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
   const members = useMembers();
+  const analytics = useGymAnalytics();
+  const { trainers } = useTrainers();
   const { logout } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
 
@@ -44,10 +46,10 @@ export default function Layout({ children }) {
     if (!q) return { members: [], payments: [], trainers: [] };
     return {
       members: members.filter((m) => m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q)).slice(0, 4).map((m) => ({ label: m.name, sub: m.memberId, photoUrl: m.photoUrl, to: `/members/${m.id}` })),
-      payments: payments.filter((p) => p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.name, sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
-      trainers: trainers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name, sub: t.specialization, to: "/trainers" })),
+      payments: (analytics.payments || []).map((p) => ({ ...p, paymentId: `PAY-${String(p.id).slice(0, 8).toUpperCase()}` })).filter((p) => String(p.memberName || "").toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.memberName || "Payment", sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
+      trainers: trainers.filter((t) => String(t.name || t.full_name || "").toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name || t.full_name, sub: t.specialization || "Trainer", to: "/trainers" })),
     };
-  }, [search, members]);
+  }, [search, members, analytics.payments, trainers]);
   const totalResults = results.members.length + results.payments.length + results.trainers.length;
 
   const renderLink = (item, active, onClick) => (
