@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Dumbbell, Home, Flame, CreditCard, MessageSquare, User, Bell, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMemberPortal } from "@/lib/memberPortalStore";
+import { markMemberNotificationRead, useMemberPortal } from "@/lib/memberPortalStore";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
@@ -47,11 +47,11 @@ export default function MemberLayout({ children, title, back }) {
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-11 z-40 bg-white border border-black/10 rounded-xl shadow-lg w-80 max-w-[calc(100vw-2rem)]">
                   <div className="px-4 h-11 flex items-center border-b border-black/10"><h3 className="text-sm font-semibold">Notifications</h3></div>
                   <div className="max-h-80 overflow-y-auto">
-                    {memberNotifications.map((n) => (
-                      <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-black/5 last:border-0 ${n.read ? "" : "bg-black/[0.02]"}`}>
-                        <div className="w-2 h-2 rounded-full bg-black mt-1.5 shrink-0" />
-                        <div className="flex-1 min-w-0"><p className="text-sm font-medium leading-tight">{n.title}</p><p className="text-xs text-black/50 mt-0.5 leading-tight">{n.description}</p><p className="text-xs text-black/40 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</p></div>
-                      </div>
+                    {memberNotifications.length === 0 ? <p className="px-4 py-8 text-center text-sm text-black/45">No notifications</p> : memberNotifications.map((n) => (
+                      <button key={n.id} onClick={() => markMemberNotificationRead(n.id)} className={`flex w-full gap-3 px-4 py-3 text-left border-b border-black/5 last:border-0 ${n.read ? "" : "bg-black/[0.02]"}`}>
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? "bg-black/15" : "bg-black"}`} />
+                        <div className="flex-1 min-w-0"><p className={`text-sm leading-tight ${n.read ? "font-medium" : "font-semibold"}`}>{n.title}</p><p className="text-xs text-black/50 mt-0.5 leading-tight">{n.description}</p><p className="text-xs text-black/40 mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</p></div>
+                      </button>
                     ))}
                   </div>
                 </motion.div>

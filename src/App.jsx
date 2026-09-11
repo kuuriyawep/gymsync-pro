@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RoleRoute from '@/components/RoleRoute';
 import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
@@ -58,25 +59,29 @@ const AuthenticatedApp = () => {
       {/* Add your page Route elements here */}
       <Route path="/login" element={<AuthGateway />} />
       <Route path="/register" element={<AuthGateway />} />
-      <Route path="/join-gym" element={<JoinGym />} />
       <Route path="/welcome" element={<WelcomeLobby />} />
-      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/members" element={<Members />} />
-        <Route path="/members/:id" element={<MemberDetails />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/membership" element={<Membership />} />
-        <Route path="/trainers" element={<Trainers />} />
-        <Route path="/feedback" element={<Feedback />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/member" element={<MemberDashboard />} />
-        <Route path="/member/attendance" element={<MemberAttendance />} />
-        <Route path="/member/payments" element={<MemberPayments />} />
-        <Route path="/member/feedback" element={<MemberFeedback />} />
-        <Route path="/member/profile" element={<MemberProfile />} />
+        <Route element={<RoleRoute allowedRole="owner" redirectTo="/member" />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/members/:id" element={<MemberDetails />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/membership" element={<Membership />} />
+          <Route path="/trainers" element={<Trainers />} />
+          <Route path="/feedback" element={<Feedback />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        <Route element={<RoleRoute allowedRole="member" redirectTo="/" />}>
+          <Route path="/join-gym" element={<JoinGym />} />
+          <Route path="/member" element={<MemberDashboard />} />
+          <Route path="/member/attendance" element={<MemberAttendance />} />
+          <Route path="/member/payments" element={<MemberPayments />} />
+          <Route path="/member/feedback" element={<MemberFeedback />} />
+          <Route path="/member/profile" element={<MemberProfile />} />
+        </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

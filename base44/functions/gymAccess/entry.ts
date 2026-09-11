@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'markNotificationRead', 'getGymProfile', 'updateGymProfile'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -22,6 +22,14 @@ export default async function(req: Request): Promise<Response> {
       user = await base44.auth.me();
     }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const accessRole = supabaseUser
+      ? (await select('profiles', `id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`))[0]?.role
+      : user.role === 'admin' ? 'owner' : 'member';
+    const memberOnly = ['memberData', 'createFeedback', 'markNotificationRead'];
+    const ownerOnly = ['listStaff', 'inviteStaff', 'revokeStaff', 'getGymProfile', 'updateGymProfile'];
+    if (operation === 'join' && accessRole === 'owner') return Response.json({ error: 'Members only' }, { status: 403 });
+    if (memberOnly.includes(operation) && accessRole !== 'member') return Response.json({ error: 'Members only' }, { status: 403 });
+    if (ownerOnly.includes(operation) && accessRole !== 'owner') return Response.json({ error: 'Owners only' }, { status: 403 });
 
     const getGym = async () => {
       let gyms = supabaseUser ? await select('gyms', `owner_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`) : [];
@@ -97,6 +105,15 @@ export default async function(req: Request): Promise<Response> {
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
       await insert('feedback_requests', { gym_id: memberRows[0].gym_id, member_id: memberRows[0].id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
+      return Response.json({ member: await loadMemberData() });
+    }
+
+    if (operation === 'markNotificationRead') {
+      const memberRows = await findLinkedMembers();
+      if (!memberRows[0]) return Response.json({ error: 'No linked membership found' }, { status: 404 });
+      const id = String(body.id || '').trim();
+      if (!id) return Response.json({ error: 'Notification is required' }, { status: 400 });
+      await update('notifications', `id=eq.${encodeURIComponent(id)}&member_id=eq.${encodeURIComponent(memberRows[0].id)}`, { read: true });
       return Response.json({ member: await loadMemberData() });
     }
 
