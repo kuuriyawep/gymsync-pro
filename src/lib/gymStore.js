@@ -1,54 +1,35 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { base44 } from "@/api/base44Client";
+import { gymData } from "@/lib/gymDataClient";
 
-const emptyGym = {
-  name: "",
-  logoUrl: null,
-  phone: "",
-  email: "",
-  address: "",
-  isLoading: true,
-  loadError: "",
-};
-
+const emptyGym = { name: "", logoUrl: null, phone: "", email: "", address: "", isLoading: true, loadError: "" };
 let state = emptyGym;
 let loaded = false;
 let loadingPromise = null;
 const listeners = new Set();
-
 function emit() { listeners.forEach((listener) => listener()); }
 function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
 function getGym() { return state; }
 
-export async function loadGym() {
-  if (loaded) return state;
+export async function loadGym(force = false) {
+  if (loaded && !force) return state;
   if (!loadingPromise) {
-    loadingPromise = base44.functions.invoke("gymAccess", { operation: "getGymProfile" })
-      .then((response) => {
-        state = { ...emptyGym, ...response.data.gym, isLoading: false };
-        loaded = true;
-        emit();
-        return state;
-      })
-      .catch((error) => {
-        state = { ...emptyGym, isLoading: false, loadError: error?.response?.data?.error || error?.message || "Unable to load gym profile" };
-        emit();
-        return state;
-      })
+    loadingPromise = gymData("getGymProfile")
+      .then((gym) => { state = { ...emptyGym, ...gym, isLoading: false }; loaded = true; emit(); return state; })
+      .catch((error) => { state = { ...emptyGym, isLoading: false, loadError: error.message || "Unable to load gym profile" }; emit(); throw error; })
       .finally(() => { loadingPromise = null; });
   }
   return loadingPromise;
 }
 
 export async function setGym(gym) {
-  const response = await base44.functions.invoke("gymAccess", { operation: "updateGymProfile", gym });
-  state = { ...emptyGym, ...response.data.gym, isLoading: false };
+  const updated = await gymData("updateGymProfile", { gym });
+  state = { ...emptyGym, ...updated, isLoading: false };
   loaded = true;
   emit();
   return state;
 }
 
 export function useGym() {
-  useEffect(() => { loadGym(); }, []);
+  useEffect(() => { loadGym().catch(() => {}); }, []);
   return useSyncExternalStore(subscribe, getGym, getGym);
 }
