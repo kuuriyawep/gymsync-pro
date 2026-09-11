@@ -444,7 +444,7 @@ async function memberPortal(supabase: any, context: any, operation: string, body
     payments: payments.map((p: any) => ({ id: p.id, amount: Number(p.amount_paid ?? p.amount ?? 0), method: p.method || "cash", date: p.paid_at?.slice(0,10), reference: p.reference || "" })),
     attendance: (attendanceRes.data || []).map((a: any) => ({ id: a.id, checkedInAt: a.check_in_at, date: a.check_in_at?.slice(0,10) })),
     feedback: (feedbackRes.data || []).map((f: any) => ({ id: f.id, type: f.type, title: f.subject || f.title || "Request", body: f.message || f.body || "", status: feedbackStatus(f.status), response: f.response || null, date: f.created_at?.slice(0,10) })),
-    notifications: (notificationsRes.data || []).map((n: any) => ({ id: n.id, title: n.title, description: n.message || n.body || "", read: Boolean(n.read_at), createdAt: n.created_at })),
+    notifications: (notificationsRes.data || []).map((n: any) => ({ id: n.id, title: n.title, description: n.message || "", read: Boolean(n.read_at), createdAt: n.created_at })),
   };
   if (operation === "get") return data;
   if (operation === "feedback") {
