@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabaseClient";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
+import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
+import ProfileImage from "@/components/ProfileImage";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
@@ -48,8 +50,9 @@ export default function Settings() {
   const [active, setActive] = useState("profile");
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
+  const ownerProfile = useOwnerProfile();
   const [gym, setGymLocal] = useState(gymStore);
-  const [profile, setProfile] = useState({ name: "Alex Kovac", email: "alex@olympicgym.com", phone: "+1 555 0100", photoUrl: null });
+  const [profile, setProfile] = useState(ownerProfile);
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -98,7 +101,7 @@ export default function Settings() {
 
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                    <PhotoPicker value={profile.photoUrl} onChange={(url) => setProfile({ ...profile, photoUrl: url })} onRemove={() => setProfile({ ...profile, photoUrl: null })} size="w-16 h-16" placeholder="AK" hint="JPG or PNG. Max 2MB." />
+                    <PhotoPicker value={profile.photoUrl} onChange={(url) => setProfile({ ...profile, photoUrl: url })} onRemove={() => setProfile({ ...profile, photoUrl: null })} size="w-24 h-24" placeholder="AK" hint="JPG or PNG. Max 2MB." />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Field label="Full name"><input className={inputCls} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
                       <Field label="Email"><input className={inputCls} value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
@@ -113,14 +116,14 @@ export default function Settings() {
                         <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                       </div>
                     </div>
-                    <div className="flex justify-end pt-2"><SaveButton onSave={() => toast({ title: "Profile updated", description: "Your profile has been updated." })} /></div>
+                    <div className="flex justify-end pt-2"><SaveButton onSave={() => { setOwnerProfile(profile); toast({ title: "Profile updated", description: "Your profile has been updated." }); }} /></div>
                   </div>
                 )}
 
                 {active === "gym" && (
                   <div className="space-y-4">
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                      <PhotoPicker value={gym.logoUrl} onChange={(url) => setGymLocal({ ...gym, logoUrl: url })} onRemove={() => setGymLocal({ ...gym, logoUrl: null })} shape="rounded" size="w-16 h-16" placeholder="OG" hint="PNG or JPG. Max 1MB." />
+                      <PhotoPicker value={gym.logoUrl} onChange={(url) => setGymLocal({ ...gym, logoUrl: url })} onRemove={() => setGymLocal({ ...gym, logoUrl: null })} shape="rounded" size="w-24 h-24" placeholder="OG" hint="PNG or JPG. Max 1MB." />
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <Field label="Gym name"><input className={inputCls} value={gym.name} onChange={(e) => setGymLocal({ ...gym, name: e.target.value })} /></Field>
                         <Field label="Phone"><input className={inputCls} value={gym.phone} onChange={(e) => setGymLocal({ ...gym, phone: e.target.value })} /></Field>
@@ -133,7 +136,7 @@ export default function Settings() {
                     <div className="bg-white border border-black/10 rounded-xl p-5">
                       <h3 className="font-semibold mb-3 text-sm">Preview</h3>
                       <div className="flex items-start gap-4 p-4 border border-black/10 rounded-xl">
-                        <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center text-lg font-bold overflow-hidden">{gym.logoUrl ? <img src={gym.logoUrl} alt="" className="w-full h-full object-cover" /> : "OG"}</div>
+                        <ProfileImage src={gym.logoUrl} alt={gym.name} fallback="OG" className="w-14 h-14 text-lg" shape="rounded" dark />
                         <div><p className="font-semibold">{gym.name}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {gym.address}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" /> {gym.phone} · <Mail className="w-3 h-3" /> {gym.email}</p></div>
                       </div>
                     </div>

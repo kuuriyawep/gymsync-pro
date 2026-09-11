@@ -6,6 +6,7 @@ import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock
 import { useMembers, addMember, updateMember, deleteMember } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ProfileImage from "@/components/ProfileImage";
 import { useToast } from "@/components/ui/use-toast";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -236,7 +237,7 @@ export default function Members() {
                     <tr key={m.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02] cursor-pointer" onClick={() => navigate(`/members/${m.id}`)}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
+                          <ProfileImage src={m.photoUrl} alt={m.name} fallback={initials(m.name)} className="w-10 h-10 text-xs" />
                           <div><p className="font-medium">{m.name}</p><p className="text-xs text-black/50">{m.phone}</p></div>
                         </div>
                       </td>
@@ -263,7 +264,7 @@ export default function Members() {
               {filtered.map((m) => (
                 <div key={m.id} className="bg-white border border-black/10 rounded-xl p-4" onClick={() => navigate(`/members/${m.id}`)}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-xs font-semibold">{initials(m.name)}</div>
+                    <ProfileImage src={m.photoUrl} alt={m.name} fallback={initials(m.name)} className="w-12 h-12 text-xs" />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{m.name}</p>
                       <p className="text-xs text-black/50 truncate">{m.memberId} · {m.phone}</p>
@@ -309,7 +310,7 @@ export default function Members() {
               <div><label className={labelCls}>Email (optional)</label>
                 <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
               <div><label className={labelCls}>Profile Photo</label>
-                <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-12 h-12" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
+                <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-20 h-20" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
               </div>
             </div>
           </div>

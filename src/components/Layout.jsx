@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, ChevronDown, Menu, X, LogOut, MessageSquare, LifeBuoy } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, Menu, X, LogOut, MessageSquare, LifeBuoy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
 import { useGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
-import { Image } from "@/components/ui/image";
 import { payments, trainers } from "@/lib/mockData";
 import { useMembers } from "@/lib/memberStore";
+import { useOwnerProfile } from "@/lib/ownerProfileStore";
+import ProfileImage from "@/components/ProfileImage";
 
 const primaryNav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -33,6 +34,7 @@ export default function Layout({ children }) {
   const [search, setSearch] = useState("");
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
+  const ownerProfile = useOwnerProfile();
   const members = useMembers();
   const { logout } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
@@ -43,7 +45,7 @@ export default function Layout({ children }) {
     const q = search.trim().toLowerCase();
     if (!q) return { members: [], payments: [], trainers: [] };
     return {
-      members: members.filter((m) => m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q)).slice(0, 4).map((m) => ({ label: m.name, sub: m.memberId, to: `/members/${m.id}` })),
+      members: members.filter((m) => m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q)).slice(0, 4).map((m) => ({ label: m.name, sub: m.memberId, photoUrl: m.photoUrl, to: `/members/${m.id}` })),
       payments: payments.filter((p) => p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.name, sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
       trainers: trainers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name, sub: t.specialization, to: "/trainers" })),
     };
@@ -62,8 +64,8 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-white text-black flex">
       <aside className="hidden md:flex flex-col w-64 border-r border-black/10 bg-white sticky top-0 h-screen">
         <div className="flex items-center gap-2 px-6 h-16 border-b border-black/10">
-          <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center"><Dumbbell className="w-5 h-5 text-white" /></div>
-          <span className="font-heading font-bold text-lg tracking-tight">IronHub</span>
+          <ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-5 h-5" />} className="w-10 h-10" shape="rounded" dark />
+          <span className="font-heading font-bold text-lg tracking-tight truncate">{gym.name}</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item, i) => (
@@ -77,7 +79,7 @@ export default function Layout({ children }) {
           </div>
         </nav>
         <div className="p-4 border-t border-black/10">
-          <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">AK</div><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">Alex Kovac</p><p className="text-xs text-black/50 truncate">Owner</p></div></div>
+          <div className="flex items-center gap-3"><ProfileImage src={ownerProfile.photoUrl} alt={ownerProfile.name} fallback={initials(ownerProfile.name)} className="w-10 h-10 text-sm" dark /><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">{ownerProfile.name}</p><p className="text-xs text-black/50 truncate">Owner</p></div></div>
           <button onClick={() => setAppFeedbackOpen(true)} className="mt-3 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Send feedback</button>
           <button onClick={() => logout()} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
         </div>
@@ -86,11 +88,10 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/10 h-16 flex items-center px-4 md:px-6 gap-3">
           <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-black/5" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></button>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-black/15 hover:bg-black/5 transition-colors max-w-[55vw]">
-            {gym.logoUrl ? <Image src={gym.logoUrl} className="w-5 h-5 rounded-full" fittingType="fill" /> : <span className="w-2 h-2 rounded-full bg-black" />}
+          <div className="flex items-center gap-2 min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.name}`}>
+            <ProfileImage src={gym.logoUrl} alt={gym.name} fallback="" className="w-7 h-7" shape="rounded" dark />
             <span className="text-sm font-semibold truncate">{gym.name}</span>
-            <ChevronDown className="w-4 h-4 text-black/50 shrink-0" />
-          </button>
+          </div>
           <div className="flex-1" />
           <div className="relative hidden lg:block w-64">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/5">
@@ -102,7 +103,7 @@ export default function Layout({ children }) {
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-11 z-40 bg-white border border-black/10 rounded-xl shadow-lg w-80 max-w-[calc(100vw-2rem)]">
                   {totalResults === 0 ? <p className="px-4 py-6 text-center text-sm text-black/40">No results found</p> : (
                     <div className="max-h-80 overflow-y-auto">
-                      {results.members.length > 0 && <><p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Members</p>{results.members.map((r) => <button key={r.sub} onMouseDown={() => go(r.to)} className="flex items-center gap-3 w-full px-4 py-2 hover:bg-black/5 text-left"><div className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center text-[10px] font-semibold">{initials(r.label)}</div><div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-black/50">{r.sub}</p></div></button>)}</>}
+                      {results.members.length > 0 && <><p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Members</p>{results.members.map((r) => <button key={r.sub} onMouseDown={() => go(r.to)} className="flex items-center gap-3 w-full px-4 py-2 hover:bg-black/5 text-left"><ProfileImage src={r.photoUrl} alt={r.label} fallback={initials(r.label)} className="w-8 h-8 text-[10px]" /><div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-black/50">{r.sub}</p></div></button>)}</>}
                       {results.payments.length > 0 && <><p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Payments</p>{results.payments.map((r) => <button key={r.sub} onMouseDown={() => go(r.to)} className="flex items-center gap-3 w-full px-4 py-2 hover:bg-black/5 text-left"><div className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center"><CreditCard className="w-3.5 h-3.5" /></div><div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-black/50">{r.sub}</p></div></button>)}</>}
                       {results.trainers.length > 0 && <><p className="px-4 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-black/40">Trainers</p>{results.trainers.map((r) => <button key={r.label} onMouseDown={() => go(r.to)} className="flex items-center gap-3 w-full px-4 py-2 hover:bg-black/5 text-left"><div className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center text-[10px] font-semibold">{initials(r.label)}</div><div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-black/50">{r.sub}</p></div></button>)}</>}
                     </div>
@@ -112,7 +113,7 @@ export default function Layout({ children }) {
             </AnimatePresence>
           </div>
           <NotificationsMenu />
-          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-sm font-semibold">AK</div>
+          <ProfileImage src={ownerProfile.photoUrl} alt={ownerProfile.name} fallback={initials(ownerProfile.name)} className="w-10 h-10 text-sm" dark />
         </header>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
@@ -138,7 +139,7 @@ export default function Layout({ children }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
             <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col">
               <div className="flex items-center justify-between px-5 h-16 border-b border-black/10">
-                <div className="flex items-center gap-2"><div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center"><Dumbbell className="w-4 h-4 text-white" /></div><span className="font-bold text-lg">IronHub</span></div>
+                <div className="flex items-center gap-2"><ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-9 h-9" shape="rounded" dark /><span className="font-bold text-lg truncate">{gym.name}</span></div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-black/5"><X className="w-5 h-5" /></button>
               </div>
               <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

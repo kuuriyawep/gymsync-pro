@@ -23,8 +23,8 @@ export default function GymProfileSetup({ value, onChange }) {
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-black/40 mb-2">Gym logo</p>
         <button type="button" onClick={() => fileRef.current?.click()} className="flex items-center gap-3">
-          <div className="w-16 h-16 rounded-2xl border border-dashed border-black/25 flex items-center justify-center overflow-hidden bg-black/[0.02]">
-            {value.logoUrl ? <Image src={value.logoUrl} className="w-full h-full" fittingType="fill" /> : uploading ? <Loader2 className="w-5 h-5 animate-spin text-black/40" /> : <ImageIcon className="w-5 h-5 text-black/40" />}
+          <div className="w-20 h-20 rounded-2xl border border-dashed border-black/25 flex items-center justify-center overflow-hidden bg-black/[0.02]">
+            {value.logoUrl ? <Image src={value.logoUrl} className="w-full h-full" fittingType="fit" /> : uploading ? <Loader2 className="w-5 h-5 animate-spin text-black/40" /> : <ImageIcon className="w-5 h-5 text-black/40" />}
           </div>
           <div className="text-left"><p className="text-sm font-medium">{value.logoUrl ? "Change logo" : "Upload logo"}</p><p className="text-xs text-black/50">PNG or JPG, square</p></div>
         </button>

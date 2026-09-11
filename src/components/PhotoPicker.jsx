@@ -28,7 +28,7 @@ export default function PhotoPicker({ value, onChange, onRemove, shape = "circle
         className={`relative ${size} ${round ? "rounded-full" : "rounded-2xl"} border border-dashed border-black/25 flex items-center justify-center overflow-hidden bg-black/[0.02] hover:bg-black/5 transition-colors shrink-0`}
       >
         {value ? (
-          <Image src={value} className="w-full h-full" fittingType="fill" />
+          <Image src={value} className="w-full h-full" fittingType="fit" />
         ) : uploading ? (
           <Loader2 className="w-5 h-5 animate-spin text-black/40" />
         ) : placeholder ? (

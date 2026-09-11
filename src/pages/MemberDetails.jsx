@@ -5,6 +5,7 @@ import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, Cr
 import { memberPaymentHistory, memberActivity } from "@/lib/mockData";
 import { useMembers } from "@/lib/memberStore";
 import QuickMessageModal from "@/components/QuickMessageModal";
+import ProfileImage from "@/components/ProfileImage";
 import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -67,7 +68,7 @@ export default function MemberDetails() {
         {/* Profile header */}
         <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center text-2xl font-bold">{initials(member.name)}</div>
+            <ProfileImage src={member.photoUrl} alt={member.name} fallback={initials(member.name)} className="w-24 h-24 text-2xl" dark />
             <div className="flex-1">
               <h1 className="text-2xl font-heading font-bold tracking-tight">{member.name}</h1>
               <p className="text-sm text-black/50 mt-0.5">{member.memberId} · {member.gym}</p>
