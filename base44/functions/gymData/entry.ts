@@ -1,4 +1,4 @@
-import { createClientFromRequest } from "npm:@base44/sdk";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.48";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secrets } from "base44:runtime";
 
