@@ -4,5 +4,6 @@ import { useAuth } from "@/lib/AuthContext";
 
 export default function RoleRoute({ allowedRole, redirectTo }) {
   const { profile } = useAuth();
-  return profile?.role === allowedRole ? <Outlet /> : <Navigate to={redirectTo} replace />;
+  const allowed = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
+  return allowed.includes(profile?.role) ? <Outlet /> : <Navigate to={redirectTo} replace />;
 }
