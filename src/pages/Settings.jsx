@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import Modal from "@/components/ui/Modal";
@@ -69,6 +69,10 @@ export default function Settings() {
     if (requestedTab === "gym") setActive("gym");
   }, [requestedTab]);
 
+  useEffect(() => {
+    setGymLocal(gymStore);
+  }, [gymStore]);
+
   const handleInviteStaff = async () => {
     if (!invite.email.trim()) return;
     setInviteSaving(true);
@@ -86,9 +90,9 @@ export default function Settings() {
           <p className="text-sm text-black/50 mt-0.5">Manage your account and gym preferences</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="lg:w-56 shrink-0">
-            <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+        <div className="space-y-6">
+          <div className="w-full">
+            <div className="grid grid-cols-1 gap-1">
               {sections.map((s) => (
                 <button key={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
                   {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-black" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
@@ -109,7 +113,7 @@ export default function Settings() {
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                     <PhotoPicker value={profile.photoUrl} onChange={(url) => setProfile({ ...profile, photoUrl: url })} onRemove={() => setProfile({ ...profile, photoUrl: null })} size="w-24 h-24" placeholder="AK" hint="JPG or PNG. Max 2MB." />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <Field label="Full name"><input className={inputCls} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
                       <Field label="Email"><input className={inputCls} value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
                       <Field label="Phone"><input className={inputCls} value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
@@ -117,7 +121,7 @@ export default function Settings() {
                     </div>
                     <div className="pt-4 border-t border-black/5">
                       <h3 className="font-semibold mb-3 text-sm">Change Password</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-4">
                         <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                         <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                         <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
@@ -127,32 +131,35 @@ export default function Settings() {
                   </div>
                 )}
 
-                {active === "gym" && (
+                {active === "gym" && (gymStore.isLoading ? (
+                  <div className="flex items-center gap-2 py-12 text-sm text-black/50"><Loader2 className="w-4 h-4 animate-spin" /> Loading gym profile...</div>
+                ) : gymStore.loadError ? (
+                  <div className="border border-black/10 rounded-xl p-5 text-sm text-black/60">{gymStore.loadError}</div>
+                ) : (
                   <div className="space-y-4">
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                       <PhotoPicker value={gym.logoUrl} onChange={(url) => setGymLocal({ ...gym, logoUrl: url })} onRemove={() => setGymLocal({ ...gym, logoUrl: null })} shape="rounded" size="w-24 h-24" placeholder="OG" hint="PNG or JPG. Max 1MB." />
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="Gym name"><input className={inputCls} value={gym.name} onChange={(e) => setGymLocal({ ...gym, name: e.target.value })} /></Field>
-                        <Field label="Phone"><input className={inputCls} value={gym.phone} onChange={(e) => setGymLocal({ ...gym, phone: e.target.value })} /></Field>
-                        <Field label="Email"><input className={inputCls} value={gym.email} onChange={(e) => setGymLocal({ ...gym, email: e.target.value })} /></Field>
-                        <Field label="Address"><input className={inputCls} value={gym.address} onChange={(e) => setGymLocal({ ...gym, address: e.target.value })} /></Field>
-                        <div className="sm:col-span-2"><Field label="Description"><textarea rows={3} className={inputCls} value={gym.description} onChange={(e) => setGymLocal({ ...gym, description: e.target.value })} /></Field></div>
+                      <div className="space-y-4">
+                        <Field label="Gym name"><input className={inputCls} value={gym.name} onInput={(e) => setGymLocal({ ...gym, name: e.target.value })} /></Field>
+                        <Field label="Phone"><input className={inputCls} value={gym.phone} onInput={(e) => setGymLocal({ ...gym, phone: e.target.value })} /></Field>
+                        <Field label="Email"><input className={inputCls} value={gym.email} onInput={(e) => setGymLocal({ ...gym, email: e.target.value })} /></Field>
+                        <Field label="Address"><input data-testid="gym-address" className={inputCls} value={gym.address} onInput={(e) => setGymLocal({ ...gym, address: e.target.value })} /></Field>
                       </div>
-                      <div className="flex justify-end pt-2"><SaveButton label="Save profile" successLabel="Saved" onSave={() => { setGym(gym); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); }} /></div>
+                      <div className="flex justify-end pt-2"><SaveButton label="Save profile" successLabel="Saved" onSave={async () => { const saved = await setGym(gym); setGymLocal(saved); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); }} /></div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5">
                       <h3 className="font-semibold mb-3 text-sm">Preview</h3>
                       <div className="flex items-start gap-4 p-4 border border-black/10 rounded-xl">
                         <ProfileImage src={gym.logoUrl} alt={gym.name} fallback="OG" className="w-14 h-14 text-lg" shape="rounded" dark />
-                        <div><p className="font-semibold">{gym.name}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" /> {gym.address}</p><p className="text-xs text-black/50 flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" /> {gym.phone} · <Mail className="w-3 h-3" /> {gym.email}</p></div>
+                        <div className="space-y-1 min-w-0"><p className="font-semibold">{gym.name}</p>{gym.address && <p className="text-xs text-black/50 flex items-start gap-1 break-words"><MapPin className="w-3 h-3 mt-0.5 shrink-0" /> {gym.address}</p>}{gym.phone && <p className="text-xs text-black/50 flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> {gym.phone}</p>}{gym.email && <p className="text-xs text-black/50 flex items-start gap-1 break-all"><Mail className="w-3 h-3 mt-0.5 shrink-0" /> {gym.email}</p>}</div>
                       </div>
                     </div>
                   </div>
-                )}
+                ))}
 
                 {active === "membership" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <Field label="Default currency"><select className={inputCls} value={membership.currency} onChange={(e) => setMembership({ ...membership, currency: e.target.value })}><option value="USD">USD - US Dollar</option><option value="EUR">EUR - Euro</option><option value="GBP">GBP - British Pound</option><option value="SOS">SOS - Somali Shilling</option></select></Field>
                       <Field label="Default payment method"><select className={inputCls} value={membership.method} onChange={(e) => setMembership({ ...membership, method: e.target.value })}><option>Cash</option><option>Mobile Money</option><option>Card</option><option>Other</option></select></Field>
                       <Field label="Default membership plan"><select className={inputCls} value={membership.defaultPlan} onChange={(e) => setMembership({ ...membership, defaultPlan: e.target.value })}><option>Monthly</option><option>3 Months</option><option>6 Months</option></select></Field>
@@ -184,7 +191,7 @@ export default function Settings() {
                   <div className="space-y-4">
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
                       <h3 className="font-semibold mb-3 text-sm">Password</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-4">
                         <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                         <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
                         <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>

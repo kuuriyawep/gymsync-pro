@@ -62,8 +62,8 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-white text-black flex">
       <aside className="hidden md:flex flex-col w-64 border-r border-black/10 bg-white sticky top-0 h-screen">
         <div className="flex items-center gap-2 px-6 h-16 border-b border-black/10">
-          <ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-5 h-5" />} className="w-10 h-10" shape="rounded" dark />
-          <span className="font-heading font-bold text-lg tracking-tight truncate">{gym.name}</span>
+          <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-5 h-5" />} className="w-10 h-10" shape="rounded" dark />
+          <span className="font-heading font-bold text-lg tracking-tight truncate">{gym.isLoading ? "Loading…" : gym.name}</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {primaryNav.map((item, i) => (
@@ -77,7 +77,7 @@ export default function Layout({ children }) {
           </div>
         </nav>
         <div className="p-4 border-t border-black/10">
-          <button onClick={() => navigate("/settings?tab=gym")} className="flex items-center gap-3 w-full rounded-lg text-left hover:bg-black/5" aria-label="Open gym profile"><ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark /><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">{gym.name}</p><p className="text-xs text-black/50 truncate">Gym Profile</p></div></button>
+          <button onClick={() => navigate("/settings?tab=gym")} className="flex items-center gap-3 w-full rounded-lg text-left hover:bg-black/5" aria-label="Open gym profile"><ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark /><div className="flex-1 min-w-0"><p className="text-sm font-semibold truncate">{gym.isLoading ? "Loading…" : gym.name}</p><p className="text-xs text-black/50 truncate">Gym Profile</p></div></button>
           <button onClick={() => setAppFeedbackOpen(true)} className="mt-3 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Send feedback</button>
           <button onClick={() => logout()} className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-black/60 hover:bg-black/5"><LogOut className="w-4 h-4" /> Log out</button>
         </div>
@@ -86,8 +86,8 @@ export default function Layout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
         <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-black/10 h-16 flex items-center px-4 md:px-6 gap-3">
           <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-black/5" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></button>
-          <div className="min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.name}`}>
-            <span className="text-sm font-semibold truncate">{gym.name}</span>
+          <div className="min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.isLoading ? "Loading…" : gym.name}`}>
+            <span className="text-sm font-semibold truncate">{gym.isLoading ? "Loading…" : gym.name}</span>
           </div>
           <div className="flex-1" />
           <div className="relative hidden lg:block w-64">
@@ -111,7 +111,7 @@ export default function Layout({ children }) {
           </div>
           <NotificationsMenu />
           <button onClick={() => navigate("/settings?tab=gym")} className="rounded-xl" aria-label="Open gym profile">
-            <ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark />
+            <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark />
           </button>
         </header>
 
@@ -138,7 +138,7 @@ export default function Layout({ children }) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
             <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col">
               <div className="flex items-center justify-between px-5 h-16 border-b border-black/10">
-                <div className="flex items-center gap-2"><ProfileImage src={gym.logoUrl} alt={gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-9 h-9" shape="rounded" dark /><span className="font-bold text-lg truncate">{gym.name}</span></div>
+                <div className="flex items-center gap-2"><ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-9 h-9" shape="rounded" dark /><span className="font-bold text-lg truncate">{gym.isLoading ? "Loading…" : gym.name}</span></div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-black/5"><X className="w-5 h-5" /></button>
               </div>
               <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

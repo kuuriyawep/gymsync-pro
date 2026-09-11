@@ -1,33 +1,54 @@
-import { useSyncExternalStore } from "react";
-import { gymInfo } from "@/lib/mockData";
+import { useEffect, useSyncExternalStore } from "react";
+import { base44 } from "@/api/base44Client";
 
-const KEY = "gym_profile";
-const defaults = {
-  name: gymInfo.name,
+const emptyGym = {
+  name: "",
   logoUrl: null,
-  phone: gymInfo.phone,
-  email: gymInfo.email,
-  address: gymInfo.address,
-  description: "A premium fitness center offering strength training, cardio, group classes and personal training.",
+  phone: "",
+  email: "",
+  address: "",
+  isLoading: true,
+  loadError: "",
 };
 
-let state;
+let state = emptyGym;
+let loaded = false;
+let loadingPromise = null;
 const listeners = new Set();
 
-function read() {
-  if (state !== undefined) return state;
-  try {
-    const parsed = localStorage.getItem(KEY) ? JSON.parse(localStorage.getItem(KEY)) : null;
-    state = { ...defaults, ...(parsed || {}) };
-  } catch {
-    state = { ...defaults };
+function emit() { listeners.forEach((listener) => listener()); }
+function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
+function getGym() { return state; }
+
+export async function loadGym() {
+  if (loaded) return state;
+  if (!loadingPromise) {
+    loadingPromise = base44.functions.invoke("gymAccess", { operation: "getGymProfile" })
+      .then((response) => {
+        state = { ...emptyGym, ...response.data.gym, isLoading: false };
+        loaded = true;
+        emit();
+        return state;
+      })
+      .catch((error) => {
+        state = { ...emptyGym, isLoading: false, loadError: error?.response?.data?.error || error?.message || "Unable to load gym profile" };
+        emit();
+        return state;
+      })
+      .finally(() => { loadingPromise = null; });
   }
+  return loadingPromise;
+}
+
+export async function setGym(gym) {
+  const response = await base44.functions.invoke("gymAccess", { operation: "updateGymProfile", gym });
+  state = { ...emptyGym, ...response.data.gym, isLoading: false };
+  loaded = true;
+  emit();
   return state;
 }
-function emit() { listeners.forEach((l) => l()); }
-function persist() { localStorage.setItem(KEY, JSON.stringify(state)); emit(); }
 
-export function getGym() { return read(); }
-export function setGym(patch) { state = { ...read(), ...patch }; persist(); }
-export function subscribe(l) { listeners.add(l); return () => listeners.delete(l); }
-export function useGym() { return useSyncExternalStore(subscribe, getGym, getGym); }
+export function useGym() {
+  useEffect(() => { loadGym(); }, []);
+  return useSyncExternalStore(subscribe, getGym, getGym);
+}

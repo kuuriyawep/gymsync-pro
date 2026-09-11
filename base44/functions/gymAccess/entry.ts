@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -100,8 +100,33 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ member: await loadMemberData() });
     }
 
-    const gym = await getGym();
+    let gym = await getGym();
     if (!gym) return Response.json({ error: 'Gym not found' }, { status: 404 });
+    const gymProfile = (row: any) => ({
+      id: row.id,
+      name: row.name || '',
+      phone: row.phone || '',
+      email: row.email || '',
+      address: row.address || '',
+      logoUrl: row.logo_url || null
+    });
+
+    if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
+
+    if (operation === 'updateGymProfile') {
+      const input = body.gym || {};
+      const name = String(input.name || '').trim();
+      if (!name) return Response.json({ error: 'Gym name is required' }, { status: 400 });
+      const values = {
+        name: name.slice(0, 120),
+        phone: String(input.phone || '').trim().slice(0, 40) || null,
+        email: String(input.email || '').trim().toLowerCase().slice(0, 160) || null,
+        address: String(input.address || '').trim().slice(0, 240) || null,
+        logo_url: input.logoUrl ? String(input.logoUrl).slice(0, 1000) : null
+      };
+      gym = (await update('gyms', `id=eq.${encodeURIComponent(gym.id)}`, values))[0];
+      return Response.json({ gym: gymProfile(gym) });
+    }
 
     if (operation === 'inviteStaff') {
       const email = String(body.email || '').trim().toLowerCase();
