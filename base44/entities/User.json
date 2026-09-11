@@ -1,0 +1,7 @@
+{
+  "type": "object",
+  "properties": {
+    "phone": { "type": "string", "maxLength": 40 },
+    "photo_url": { "type": "string", "maxLength": 2000 }
+  }
+}
