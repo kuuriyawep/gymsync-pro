@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
-import { memberPaymentHistory, memberActivity } from "@/lib/mockData";
-import { useMembers } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics } from "@/lib/memberStore";
 import QuickMessageModal from "@/components/QuickMessageModal";
 import ProfileImage from "@/components/ProfileImage";
 import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
@@ -17,6 +16,7 @@ export default function MemberDetails() {
   const navigate = useNavigate();
   const [quickMsg, setQuickMsg] = useState(false);
   const allMembers = useMembers();
+  const analytics = useGymAnalytics();
   const member = allMembers.find((m) => String(m.id) === id);
   if (!member) return (
     <Layout>
@@ -34,8 +34,10 @@ export default function MemberDetails() {
   const daysRemaining = expiry && isValid(expiry) ? differenceInCalendarDays(expiry, new Date()) : null;
   const fmt = (d) => (d && isValid(d) ? format(d, "MMM d, yyyy") : "—");
 
-  const totalPaid = memberPaymentHistory.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-  const lastPayment = memberPaymentHistory[0];
+  const memberPaymentHistory = (analytics.payments || []).filter((p) => String(p.memberId) === String(member.id)).map((p) => ({ ...p, amount: Number(p.amount || 0), date: String(p.paidAt || "").slice(0, 10), status: "Paid", method: String(p.method || "").replace(/_/g, " "), reference: p.reference || "—" }));
+  const memberActivity = memberPaymentHistory.map((p) => ({ id: p.id, type: "Payment recorded", text: `$${p.amount} payment via ${p.method}`, time: p.date }));
+  const totalPaid = memberPaymentHistory.reduce((s, p) => s + p.amount, 0);
+  const lastPayment = memberPaymentHistory[0] || null;
 
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
