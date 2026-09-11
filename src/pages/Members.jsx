@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
@@ -38,6 +38,7 @@ const emptyForm = { name: "", phone: "", email: "", plan: "Monthly", startDate: 
 
 export default function Members() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const members = useMembers();
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
@@ -50,6 +51,7 @@ export default function Members() {
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
+  React.useEffect(() => { const editId = searchParams.get("edit"); if (editId && members.length) { const target = members.find((item) => String(item.id) === String(editId)); if (target) { openEdit(target); setSearchParams({}, { replace: true }); } } }, [members, searchParams, setSearchParams]);
 
   const summary = useMemo(() => ({
     total: members.length,
