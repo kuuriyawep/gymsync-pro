@@ -68,7 +68,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/join-gym" element={<JoinGym />} />
-        <Route element={<RoleRoute allowedRole="owner" redirectTo="/member" />}>
+        <Route element={<RoleRoute allowedRole={["owner", "staff"]} redirectTo="/member" />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/members" element={<Members />} />
           <Route path="/members/:id" element={<MemberDetails />} />
@@ -78,7 +78,7 @@ const AuthenticatedApp = () => {
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/support" element={<Support />} />
           <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route element={<RoleRoute allowedRole="owner" redirectTo="/" />}><Route path="/settings" element={<Settings />} /></Route>
         </Route>
         <Route element={<RoleRoute allowedRole="member" redirectTo="/" />}>
           <Route path="/member" element={<MemberDashboard />} />
