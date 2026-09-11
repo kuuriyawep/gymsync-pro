@@ -14,6 +14,7 @@ import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
 import { useAuth } from "@/lib/AuthContext";
+import { gymData } from "@/lib/gymDataClient";
 import ProfileImage from "@/components/ProfileImage";
 import SettingsMenu from "@/components/settings/SettingsMenu";
 
@@ -70,7 +71,7 @@ export default function Settings() {
     setActive(sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   }, [requestedTab]);
 
-  useEffect(() => { setGymLocal(gymStore); }, [gymStore]);
+  useEffect(() => { setGymLocal(gymStore); const settings = gymStore.settings || {}; if (settings.membership) setMembership((current) => ({ ...current, ...settings.membership })); if (settings.notifications) setNotif((current) => ({ ...current, ...settings.notifications })); }, [gymStore]);
   useEffect(() => { setProfile({ name: user?.full_name || "", email: user?.email || "", phone: user?.phone || "", photoUrl: user?.photo_url || null }); }, [user?.id]);
 
   const handleInviteStaff = async () => {
@@ -165,7 +166,7 @@ export default function Settings() {
                       <div><p className="text-sm font-medium">Auto-renew memberships</p><p className="text-xs text-black/50">Automatically renew members on expiry</p></div>
                       <Toggle on={membership.autoRenew} onClick={() => setMembership({ ...membership, autoRenew: !membership.autoRenew })} />
                     </div>
-                    <div className="flex justify-end pt-2"><SaveButton onSave={() => toast({ title: "Membership settings saved", description: "Your membership defaults have been updated." })} /></div>
+                    <div className="flex justify-end pt-2"><SaveButton onSave={async () => { await gymData("updateGymSettings", { settings: { membership } }); toast({ title: "Membership settings saved", description: "Your membership defaults have been updated." }); }} /></div>
                   </div>
                 )}
 
@@ -178,7 +179,7 @@ export default function Settings() {
                     ].map((n) => (
                       <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
                         <div className="pr-4"><p className="text-sm font-medium">{n.label}</p><p className="text-xs text-black/50">{n.desc}</p></div>
-                        <Toggle on={notif[n.key]} onClick={() => { setNotif({ ...notif, [n.key]: !notif[n.key] }); toast({ title: `${n.label} ${!notif[n.key] ? "enabled" : "disabled"}` }); }} />
+                        <Toggle on={notif[n.key]} onClick={() => { const next = { ...notif, [n.key]: !notif[n.key] }; setNotif(next); gymData("updateGymSettings", { settings: { notifications: next } }).catch(() => setNotif(notif)); toast({ title: `${n.label} ${!notif[n.key] ? "enabled" : "disabled"}` }); }} />
                       </div>
                     ))}
                   </div>
