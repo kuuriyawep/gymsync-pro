@@ -303,7 +303,7 @@ async function recordPayment(supabase: any, context: any, body: any) {
   const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: memberId, membership_id: membership.data?.id || null, amount, currency: gym.currency || "USD", method: String(body.payment.method || "Cash").toLowerCase().replace(/\s+/g, "_"), paid_at: body.payment.date ? new Date(`${body.payment.date}T00:00:00Z`).toISOString() : new Date().toISOString(), recorded_by: null, note: clean(body.payment.notes, 1000) || null, reference: clean(body.payment.reference, 200) || null }).select("*").single();
   if (payment.error) throw payment.error;
   if (membership.data) {
-    const newPaid = Number(membership.data.amount_paid || 0) + amount;
+    const newPaid = Math.min(Number(membership.data.amount_due || 0), Number(membership.data.amount_paid || 0) + amount);
     const newBalance = Math.max(0, Number(membership.data.amount_due || 0) - newPaid);
     await supabase.from("memberships").update({ amount_paid: newPaid }).eq("id", membership.data.id).eq("gym_id", gym.id);
     
