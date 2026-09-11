@@ -9,7 +9,6 @@ import WelcomePath from "@/components/onboarding/WelcomePath";
 import { DashboardPreview, PaymentsPreview, StaffPreview, ValueSummary } from "@/components/onboarding/OwnerVisuals";
 import { StreakVisual, MembershipCardVisual, ConnectedVisual, MemberDashboardPreview } from "@/components/onboarding/MemberVisuals";
 import GymProfileSetup from "@/components/onboarding/GymProfileSetup";
-import { setGym } from "@/lib/gymStore";
 import { gymData } from "@/lib/gymDataClient";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -106,7 +105,6 @@ export default function Onboarding() {
       const onboardingData = { role: answers.role, memberCount: answers.memberCount, management: answers.management, challenge: answers.challenge, outcome: answers.outcome || [], visibility: answers.visibility };
       const result = await gymData("completeOnboarding", { role: "owner", gymName: gp.name, location: gp.location, logoUrl: gp.logoUrl || null, onboardingData });
       await loadBusinessProfile();
-      setGym({ name: gp.name, location: gp.location, logoUrl: gp.logoUrl });
       setAnswers((a) => ({ ...a, gymId: result.gymId }));
       setStep((s) => s + 1);
       toast({ title: "Gym workspace created", description: "Your real GymSync workspace is ready." });
