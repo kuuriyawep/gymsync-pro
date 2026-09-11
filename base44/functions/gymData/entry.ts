@@ -316,6 +316,32 @@ async function recordPayment(supabase: any, context: any, body: any) {
   return (await loadOwnerData(supabase, context)).analytics;
 }
 
+
+async function renewMember(supabase: any, context: any, body: any) {
+  if (!can(context, "members")) throw new Error("You do not have permission to renew memberships");
+  const gym = await gymFor(supabase, context);
+  const memberId = clean(body.id, 80);
+  const member = await supabase.from("members").select("*").eq("id", memberId).eq("gym_id", gym.id).single();
+  if (member.error) throw member.error;
+  const latest = await supabase.from("memberships").select("*").eq("member_id", memberId).eq("gym_id", gym.id).order("end_date", { ascending: false }).limit(1).maybeSingle();
+  if (latest.error) throw latest.error;
+  const durationMonths = Math.max(1, Number(body.durationMonths || latest.data?.duration_months || 1));
+  const start = new Date();
+  const end = new Date(start); end.setMonth(end.getMonth() + durationMonths);
+  const plan = await findOrCreatePlan(supabase, gym.id, clean(body.plan || "Monthly", 120), Number(body.amount ?? latest.data?.amount_due ?? gym.membership_default_price ?? 15), durationMonths);
+  const amount = Number(body.amount ?? plan.price ?? 0);
+  const paid = body.paymentStatus === "Pending" ? 0 : amount;
+  const membership = await supabase.from("memberships").insert({ gym_id: gym.id, member_id: memberId, plan_id: plan.id, start_date: start.toISOString().slice(0,10), end_date: end.toISOString().slice(0,10), amount_due: amount, amount_paid: paid, status: "active", auto_renew: false }).select("*").single();
+  if (membership.error) throw membership.error;
+  if (paid > 0) {
+    const payment = await supabase.from("payments").insert({ gym_id: gym.id, member_id: memberId, membership_id: membership.data.id, amount: paid, currency: gym.currency || "USD", method: normalizePaymentMethod(body.paymentMethod || "Cash"), paid_at: new Date().toISOString(), recorded_by: null, note: "Membership renewal" }).select("id").single();
+    if (payment.error) throw payment.error;
+  }
+  const updated = await supabase.from("members").update({ status: "active" }).eq("id", memberId).eq("gym_id", gym.id);
+  if (updated.error) throw updated.error;
+  return { members: (await loadOwnerData(supabase, context)).members };
+}
+
 async function membershipPlans(supabase: any, context: any, operation: string, body: any) {
   if (!can(context, "plans")) throw new Error("You do not have permission to manage membership plans");
   const gym = await gymFor(supabase, context);
@@ -516,6 +542,7 @@ export default async function(req: Request): Promise<Response> {
     if (operation === "create") return json({ members: await createMember(supabase, context, body), analytics: (await loadOwnerData(supabase, context)).analytics });
     if (operation === "update") return json({ members: await updateMember(supabase, context, body), analytics: (await loadOwnerData(supabase, context)).analytics });
     if (operation === "delete") return json({ members: await deleteMember(supabase, context, body.id), analytics: (await loadOwnerData(supabase, context)).analytics });
+    if (operation === "renewMember") return json({ ...(await renewMember(supabase, context, body)), analytics: (await loadOwnerData(supabase, context)).analytics });
     if (operation === "recordPayment") return json({ members: (await loadOwnerData(supabase, context)).members, analytics: await recordPayment(supabase, context, body) });
     if (operation === "listPlans" || operation === "createPlan" || operation === "updatePlan" || operation === "togglePlan") return json(await membershipPlans(supabase, context, operation === "listPlans" ? "list" : operation.replace("Plan", ""), body));
     if (operation === "listStaff" || operation === "inviteStaff" || operation === "revokeStaff") return json({ staff: await staffAccess(supabase, base44, context, operation.replace("Staff", "").replace("list", "list").replace("invite", "invite").replace("revoke", "revoke"), body) });
