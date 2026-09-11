@@ -92,7 +92,7 @@ function can(context: any, capability: string) {
   return (map[capability] || []).includes(role);
 }
 
-function gymPayload(gym: any) { return { ...gym, logoUrl: gym.logo_url || null, membershipDefaultPrice: Number(gym.membership_default_price || 0) }; }
+function gymPayload(gym: any) { return { ...gym, logoUrl: gym.logo_url || null, membershipDefaultPrice: Number(gym.membership_default_price || 0), settings: gym.settings || {} }; }
 
 async function gymFor(supabase: any, context: any) {
   const gymId = context.profile?.gym_id;
@@ -495,6 +495,16 @@ export default async function(req: Request): Promise<Response> {
     if (operation === "context") return json({ profile: context.profile, member: context.member });
     if (operation === "bootstrap") return json(await loadOwnerData(supabase, context));
     if (operation === "getGymProfile") return json(gymPayload(await gymFor(supabase, context)));
+    if (operation === "getGymSettings") return json((await gymFor(supabase, context)).settings || {});
+    if (operation === "updateGymSettings") {
+      if (context.profile.role !== "owner") throw new Error("Only the gym owner can update gym settings");
+      const gym = await gymFor(supabase, context);
+      const current = gym.settings || {};
+      const next = { ...current, ...(body.settings || {}), membership: { ...(current.membership || {}), ...((body.settings || {}).membership || {}) }, notifications: { ...(current.notifications || {}), ...((body.settings || {}).notifications || {}) } };
+      const result = await supabase.from("gyms").update({ settings: next }).eq("id", gym.id).select("settings").single();
+      if (result.error) throw result.error;
+      return json(result.data.settings || {});
+    }
     if (operation === "updateGymProfile") {
       if (context.profile.role !== "owner") throw new Error("Only the gym owner can update gym settings");
       const gym = await gymFor(supabase, context);
