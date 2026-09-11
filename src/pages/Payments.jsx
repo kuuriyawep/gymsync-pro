@@ -5,7 +5,7 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
-import { gymInfo } from "@/lib/mockData";
+import { useGym } from "@/lib/gymStore";
 import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment } from "@/lib/memberStore";
 import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
 
@@ -33,6 +33,7 @@ const emptyForm = { name: "", plan: "Monthly", amount: "", method: "Cash", date:
 
 export default function Payments() {
   const members = useMembers();
+  const gym = useGym();
   const analytics = useGymAnalytics();
   const loaded = useMembersLoaded();
   const [saving, setSaving] = useState(false);
@@ -303,9 +304,9 @@ export default function Payments() {
         {viewing && (
           <div className="border border-black/15 rounded-xl p-5">
             <div className="text-center pb-4 border-b border-dashed border-black/15">
-              <p className="text-lg font-bold">{gymInfo.name}</p>
-              <p className="text-xs text-black/50">{gymInfo.address}</p>
-              <p className="text-xs text-black/50">{gymInfo.phone} · {gymInfo.email}</p>
+              <p className="text-lg font-bold">{gym.name || "GymSync"}</p>
+              <p className="text-xs text-black/50">{gym.address}</p>
+              <p className="text-xs text-black/50">{gym.phone} · {gym.email}</p>
             </div>
             <div className="py-4 border-b border-dashed border-black/15 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-black/50">Receipt No.</span><span className="font-medium tabular-nums">{viewing.paymentId}</span></div>
