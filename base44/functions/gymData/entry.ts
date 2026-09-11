@@ -1,8 +1,9 @@
 import { createClientFromRequest } from "npm:@base44/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { secrets } from "base44:runtime";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "https://wheeaxbuxpuhgcabcskv.supabase.co";
-const SUPABASE_KEY = Deno.env.get("SUPABASE_SECRET_KEY") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const SUPABASE_URL = (secrets.get("SUPABASE_URL") || "https://wheeaxbuxpuhgcabcskv.supabase.co").replace(/\/$/, "");
+const SUPABASE_KEY = secrets.get("SUPABASE_SECRET_KEY") || secrets.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
@@ -475,7 +476,7 @@ async function joinGym(supabase: any, base44: any, user: any, body: any) {
   return { memberId: result.data.id, gymId: result.data.gym_id };
 }
 
-Deno.serve(async (req) => {
+export default async function(req: Request): Promise<Response> {
   try {
     if (req.method !== "POST") return fail("POST required", 405);
     const { user, base44 } = await currentUser(req);
@@ -519,4 +520,4 @@ Deno.serve(async (req) => {
     const status = /unauthorized/i.test(message) ? 401 : /permission|access|owner can|already linked/i.test(message) ? 403 : 400;
     return fail(message, status);
   }
-});
+}
