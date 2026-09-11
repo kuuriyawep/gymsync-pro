@@ -91,6 +91,8 @@ function can(context: any, capability: string) {
   return (map[capability] || []).includes(role);
 }
 
+function gymPayload(gym: any) { return { ...gym, logoUrl: gym.logo_url || null, membershipDefaultPrice: Number(gym.membership_default_price || 0) }; }
+
 async function gymFor(supabase: any, context: any) {
   const gymId = context.profile?.gym_id;
   if (!gymId) throw new Error("No gym workspace is linked to this account");
@@ -486,14 +488,14 @@ Deno.serve(async (req) => {
 
     if (operation === "context") return json({ profile: context.profile, member: context.member });
     if (operation === "bootstrap") return json(await loadOwnerData(supabase, context));
-    if (operation === "getGymProfile") return json(await gymFor(supabase, context));
+    if (operation === "getGymProfile") return json(gymPayload(await gymFor(supabase, context)));
     if (operation === "updateGymProfile") {
       if (context.profile.role !== "owner") throw new Error("Only the gym owner can update gym settings");
       const gym = await gymFor(supabase, context);
       const patch = body.gym || {};
       const result = await supabase.from("gyms").update({ name: clean(patch.name, 160), phone: clean(patch.phone, 40) || null, email: emailOf(patch.email) || null, address: clean(patch.address, 240) || null, logo_url: patch.logoUrl || null }).eq("id", gym.id).select("*").single();
       if (result.error) throw result.error;
-      return json(result.data);
+      return json(gymPayload(result.data));
     }
     if (operation === "create") return json({ members: await createMember(supabase, context, body), analytics: (await loadOwnerData(supabase, context)).analytics });
     if (operation === "update") return json({ members: await updateMember(supabase, context, body), analytics: (await loadOwnerData(supabase, context)).analytics });
