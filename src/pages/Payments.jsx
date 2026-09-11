@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
-import { payments as mockPayments, gymInfo } from "@/lib/mockData";
-import { useMembers } from "@/lib/memberStore";
+import { gymInfo } from "@/lib/mockData";
+import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment } from "@/lib/memberStore";
 import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -19,7 +19,7 @@ const sortOptions = [
   { key: "amount", label: "Amount: High to Low" },
   { key: "name", label: "Member A-Z" },
 ];
-const payOptions = ["Paid", "Pending", "Overdue"];
+const payOptions = ["Paid"];
 const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
 
 const payBadge = (s) => {
@@ -32,10 +32,16 @@ const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2)
 const emptyForm = { name: "", plan: "Monthly", amount: "", method: "Cash", date: format(new Date(), "yyyy-MM-dd"), status: "Paid", notes: "" };
 
 export default function Payments() {
-  const [loading, setLoading] = useState(true);
   const members = useMembers();
+  const analytics = useGymAnalytics();
+  const loaded = useMembersLoaded();
+  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
-  const [payments, setPayments] = useState(mockPayments);
+  const payments = useMemo(() => (analytics.payments || []).map((payment) => {
+    const member = members.find((item) => item.id === payment.memberId);
+    const method = String(payment.method || "").replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return { id: payment.id, paymentId: `PAY-${String(payment.id).slice(0, 8).toUpperCase()}`, name: payment.memberName, plan: member?.plan || "Membership", amount: Number(payment.amount || 0), method, date: String(payment.paidAt).slice(0, 10), status: "Paid", reference: payment.reference || "—", notes: payment.note || "" };
+  }), [analytics.payments, members]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [methodFilter, setMethodFilter] = useState("All");
@@ -48,8 +54,6 @@ export default function Payments() {
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
-
-  useEffect(() => { const t = setTimeout(() => setLoading(false), 500); return () => clearTimeout(t); }, []);
 
   const summary = useMemo(() => {
     const total = payments.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
@@ -88,15 +92,22 @@ export default function Payments() {
     const m = members.find((x) => x.name === name);
     setForm((f) => ({ ...f, name, plan: m?.plan || "Monthly", amount: m ? String(m.fee) : "" }));
   };
-  const submit = () => {
-    if (!members.some((m) => m.name === form.name)) { setFormError("Select a member."); return; }
+  const submit = async () => {
+    const member = members.find((item) => item.name === form.name);
+    if (!member) { setFormError("Select a member."); return; }
     if (!Number.isFinite(Number(form.amount)) || Number(form.amount) <= 0) { setFormError("Enter an amount greater than zero."); return; }
     if (!form.date || !isValid(parseISO(form.date))) { setFormError("Enter a valid payment date."); return; }
     setFormError("");
-    const id = Math.max(...payments.map((p) => p.id), 0) + 1;
-    setPayments((ps) => [{ id, paymentId: `PAY-${1000 + id}`, ...form, amount: Number(form.amount) || 0, reference: `TXN-${2000 + id}` }, ...ps]);
-    setRecordOpen(false);
-    toast({ title: "Payment recorded successfully", description: `$${form.amount} · ${form.name}` });
+    setSaving(true);
+    try {
+      await recordPayment({ ...form, memberId: member.id, amount: Number(form.amount) });
+      setRecordOpen(false);
+      toast({ title: "Payment recorded successfully", description: `$${form.amount} · ${form.name}` });
+    } catch (error) {
+      setFormError(error.message || "Unable to record payment.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const summaryCards = [
@@ -106,7 +117,7 @@ export default function Payments() {
     { label: "Overdue Payments", value: summary.overdue, icon: AlertCircle },
   ];
 
-  if (loading) return <Layout><PageSkeleton /></Layout>;
+  if (!loaded) return <Layout><PageSkeleton /></Layout>;
 
   return (
     <Layout>
@@ -224,7 +235,7 @@ export default function Payments() {
       <Modal open={recordOpen} onClose={() => setRecordOpen(false)} title="Record Payment"
         footer={<>
           <button onClick={() => setRecordOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Record Payment</button>
+          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-60">{saving ? "Recording..." : "Record Payment"}</button>
         </>}>
         <div className="space-y-4">
           {formError && <p role="alert" className="text-sm font-medium text-foreground">{formError}</p>}

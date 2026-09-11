@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = body.operation;
-    if (!['bootstrap', 'create', 'update', 'delete', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
+    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
@@ -75,6 +75,41 @@ export default async function(req: Request): Promise<Response> {
       await request(`members?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
     }
 
+    if (operation === 'recordPayment') {
+      const input = body.payment || {};
+      const memberId = encodeURIComponent(String(input.memberId || ''));
+      const amount = Number(input.amount);
+      if (!memberId || !Number.isFinite(amount) || amount <= 0 || !input.date) return Response.json({ error: 'Member, positive amount and payment date are required' }, { status: 400 });
+      const owned = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=id&limit=1`);
+      if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const memberships = await select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc&limit=1`);
+      const membership = memberships[0] || null;
+      const reference = `TXN-${Date.now()}`;
+      await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: `${input.date}T00:00:00Z` });
+      if (membership) {
+        const amountDue = Number(membership.amount_due || 0);
+        const nextPaid = Math.min(amountDue, Number(membership.amount_paid || 0) + amount);
+        await update('memberships', `id=eq.${encodeURIComponent(membership.id)}&gym_id=eq.${gymFilter}`, { amount_paid: nextPaid });
+      }
+    }
+
+    if (operation === 'deletePayment') {
+      const id = encodeURIComponent(String(body.id || ''));
+      const rows = await select('payments', `id=eq.${id}&gym_id=eq.${gymFilter}&select=*&limit=1`);
+      if (!rows[0]) return Response.json({ error: 'Payment not found' }, { status: 404 });
+      const payment = rows[0];
+      await request(`payments?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
+      if (payment.membership_id) {
+        const membershipId = encodeURIComponent(payment.membership_id);
+        const memberships = await select('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=*&limit=1`);
+        if (memberships[0]) {
+          const remaining = await select('payments', `membership_id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount`);
+          const totalPaid = remaining.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+          await update('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}`, { amount_paid: Math.min(Number(memberships[0].amount_due || 0), totalPaid) });
+        }
+      }
+    }
+
     if (operation === 'createPlan' || operation === 'updatePlan') {
       const input = body.plan || {};
       const name = String(input.name || '').trim();
@@ -129,7 +164,7 @@ export default async function(req: Request): Promise<Response> {
     const updateActivities = members.filter((member: any) => member.updated_at && new Date(member.updated_at).getTime() - new Date(member.created_at).getTime() > 1000).map((member: any) => ({ id: `update-${member.id}`, type: 'update', text: `${member.full_name}'s profile was updated`, occurredAt: member.updated_at }));
     const recentActivities = [...memberActivities, ...paymentActivities, ...updateActivities].filter((item: any) => item.occurredAt).sort((a: any, b: any) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 10);
     const analytics = {
-      payments: payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', paidAt: payment.paid_at || payment.created_at })),
+      payments: payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })),
       memberships: memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })),
       plans: plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })),
       recentActivities

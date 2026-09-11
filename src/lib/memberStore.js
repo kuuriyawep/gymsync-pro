@@ -31,6 +31,7 @@ export function loadMembers(force = false) {
 export function addMember(member) { return run("create", { member }); }
 export function updateMember(id, member) { return run("update", { id, member }); }
 export function deleteMember(id) { return run("delete", { id }); }
+export function recordPayment(payment) { return run("recordPayment", { payment }); }
 export function createMembershipPlan(plan) { return run("createPlan", { plan }); }
 export function updateMembershipPlan(id, plan) { return run("updatePlan", { id, plan }); }
 export function toggleMembershipPlan(id) { return run("togglePlan", { id }); }
