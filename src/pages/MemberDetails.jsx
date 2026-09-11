@@ -55,7 +55,7 @@ export default function MemberDetails() {
   ];
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
-    { icon: DollarSign, label: "Last Payment", value: `$${lastPayment.amount}` },
+    { icon: DollarSign, label: "Last Payment", value: lastPayment ? `$${lastPayment.amount}` : "—" },
     { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
     { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
