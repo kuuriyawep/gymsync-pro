@@ -385,6 +385,36 @@ async function trainers(supabase: any, context: any, operation: string, body: an
   return trainers(supabase, context, "list", {});
 }
 
+
+async function feedbackAccess(supabase: any, context: any, operation: string, body: any) {
+  if (!can(context, "feedback")) throw new Error("You do not have permission to manage feedback");
+  const gym = await gymFor(supabase, context);
+  if (operation === "list") {
+    const result = await supabase.from("feedback_requests").select("*, members(full_name,member_code)").eq("gym_id", gym.id).order("created_at", { ascending: false });
+    if (result.error) throw result.error;
+    return (result.data || []).map((f: any) => ({
+      id: f.id,
+      type: String(f.type || "other").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+      title: f.subject || "Member request",
+      body: f.message,
+      status: feedbackStatus(f.status),
+      response: f.response || null,
+      date: f.created_at?.slice(0, 10),
+      memberName: f.members?.full_name || "Member",
+      memberId: f.members?.member_code || "",
+    }));
+  }
+  if (operation === "update") {
+    const statusMap: Record<string,string> = { Pending:"open", "Under Review":"in_progress", Approved:"resolved", Rejected:"closed", Completed:"resolved" };
+    const status = statusMap[String(body.status || "") ] || "open";
+    const patch: Record<string, unknown> = { status };
+    if (body.response !== undefined) { patch.response = clean(body.response, 2000) || null; patch.responded_at = body.response ? new Date().toISOString() : null; }
+    const result = await supabase.from("feedback_requests").update(patch).eq("id", clean(body.id, 80)).eq("gym_id", gym.id).select("*").single();
+    if (result.error) throw result.error;
+    return feedbackAccess(supabase, context, "list", {});
+  }
+}
+
 async function memberPortal(supabase: any, context: any, operation: string, body: any) {
   if (context.profile?.role !== "member" || !context.member) throw new Error("Membership account is not linked to a gym");
   const member = context.member;
@@ -472,6 +502,7 @@ Deno.serve(async (req) => {
     if (operation === "listPlans" || operation === "createPlan" || operation === "updatePlan" || operation === "togglePlan") return json(await membershipPlans(supabase, context, operation === "listPlans" ? "list" : operation.replace("Plan", ""), body));
     if (operation === "listStaff" || operation === "inviteStaff" || operation === "revokeStaff") return json({ staff: await staffAccess(supabase, base44, context, operation.replace("Staff", "").replace("list", "list").replace("invite", "invite").replace("revoke", "revoke"), body) });
     if (operation === "listTrainers" || operation === "createTrainer" || operation === "updateTrainer" || operation === "toggleTrainer" || operation === "deleteTrainer") return json({ trainers: await trainers(supabase, context, operation.replace("Trainer", "").replace("list", "list").replace("create", "create").replace("update", "update").replace("toggle", "toggle").replace("delete", "delete"), body) });
+    if (operation === "listFeedback" || operation === "updateFeedback") return json({ feedback: await feedbackAccess(supabase, context, operation === "listFeedback" ? "list" : "update", body) });
     if (operation === "memberData" || operation === "createFeedback" || operation === "markNotificationRead") return json({ member: await memberPortal(supabase, context, operation === "memberData" ? "get" : operation === "createFeedback" ? "feedback" : "notificationRead", body) });
 
     return fail("Unknown operation", 400);
