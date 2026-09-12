@@ -4,20 +4,11 @@
   "properties": {
     "app_role": {
       "type": "string",
-      "description": "GymSync business role",
       "enum": [
         "owner",
         "staff",
         "member"
       ]
-    },
-    "phone": {
-      "type": "string",
-      "maxLength": 40
-    },
-    "photo_url": {
-      "type": "string",
-      "maxLength": 2000
     }
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const returnTo = safeReturnTo();
   const destination = role === "member" ? "/join-gym" : returnTo;
+
+  useEffect(() => {
+    sessionStorage.setItem("onboarding_role", role);
+  }, [role]);
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(""); setLoading(true);

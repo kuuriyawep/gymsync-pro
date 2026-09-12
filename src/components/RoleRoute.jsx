@@ -10,7 +10,8 @@ export default function RoleRoute({ allowedRole, redirectTo }) {
   // where the Base44 user is authenticated but the GymSync profile is not yet
   // available. Never bounce between / and /member in that state.
   if (!profile) {
-    const appRole = String(user?.app_role || "").toLowerCase();
+    const intendedRole = sessionStorage.getItem("onboarding_role");
+    const appRole = String(user?.app_role || intendedRole || "").toLowerCase();
     if (appRole === "owner") return <Navigate to="/onboarding" replace />;
     if (appRole === "member") return <Navigate to="/join-gym" replace />;
     return <Navigate to="/welcome" replace />;
