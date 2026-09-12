@@ -11,28 +11,18 @@ export default async function(req: Request): Promise<Response> {
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
-    const anonKey = secrets.get('SUPABASE_ANON_KEY');
-    const origin = new URL(restUrl).origin;
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
-    let user: any = null;
-    let supabaseUser = false;
-    if (body.accessToken) {
-      const response = await fetch(`${origin}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${body.accessToken}` } });
-      if (response.ok) { user = await response.json(); supabaseUser = true; }
-    } else {
-      user = await base44.auth.me();
-    }
+    // All auth is handled by Base44 — identify the caller via base44.auth.me()
+    const user: any = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const ownerEmail = String(user.email || '').toLowerCase();
 
     const getGym = async () => {
-      let gyms = supabaseUser ? await select('gyms', `owner_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`) : [];
-      if (!gyms[0]) gyms = await select('gyms', `email=eq.${encodeURIComponent(user.email || '')}&select=*&limit=1`);
+      const gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
       return gyms[0] || null;
     };
 
-    const findLinkedMembers = async () => supabaseUser
-      ? select('members', `user_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`)
-      : select('members', `email=eq.${encodeURIComponent(String(user.email || '').toLowerCase())}&select=*&limit=1`);
+    const findLinkedMembers = async () => select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
 
     const loadMemberData = async () => {
       const memberRows = await findLinkedMembers();
@@ -75,13 +65,8 @@ export default async function(req: Request): Promise<Response> {
       const matches = await select('members', `phone=eq.${encodeURIComponent(phone)}&full_name=ilike.${encodeURIComponent(fullName)}&select=*&limit=2`);
       if (matches.length !== 1) return Response.json({ error: 'Member details did not match exactly' }, { status: 404 });
       const member = matches[0];
-      if (supabaseUser && member.user_id && member.user_id !== user.id) return Response.json({ error: 'This membership is already linked to another account' }, { status: 409 });
-      if (supabaseUser) {
-        await update('members', `id=eq.${encodeURIComponent(member.id)}`, { user_id: user.id });
-        await insert('profiles?on_conflict=id', { id: user.id, gym_id: member.gym_id, role: 'member', full_name: member.full_name, phone: member.phone, avatar_url: member.avatar_url || null }, 'resolution=merge-duplicates,return=representation');
-      } else {
-        await update('members', `id=eq.${encodeURIComponent(member.id)}`, { email: String(user.email || '').toLowerCase() });
-      }
+      // Link the member to this Base44 user by email
+      await update('members', `id=eq.${encodeURIComponent(member.id)}`, { email: ownerEmail });
       return Response.json({ success: true, member: await loadMemberData() });
     }
 
@@ -106,20 +91,15 @@ export default async function(req: Request): Promise<Response> {
       const name = String(input.name || '').trim();
       const location = String(input.location || '').trim();
       if (!name) return Response.json({ error: 'Gym name is required' }, { status: 400 });
-      if (!supabaseUser) return Response.json({ error: 'Supabase authentication required' }, { status: 401 });
-      const profiles = await select('profiles', `id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`);
-      const profile = profiles[0];
-      if (profile?.gym_id) {
-        const existing = (await select('gyms', `id=eq.${encodeURIComponent(profile.gym_id)}&select=*&limit=1`))[0];
-        if (existing) return Response.json({ gymId: existing.id, gym: { id: existing.id, name: existing.name || '', phone: existing.phone || '', email: existing.email || '', address: existing.address || '', logoUrl: existing.logo_url || null }, existed: true });
-      }
+      // Check if a gym already exists for this owner's email
+      const existing = await getGym();
+      if (existing) return Response.json({ gymId: existing.id, gym: { id: existing.id, name: existing.name || '', phone: existing.phone || '', email: existing.email || '', address: existing.address || '', logoUrl: existing.logo_url || null }, existed: true });
       const created = (await insert('gyms?return=representation', {
         name: name.slice(0, 120),
         address: location ? location.slice(0, 240) : null,
         logo_url: input.logoUrl ? String(input.logoUrl).slice(0, 1000) : null,
-        email: String(user.email || '').toLowerCase().slice(0, 160) || null
+        email: ownerEmail.slice(0, 160)
       }))[0];
-      await update('profiles', `id=eq.${encodeURIComponent(user.id)}`, { gym_id: created.id, role: 'owner', full_name: profile?.full_name || String(user.email || '').split('@')[0] });
       await insert('membership_plans?return=representation', { gym_id: created.id, name: 'Monthly', duration_months: 1, price: 0, status: 'Active' });
       return Response.json({ gymId: created.id, gym: { id: created.id, name: created.name || '', phone: created.phone || '', email: created.email || '', address: created.address || '', logoUrl: created.logo_url || null }, existed: false });
     }
@@ -156,22 +136,19 @@ export default async function(req: Request): Promise<Response> {
       const email = String(body.email || '').trim().toLowerCase();
       const role = String(body.role || 'Front Desk');
       if (!email || !['Manager', 'Front Desk', 'Cashier'].includes(role)) return Response.json({ error: 'Valid email and role are required' }, { status: 400 });
-      const inviteResponse = await fetch(`${origin}/auth/v1/invite`, { method: 'POST', headers, body: JSON.stringify({ email, data: { full_name: email.split('@')[0] } }) });
-      if (!inviteResponse.ok) throw new Error((await inviteResponse.text()) || 'Unable to invite staff');
-      const invited = await inviteResponse.json();
-      await insert('profiles?on_conflict=id', { id: invited.id, gym_id: gym.id, role: 'staff', full_name: invited.user_metadata?.full_name || email.split('@')[0] }, 'resolution=merge-duplicates,return=representation');
-      await insert('staff', { gym_id: gym.id, user_id: invited.id, staff_role: role, permissions: [], status: 'Invited', invited_by: supabaseUser ? user.id : null });
+      // Invite via Base44's built-in auth system
+      await base44.auth.inviteUser(email, 'user');
+      // Store staff record linked by email (run supabase/migration_base44_auth.sql first)
+      await insert('staff', { gym_id: gym.id, staff_role: role, email, status: 'Invited', invited_by: user.id });
     }
     if (operation === 'revokeStaff') {
       await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
     }
     const rows = await select('staff', `gym_id=eq.${encodeURIComponent(gym.id)}&select=*&order=created_at.desc`);
-    const staff = await Promise.all(rows.map(async (item: any) => {
-      const authResponse = await fetch(`${origin}/auth/v1/admin/users/${item.user_id}`, { headers });
-      const authUser = authResponse.ok ? await authResponse.json() : null;
-      const profiles = await select('profiles', `id=eq.${encodeURIComponent(item.user_id)}&select=*&limit=1`);
-      return { id: item.id, name: profiles[0]?.full_name || authUser?.email?.split('@')[0] || 'Staff member', email: authUser?.email || '', role: item.staff_role, status: item.status, lastActive: item.last_active_at ? new Date(item.last_active_at).toLocaleDateString() : 'Never' };
-    }));
+    const staff = rows.map((item: any) => {
+      const staffEmail = String(item.email || '');
+      return { id: item.id, name: staffEmail ? staffEmail.split('@')[0] : 'Staff member', email: staffEmail, role: item.staff_role, status: item.status, lastActive: item.last_active_at ? new Date(item.last_active_at).toLocaleDateString() : 'Never' };
+    });
     return Response.json({ staff });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Request failed' }, { status: 500 });

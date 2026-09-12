@@ -9,7 +9,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import SaveButton from "@/components/SaveButton";
 import PhotoPicker from "@/components/PhotoPicker";
 import { useGym, setGym } from "@/lib/gymStore";
-import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
@@ -58,6 +58,7 @@ export default function Settings() {
   const [profile, setProfile] = useState(ownerProfile);
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
+  const { logout } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ email: "", role: "Front Desk" });
   const [inviteSaving, setInviteSaving] = useState(false);
@@ -213,7 +214,7 @@ export default function Settings() {
                       </div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
-                      <button onClick={() => supabase.auth.signOut().then(() => { window.location.href = "/login"; })} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
+                      <button onClick={() => logout()} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><LogOut className="w-4 h-4" /> Sign out</button>
                     </div>
                   </div>
                 )}

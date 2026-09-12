@@ -18,7 +18,10 @@ import MemberDetails from '@/pages/MemberDetails';
 import Trainers from '@/pages/Trainers';
 import Feedback from '@/pages/Feedback';
 import Support from '@/pages/Support';
-import AuthGateway from '@/components/auth/AuthGateway';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 import JoinGym from '@/pages/JoinGym';
 import Onboarding from '@/pages/Onboarding';
 import WelcomeLobby from '@/pages/WelcomeLobby';
@@ -56,8 +59,10 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
-      <Route path="/login" element={<AuthGateway />} />
-      <Route path="/register" element={<AuthGateway />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/join-gym" element={<JoinGym />} />
       <Route path="/welcome" element={<WelcomeLobby />} />
       <Route path="/onboarding" element={<Onboarding />} />

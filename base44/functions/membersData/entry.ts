@@ -11,25 +11,16 @@ export default async function(req: Request): Promise<Response> {
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
-    let user: any = null;
-    let supabaseUser = false;
-    if (body.accessToken) {
-      const authResponse = await fetch(`${new URL(restUrl).origin}/auth/v1/user`, { headers: { apikey: serviceKey, Authorization: `Bearer ${body.accessToken}` } });
-      if (authResponse.ok) { user = await authResponse.json(); supabaseUser = true; }
-    } else {
-      user = await base44.auth.me();
-    }
+    // All auth is handled by Base44 — identify the caller via base44.auth.me()
+    const user: any = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const ownerEmail = String(user.email || '').toLowerCase();
 
-    const ownerEmail = user.email || `${user.id}@gymsync.local`;
-    let gyms = supabaseUser ? await select('gyms', `owner_id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`) : [];
-    if (!gyms[0]) gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
+    let gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
     let gym = gyms[0];
     if (!gym) {
-      const created = await insert('gyms', { name: 'Olympic Gym', email: ownerEmail, ...(supabaseUser ? { owner_id: user.id } : {}) });
+      const created = await insert('gyms', { name: 'Olympic Gym', email: ownerEmail });
       gym = created[0];
-    } else if (supabaseUser && !gym.owner_id) {
-      gym = (await update('gyms', `id=eq.${encodeURIComponent(gym.id)}`, { owner_id: user.id }))[0];
     }
     const gymFilter = encodeURIComponent(gym.id);
 
