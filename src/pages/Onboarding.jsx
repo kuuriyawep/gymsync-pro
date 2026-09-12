@@ -80,7 +80,7 @@ export default function Onboarding() {
       const idx = all.findIndex((x) => x.id === nextId);
       if (idx >= 0) setStep(idx);
     }
-  }, [location.search, isAuthenticated, profile?.gym_id]);
+  }, [location.search, isAuthenticated, path, profile?.gym_id]);
 
   const ownerSteps = useMemo(() => buildOwnerSteps(answers), [answers]);
   const steps = path === "owner" ? ownerSteps : path === "member" ? memberSteps : [];
@@ -106,7 +106,7 @@ export default function Onboarding() {
       const onboardingData = { role: answers.role, memberCount: answers.memberCount, management: answers.management, challenge: answers.challenge, outcome: answers.outcome || [], visibility: answers.visibility };
       const { data, error } = await supabase.rpc("complete_owner_onboarding", { p_gym_name: gp.name, p_location: gp.location, p_logo_url: gp.logoUrl || null, p_onboarding_data: onboardingData });
       if (error) throw error;
-      setGym({ name: gp.name, location: gp.location, logoUrl: gp.logoUrl });
+      setGym({ name: gp.name, address: gp.location, logoUrl: gp.logoUrl });
       setAnswers((a) => ({ ...a, gymId: data }));
       setStep((s) => s + 1);
       toast({ title: "Gym workspace created", description: "Your real GymSync workspace is ready." });

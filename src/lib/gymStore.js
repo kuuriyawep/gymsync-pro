@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { base44 } from "@/api/base44Client";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const emptyGym = {
   name: "",
@@ -23,7 +23,7 @@ function getGym() { return state; }
 export async function loadGym() {
   if (loaded) return state;
   if (!loadingPromise) {
-    loadingPromise = base44.functions.invoke("gymAccess", { operation: "getGymProfile" })
+    loadingPromise = invokeWithAuth("gymAccess", { operation: "getGymProfile" })
       .then((response) => {
         state = { ...emptyGym, ...response.data.gym, isLoading: false };
         loaded = true;
@@ -41,7 +41,7 @@ export async function loadGym() {
 }
 
 export async function setGym(gym) {
-  const response = await base44.functions.invoke("gymAccess", { operation: "updateGymProfile", gym });
+  const response = await invokeWithAuth("gymAccess", { operation: "updateGymProfile", gym });
   state = { ...emptyGym, ...response.data.gym, isLoading: false };
   loaded = true;
   emit();

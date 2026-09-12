@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { getSupabaseUser } from "@/lib/invokeWithAuth";
 
 const message = (error) => error?.response?.data?.error || error?.message || "Trainer request failed";
 
@@ -8,7 +9,11 @@ export function useTrainers() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const user = await base44.auth.me();
+    let user = await getSupabaseUser();
+    if (!user) {
+      try { user = await base44.auth.me(); } catch { user = null; }
+    }
+    if (!user) { setTrainers([]); return []; }
     const rows = await base44.entities.Trainer.filter({ created_by_id: user.id }, "-created_date");
     setTrainers(rows);
     return rows;

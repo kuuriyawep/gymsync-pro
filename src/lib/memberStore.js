@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { base44 } from "@/api/base44Client";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const listeners = new Set();
 let members = [];
@@ -14,7 +14,7 @@ function getAnalyticsSnapshot() { return analytics; }
 function getLoadedSnapshot() { return loaded; }
 
 async function run(operation, payload = {}) {
-  const response = await base44.functions.invoke("membersData", { operation, ...payload });
+  const response = await invokeWithAuth("membersData", { operation, ...payload });
   members = response.data.members;
   analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
   loaded = true;

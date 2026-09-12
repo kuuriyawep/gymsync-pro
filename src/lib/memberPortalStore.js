@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { base44 } from "@/api/base44Client";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const listeners = new Set();
 let state = { data: null, loaded: false, loading: false, error: "" };
@@ -9,7 +9,7 @@ const subscribe = (listener) => { listeners.add(listener); return () => listener
 const snapshot = () => state;
 const message = (error) => error?.response?.data?.error || error?.message || "Unable to load membership";
 async function invoke(operation, payload = {}) {
-  const response = await base44.functions.invoke("gymAccess", { operation, ...payload });
+  const response = await invokeWithAuth("gymAccess", { operation, ...payload });
   return response.data;
 }
 export async function loadMemberPortal(force = false) {
