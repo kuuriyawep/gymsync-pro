@@ -55,7 +55,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, profile, loadBusinessProfile } = useAuth();
+  const { isAuthenticated, profile, loadBusinessProfile, navigateToLogin } = useAuth();
   const [path, setPath] = useState(null);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -97,7 +97,7 @@ export default function Onboarding() {
   async function completeGymProfile() {
     const gp = answers.gymProfile || {};
     if (!isAuthenticated) {
-      navigate("/register?returnTo=" + encodeURIComponent("/onboarding?resume=1"));
+      navigateToLogin("/onboarding?resume=1");
       return;
     }
     setSavingGym(true);
@@ -130,7 +130,7 @@ export default function Onboarding() {
     content = <VisualScreen icon={Users} title={current.title} subtitle={current.subtitle}><div className="space-y-3"><div className="bg-black text-white rounded-2xl p-5"><p className="font-semibold">You do not need to create a gym.</p><p className="text-sm text-white/70 mt-1">Your owner can invite you and assign the right permissions. This keeps gym ownership and data secure.</p></div><p className="text-xs text-black/45 text-center">Already invited? Continue to sign in.</p></div></VisualScreen>;
     footer = <button onClick={() => navigate("/login")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Go to sign in</button>;
   } else if (current.kind === "account") {
-    content = <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync."><div className="space-y-3"><button onClick={() => navigate("/register?returnTo=" + encodeURIComponent("/onboarding?resume=1"))} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Create account</button><p className="text-xs text-black/40 text-center">Free to start. No payment required.</p></div></VisualScreen>;
+    content = <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync."><div className="space-y-3"><button onClick={() => navigateToLogin("/onboarding?resume=1")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Create account</button><p className="text-xs text-black/40 text-center">Free to start. No payment required.</p></div></VisualScreen>;
   } else if (current.kind === "gymProfile") {
     const gp = answers.gymProfile || {}; content = <VisualScreen icon={Building2} title="Set up your gym profile" subtitle="Your gym name and location are required. Logo is optional."><GymProfileSetup value={gp} onChange={(v) => { const updated = { ...gp, ...v }; setAnswers((a) => ({ ...a, gymProfile: updated })); }} /></VisualScreen>;
     footer = <button onClick={completeGymProfile} disabled={!gp.name || !gp.location || savingGym} className={`w-full py-3 text-sm font-semibold rounded-xl ${gp.name && gp.location && !savingGym ? "bg-black text-white" : "bg-black/10 text-black/40"}`}>{savingGym ? "Creating workspace..." : "Create my gym"}</button>;

@@ -1,9 +1,8 @@
-import { createClientFromRequest } from "npm:@base44/sdk@0.8.48";
+import { createClientFromRequest } from "npm:@base44/sdk@0.8.44";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { secrets } from "base44:runtime";
 
-const SUPABASE_URL = (secrets.get("SUPABASE_URL") || "https://wheeaxbuxpuhgcabcskv.supabase.co").replace(/\/$/, "");
-const SUPABASE_KEY = secrets.get("SUPABASE_SECRET_KEY") || secrets.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const DEFAULT_SUPABASE_URL = "https://wheeaxbuxpuhgcabcskv.supabase.co";
 
 const json = (body: unknown, status = 200) => Response.json(body, { status });
 const clean = (value: unknown, max = 500) => String(value ?? "").trim().slice(0, max);
@@ -11,8 +10,11 @@ const emailOf = (value: unknown) => clean(value, 320).toLowerCase();
 const fail = (message: string, status = 400) => json({ error: message }, status);
 
 function requireSupabase() {
-  if (!SUPABASE_KEY) throw new Error("Supabase backend secret is not configured. Add SUPABASE_SECRET_KEY to Base44 Secrets.");
-  return createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+  const key = secrets.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (!key) throw new Error("Supabase backend secret is not configured. Add SUPABASE_SERVICE_ROLE_KEY to Base44 Secrets.");
+  const configuredUrl = String(secrets.get("SUPABASE_URL") || DEFAULT_SUPABASE_URL).trim().replace(/^["']|["']$/g, "");
+  const url = new URL(configuredUrl).origin;
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 async function currentUser(req: Request) {
@@ -503,9 +505,12 @@ async function joinGym(supabase: any, base44: any, user: any, body: any) {
 }
 
 export default async function(req: Request): Promise<Response> {
+  let stage = "request";
   try {
     if (req.method !== "POST") return fail("POST required", 405);
+    stage = "authentication";
     const { user, base44 } = await currentUser(req);
+    stage = "database setup";
     const supabase = requireSupabase();
     const body = await req.json().catch(() => ({}));
     const operation = clean(body.operation, 80);
@@ -513,6 +518,7 @@ export default async function(req: Request): Promise<Response> {
     if (operation === "completeOnboarding") return json(await completeOnboarding(supabase, base44, user, body));
     if (operation === "join") return json(await joinGym(supabase, base44, user, body));
 
+    stage = "profile lookup";
     const context = await getContext(supabase, user);
     if (!context.profile) return json({ profile: null, onboardingRequired: true }, 200);
     const desiredAppRole = context.profile.role === "owner" ? "owner" : context.profile.role === "member" ? "member" : "staff";
@@ -553,8 +559,8 @@ export default async function(req: Request): Promise<Response> {
     return fail("Unknown operation", 400);
   } catch (error) {
     console.error(error);
-    const message = error instanceof Error ? error.message : "Request failed";
+    const message = error instanceof Error ? error.message : typeof error === "object" && error && "message" in error ? String(error.message) : "Request failed";
     const status = /unauthorized/i.test(message) ? 401 : /permission|access|owner can|already linked/i.test(message) ? 403 : 400;
-    return fail(message, status);
+    return fail(`${stage}: ${message}`, status);
   }
 }
