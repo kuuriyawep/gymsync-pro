@@ -136,18 +136,22 @@ export default async function(req: Request): Promise<Response> {
       const email = String(body.email || '').trim().toLowerCase();
       const role = String(body.role || 'Front Desk');
       if (!email || !['Manager', 'Front Desk', 'Cashier'].includes(role)) return Response.json({ error: 'Valid email and role are required' }, { status: 400 });
-      // Invite via Base44's built-in auth system
-      await base44.auth.inviteUser(email, 'user');
-      // Store staff record linked by email (run supabase/migration_base44_auth.sql first)
-      await insert('staff', { gym_id: gym.id, staff_role: role, email, status: 'Invited', invited_by: user.id });
+      // Map UI role names to DB role values (lowercase with underscores)
+      const roleMap: Record<string, string> = { 'Manager': 'manager', 'Front Desk': 'front_desk', 'Cashier': 'cashier' };
+      const dbRole = roleMap[role] || 'front_desk';
+      // Insert staff record — full_name is NOT NULL, email/role/status use actual DB columns
+      await insert('staff', { gym_id: gym.id, full_name: email.split('@')[0], email, role: dbRole, status: 'Invited' });
     }
     if (operation === 'revokeStaff') {
       await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
     }
     const rows = await select('staff', `gym_id=eq.${encodeURIComponent(gym.id)}&select=*&order=created_at.desc`);
+    // Map DB role values back to UI role names
+    const roleLabelMap: Record<string, string> = { 'manager': 'Manager', 'front_desk': 'Front Desk', 'cashier': 'Cashier' };
     const staff = rows.map((item: any) => {
       const staffEmail = String(item.email || '');
-      return { id: item.id, name: staffEmail ? staffEmail.split('@')[0] : 'Staff member', email: staffEmail, role: item.staff_role, status: item.status, lastActive: item.last_active_at ? new Date(item.last_active_at).toLocaleDateString() : 'Never' };
+      const name = String(item.full_name || (staffEmail ? staffEmail.split('@')[0] : '') || 'Staff member');
+      return { id: item.id, name, email: staffEmail, role: roleLabelMap[item.role] || item.role || 'Staff', status: item.status || 'Invited', lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : 'Never' };
     });
     return Response.json({ staff });
   } catch (error) {
