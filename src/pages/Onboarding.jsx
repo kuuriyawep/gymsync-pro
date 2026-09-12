@@ -51,22 +51,21 @@ const memberSteps = [
   { id: "join", kind: "cta" },
 ];
 
+function readOnboardingDraft() {
+  try { return JSON.parse(sessionStorage.getItem("gymsync_onboarding_draft")) || {}; }
+  catch (_) { return {}; }
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { isAuthenticated, profile, loadBusinessProfile } = useAuth();
-  const [path, setPath] = useState(null);
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [initialDraft] = useState(readOnboardingDraft);
+  const [path, setPath] = useState(initialDraft.path || null);
+  const [step, setStep] = useState(Number(initialDraft.step) || 0);
+  const [answers, setAnswers] = useState(initialDraft.answers || {});
   const [savingGym, setSavingGym] = useState(false);
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("gymsync_onboarding_draft");
-      if (raw) { const draft = JSON.parse(raw); if (draft.path) { setPath(draft.path); setAnswers(draft.answers || {}); setStep(Number(draft.step) || 0); } }
-    } catch (_) {}
-  }, []);
 
   useEffect(() => {
     if (path) sessionStorage.setItem("gymsync_onboarding_draft", JSON.stringify({ path, answers, step }));

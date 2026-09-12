@@ -26,7 +26,7 @@ export default function Register() {
   };
   const handleVerify = async () => {
     setError(""); setLoading(true);
-    try { await base44.auth.verifyOtp({ email: email.trim().toLowerCase(), otpCode }); await base44.auth.loginViaEmailPassword(email.trim().toLowerCase(), password); window.location.href = returnTo; }
+    try { const result = await base44.auth.verifyOtp({ email: email.trim().toLowerCase(), otpCode }); base44.auth.setToken(result.access_token); window.location.href = returnTo; }
     catch (err) { setError(err.message || "Invalid verification code"); }
     finally { setLoading(false); }
   };
