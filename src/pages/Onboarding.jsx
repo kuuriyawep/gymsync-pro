@@ -10,8 +10,8 @@ import { DashboardPreview, PaymentsPreview, StaffPreview, ValueSummary } from "@
 import { StreakVisual, MembershipCardVisual, ConnectedVisual, MemberDashboardPreview } from "@/components/onboarding/MemberVisuals";
 import GymProfileSetup from "@/components/onboarding/GymProfileSetup";
 import { setGym } from "@/lib/gymStore";
-import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { useToast } from "@/components/ui/use-toast";
 import { UserCog, Users, ListChecks, Eye, CreditCard, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell, Building2 } from "lucide-react";
 
@@ -103,11 +103,10 @@ export default function Onboarding() {
     }
     setSavingGym(true);
     try {
-      const onboardingData = { role: answers.role, memberCount: answers.memberCount, management: answers.management, challenge: answers.challenge, outcome: answers.outcome || [], visibility: answers.visibility };
-      const { data, error } = await supabase.rpc("complete_owner_onboarding", { p_gym_name: gp.name, p_location: gp.location, p_logo_url: gp.logoUrl || null, p_onboarding_data: onboardingData });
-      if (error) throw error;
-      setGym({ name: gp.name, address: gp.location, logoUrl: gp.logoUrl });
-      setAnswers((a) => ({ ...a, gymId: data }));
+      const result = await invokeWithAuth("gymAccess", { operation: "createOwnerGym", gym: { name: gp.name, location: gp.location, logoUrl: gp.logoUrl || null } });
+      if (result.error) throw new Error(result.error);
+      setGym({ name: result.gym.name, address: result.gym.address, logoUrl: result.gym.logoUrl, phone: result.gym.phone, email: result.gym.email });
+      setAnswers((a) => ({ ...a, gymId: result.gymId }));
       setStep((s) => s + 1);
       toast({ title: "Gym workspace created", description: "Your real GymSync workspace is ready." });
     } catch (error) {

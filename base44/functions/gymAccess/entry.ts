@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -98,6 +98,29 @@ export default async function(req: Request): Promise<Response> {
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
       await insert('feedback_requests', { gym_id: memberRows[0].gym_id, member_id: memberRows[0].id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
       return Response.json({ member: await loadMemberData() });
+    }
+
+    if (operation === 'createOwnerGym') {
+      const input = body.gym || {};
+      const name = String(input.name || '').trim();
+      const location = String(input.location || '').trim();
+      if (!name) return Response.json({ error: 'Gym name is required' }, { status: 400 });
+      if (!supabaseUser) return Response.json({ error: 'Supabase authentication required' }, { status: 401 });
+      const profiles = await select('profiles', `id=eq.${encodeURIComponent(user.id)}&select=*&limit=1`);
+      const profile = profiles[0];
+      if (profile?.gym_id) {
+        const existing = (await select('gyms', `id=eq.${encodeURIComponent(profile.gym_id)}&select=*&limit=1`))[0];
+        if (existing) return Response.json({ gymId: existing.id, gym: { id: existing.id, name: existing.name || '', phone: existing.phone || '', email: existing.email || '', address: existing.address || '', logoUrl: existing.logo_url || null }, existed: true });
+      }
+      const created = (await insert('gyms?return=representation', {
+        name: name.slice(0, 120),
+        address: location ? location.slice(0, 240) : null,
+        logo_url: input.logoUrl ? String(input.logoUrl).slice(0, 1000) : null,
+        email: String(user.email || '').toLowerCase().slice(0, 160) || null
+      }))[0];
+      await update('profiles', `id=eq.${encodeURIComponent(user.id)}`, { gym_id: created.id, role: 'owner', full_name: profile?.full_name || String(user.email || '').split('@')[0] });
+      await insert('membership_plans?return=representation', { gym_id: created.id, name: 'Monthly', duration_months: 1, price: 0, status: 'Active' });
+      return Response.json({ gymId: created.id, gym: { id: created.id, name: created.name || '', phone: created.phone || '', email: created.email || '', address: created.address || '', logoUrl: created.logo_url || null }, existed: false });
     }
 
     let gym = await getGym();
