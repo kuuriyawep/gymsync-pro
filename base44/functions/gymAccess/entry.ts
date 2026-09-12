@@ -140,7 +140,7 @@ export default async function(req: Request): Promise<Response> {
       const roleMap: Record<string, string> = { 'Manager': 'manager', 'Front Desk': 'front_desk', 'Cashier': 'cashier' };
       const dbRole = roleMap[role] || 'front_desk';
       // Insert staff record — full_name is NOT NULL, email/role/status use actual DB columns
-      await insert('staff', { gym_id: gym.id, full_name: email.split('@')[0], email, role: dbRole, status: 'Invited' });
+      await insert('staff', { gym_id: gym.id, full_name: email.split('@')[0], email, role: dbRole, status: 'invited' });
     }
     if (operation === 'revokeStaff') {
       await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
@@ -151,7 +151,8 @@ export default async function(req: Request): Promise<Response> {
     const staff = rows.map((item: any) => {
       const staffEmail = String(item.email || '');
       const name = String(item.full_name || (staffEmail ? staffEmail.split('@')[0] : '') || 'Staff member');
-      return { id: item.id, name, email: staffEmail, role: roleLabelMap[item.role] || item.role || 'Staff', status: item.status || 'Invited', lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : 'Never' };
+      const statusMap: Record<string, string> = { 'invited': 'Invited', 'active': 'Active', 'revoked': 'Revoked' };
+      return { id: item.id, name, email: staffEmail, role: roleLabelMap[item.role] || item.role || 'Staff', status: statusMap[item.status] || item.status || 'Invited', lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : 'Never' };
     });
     return Response.json({ staff });
   } catch (error) {
