@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
-import { useMembers, useGymAnalytics, loadMembers } from "@/lib/memberStore";
-import { gymData } from "@/lib/gymDataClient";
-import { useToast } from "@/components/ui/use-toast";
+import { memberPaymentHistory, memberActivity } from "@/lib/mockData";
+import { useMembers } from "@/lib/memberStore";
 import QuickMessageModal from "@/components/QuickMessageModal";
 import ProfileImage from "@/components/ProfileImage";
 import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
@@ -17,10 +16,7 @@ export default function MemberDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quickMsg, setQuickMsg] = useState(false);
-  const [renewing, setRenewing] = useState(false);
-  const { toast } = useToast();
   const allMembers = useMembers();
-  const analytics = useGymAnalytics();
   const member = allMembers.find((m) => String(m.id) === id);
   if (!member) return (
     <Layout>
@@ -38,10 +34,8 @@ export default function MemberDetails() {
   const daysRemaining = expiry && isValid(expiry) ? differenceInCalendarDays(expiry, new Date()) : null;
   const fmt = (d) => (d && isValid(d) ? format(d, "MMM d, yyyy") : "—");
 
-  const memberPaymentHistory = (analytics.payments || []).filter((p) => String(p.memberId) === String(member.id)).map((p) => ({ ...p, amount: Number(p.amount || 0), date: String(p.paidAt || "").slice(0, 10), status: "Paid", method: String(p.method || "").replace(/_/g, " "), reference: p.reference || "—" }));
-  const memberActivity = memberPaymentHistory.map((p) => ({ id: p.id, type: "Payment recorded", text: `$${p.amount} payment via ${p.method}`, time: p.date }));
-  const totalPaid = memberPaymentHistory.reduce((s, p) => s + p.amount, 0);
-  const lastPayment = memberPaymentHistory[0] || null;
+  const totalPaid = memberPaymentHistory.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
+  const lastPayment = memberPaymentHistory[0];
 
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
@@ -59,7 +53,7 @@ export default function MemberDetails() {
   ];
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
-    { icon: DollarSign, label: "Last Payment", value: lastPayment ? `$${lastPayment.amount}` : "—" },
+    { icon: DollarSign, label: "Last Payment", value: `$${lastPayment.amount}` },
     { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
     { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
@@ -85,9 +79,9 @@ export default function MemberDetails() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setQuickMsg(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Quick Message</button>
-              <button onClick={() => navigate(`/members?edit=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
-              <button disabled={renewing} onClick={async () => { setRenewing(true); try { await gymData("renewMember", { id: member.id, plan: member.plan, amount: member.fee, durationMonths: 1, paymentStatus: "Paid", paymentMethod: member.paymentMethod || "Cash" }); toast({ title: "Membership renewed", description: `${member.name} is active for another month.` }); await loadMembers(true); } catch (error) { toast({ title: "Renewal failed", description: error.message, variant: "destructive" }); } finally { setRenewing(false); } }} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5 disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${renewing ? "animate-spin" : ""}`} /> {renewing ? "Renewing…" : "Renew Membership"}</button>
-              <button onClick={() => navigate(`/payments?memberId=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew Membership</button>
+              <button className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-black/5">

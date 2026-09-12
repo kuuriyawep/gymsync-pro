@@ -1,14 +1,17 @@
 {
-  "name": "User",
-  "type": "object",
   "properties": {
-    "app_role": {
+    "role": {
       "type": "string",
+      "description": "The role of the user in the app",
       "enum": [
-        "owner",
-        "staff",
-        "member"
+        "admin",
+        "user"
       ]
     }
-  }
+  },
+  "required": [
+    "role"
+  ],
+  "name": "User",
+  "type": "object"
 }

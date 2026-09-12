@@ -9,7 +9,8 @@ import WelcomePath from "@/components/onboarding/WelcomePath";
 import { DashboardPreview, PaymentsPreview, StaffPreview, ValueSummary } from "@/components/onboarding/OwnerVisuals";
 import { StreakVisual, MembershipCardVisual, ConnectedVisual, MemberDashboardPreview } from "@/components/onboarding/MemberVisuals";
 import GymProfileSetup from "@/components/onboarding/GymProfileSetup";
-import { gymData } from "@/lib/gymDataClient";
+import { setGym } from "@/lib/gymStore";
+import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { UserCog, Users, ListChecks, Eye, CreditCard, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell, Building2 } from "lucide-react";
@@ -51,21 +52,22 @@ const memberSteps = [
   { id: "join", kind: "cta" },
 ];
 
-function readOnboardingDraft() {
-  try { return JSON.parse(sessionStorage.getItem("gymsync_onboarding_draft")) || {}; }
-  catch (_) { return {}; }
-}
-
 export default function Onboarding() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, profile, loadBusinessProfile } = useAuth();
-  const [initialDraft] = useState(readOnboardingDraft);
-  const [path, setPath] = useState(initialDraft.path || null);
-  const [step, setStep] = useState(Number(initialDraft.step) || 0);
-  const [answers, setAnswers] = useState(initialDraft.answers || {});
+  const { isAuthenticated, profile } = useAuth();
+  const [path, setPath] = useState(null);
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
   const [savingGym, setSavingGym] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("gymsync_onboarding_draft");
+      if (raw) { const draft = JSON.parse(raw); if (draft.path) { setPath(draft.path); setAnswers(draft.answers || {}); setStep(Number(draft.step) || 0); } }
+    } catch (_) {}
+  }, []);
 
   useEffect(() => {
     if (path) sessionStorage.setItem("gymsync_onboarding_draft", JSON.stringify({ path, answers, step }));
@@ -102,9 +104,10 @@ export default function Onboarding() {
     setSavingGym(true);
     try {
       const onboardingData = { role: answers.role, memberCount: answers.memberCount, management: answers.management, challenge: answers.challenge, outcome: answers.outcome || [], visibility: answers.visibility };
-      const result = await gymData("completeOnboarding", { role: "owner", gymName: gp.name, location: gp.location, logoUrl: gp.logoUrl || null, onboardingData });
-      await loadBusinessProfile();
-      setAnswers((a) => ({ ...a, gymId: result.gymId }));
+      const { data, error } = await supabase.rpc("complete_owner_onboarding", { p_gym_name: gp.name, p_location: gp.location, p_logo_url: gp.logoUrl || null, p_onboarding_data: onboardingData });
+      if (error) throw error;
+      setGym({ name: gp.name, location: gp.location, logoUrl: gp.logoUrl });
+      setAnswers((a) => ({ ...a, gymId: data }));
       setStep((s) => s + 1);
       toast({ title: "Gym workspace created", description: "Your real GymSync workspace is ready." });
     } catch (error) {

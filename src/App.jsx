@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import RoleRoute from '@/components/RoleRoute';
 import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
@@ -19,10 +18,7 @@ import MemberDetails from '@/pages/MemberDetails';
 import Trainers from '@/pages/Trainers';
 import Feedback from '@/pages/Feedback';
 import Support from '@/pages/Support';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
+import AuthGateway from '@/components/auth/AuthGateway';
 import JoinGym from '@/pages/JoinGym';
 import Onboarding from '@/pages/Onboarding';
 import WelcomeLobby from '@/pages/WelcomeLobby';
@@ -60,33 +56,27 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       {/* Add your page Route elements here */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/login" element={<AuthGateway />} />
+      <Route path="/register" element={<AuthGateway />} />
+      <Route path="/join-gym" element={<JoinGym />} />
       <Route path="/welcome" element={<WelcomeLobby />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/join-gym" element={<JoinGym />} />
-        <Route element={<RoleRoute allowedRole={["owner", "staff"]} redirectTo="/member" />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/members" element={<Members />} />
-          <Route path="/members/:id" element={<MemberDetails />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/membership" element={<Membership />} />
-          <Route path="/trainers" element={<Trainers />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route element={<RoleRoute allowedRole="owner" redirectTo="/" />}><Route path="/settings" element={<Settings />} /></Route>
-        </Route>
-        <Route element={<RoleRoute allowedRole="member" redirectTo="/" />}>
-          <Route path="/member" element={<MemberDashboard />} />
-          <Route path="/member/attendance" element={<MemberAttendance />} />
-          <Route path="/member/payments" element={<MemberPayments />} />
-          <Route path="/member/feedback" element={<MemberFeedback />} />
-          <Route path="/member/profile" element={<MemberProfile />} />
-        </Route>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/members" element={<Members />} />
+        <Route path="/members/:id" element={<MemberDetails />} />
+        <Route path="/payments" element={<Payments />} />
+        <Route path="/membership" element={<Membership />} />
+        <Route path="/trainers" element={<Trainers />} />
+        <Route path="/feedback" element={<Feedback />} />
+        <Route path="/support" element={<Support />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/member" element={<MemberDashboard />} />
+        <Route path="/member/attendance" element={<MemberAttendance />} />
+        <Route path="/member/payments" element={<MemberPayments />} />
+        <Route path="/member/feedback" element={<MemberFeedback />} />
+        <Route path="/member/profile" element={<MemberProfile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
