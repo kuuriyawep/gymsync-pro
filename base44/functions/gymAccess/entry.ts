@@ -11,12 +11,13 @@ export default async function(req: Request): Promise<Response> {
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
+    const anonKey = secrets.get('SUPABASE_ANON_KEY');
     const origin = new URL(restUrl).origin;
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
     let user: any = null;
     let supabaseUser = false;
     if (body.accessToken) {
-      const response = await fetch(`${origin}/auth/v1/user`, { headers: { apikey: serviceKey, Authorization: `Bearer ${body.accessToken}` } });
+      const response = await fetch(`${origin}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${body.accessToken}` } });
       if (response.ok) { user = await response.json(); supabaseUser = true; }
     } else {
       user = await base44.auth.me();
