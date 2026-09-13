@@ -13,7 +13,6 @@ import { useAuth } from "@/lib/AuthContext";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
-import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
 import ProfileImage from "@/components/ProfileImage";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
@@ -54,12 +53,10 @@ export default function Settings() {
   const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
   const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
-  const ownerProfile = useOwnerProfile();
   const [gym, setGymLocal] = useState(gymStore);
-  const [profile, setProfile] = useState(ownerProfile);
   const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ email: "", role: "Front Desk" });
   const [inviteSaving, setInviteSaving] = useState(false);
@@ -115,22 +112,21 @@ export default function Settings() {
 
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                    <PhotoPicker value={profile.photoUrl} onChange={(url) => setProfile({ ...profile, photoUrl: url })} onRemove={() => setProfile({ ...profile, photoUrl: null })} size="w-24 h-24" placeholder="AK" hint="JPG or PNG. Max 2MB." />
+                    <ProfileImage src={null} alt={user?.full_name || "Owner"} fallback={(user?.full_name || "O").slice(0, 2).toUpperCase()} className="w-24 h-24 text-2xl" />
                     <div className="space-y-4">
-                      <Field label="Full name"><input className={inputCls} value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></Field>
-                      <Field label="Email"><input className={inputCls} value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></Field>
-                      <Field label="Phone"><input className={inputCls} value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} /></Field>
+                      <Field label="Full name"><input className={inputCls} value={user?.full_name || ""} disabled /></Field>
+                      <Field label="Email"><input className={inputCls} value={user?.email || ""} disabled /></Field>
+                      <Field label="Phone"><input className={inputCls} value="" placeholder="Not available" disabled /></Field>
                       <Field label="Role"><input className={inputCls} defaultValue="Owner" disabled /></Field>
                     </div>
                     <div className="pt-4 border-t border-black/5">
                       <h3 className="font-semibold mb-3 text-sm">Change Password</h3>
                       <div className="space-y-4">
                         <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                        <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
+                        <Field label="New"><input type="password" className={inputCls} placeholder="•••••••••" /></Field>
+                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="•••••••••" /></Field>
                       </div>
                     </div>
-                    <div className="flex justify-end pt-2"><SaveButton onSave={() => { setOwnerProfile(profile); toast({ title: "Profile updated", description: "Your profile has been updated." }); }} /></div>
                   </div>
                 )}
 
