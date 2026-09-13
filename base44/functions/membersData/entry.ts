@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = body.operation;
-    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
+    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
@@ -29,6 +29,56 @@ export default async function(req: Request): Promise<Response> {
       const durations: Record<string, number> = { Monthly: 1, '3 Months': 3, '6 Months': 6, Custom: 1 };
       return (await insert('membership_plans', { gym_id: gym.id, name, duration_months: durations[name] || 1, price, is_active: true }))[0];
     };
+
+    if (operation === 'memberDetails') {
+      const memberIdRaw = String(body.memberId || '');
+      if (!memberIdRaw) return Response.json({ error: 'Member ID is required' }, { status: 400 });
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(memberIdRaw)) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const memberId = encodeURIComponent(memberIdRaw);
+      // Authorization: verify the member belongs to the authenticated user's gym.
+      // Never trust a client-supplied gym_id — ownership comes from the authed user's gym.
+      const owned = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&limit=1`);
+      if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const [payments, attendance, memberships, plans] = await Promise.all([
+        select('payments', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`),
+        select('attendance', `member_id=eq.${memberId}&select=*&order=check_in_at.desc`),
+        select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
+        select('membership_plans', `gym_id=eq.${gymFilter}&select=*`)
+      ]);
+      const membership = memberships[0] || null;
+      const plan = plans.find((p: any) => p.id === membership?.plan_id) || null;
+      const paymentHistory = payments.map((p: any) => ({
+        id: p.id,
+        amount: Number(p.amount || 0),
+        date: p.paid_at ? String(p.paid_at).slice(0, 10) : (p.created_at ? String(p.created_at).slice(0, 10) : ''),
+        method: String(p.method || '').replace(/_/g, ' '),
+        status: 'Paid',
+        reference: p.reference || ''
+      }));
+      const activities = [
+        ...attendance.map((a: any) => ({
+          id: `attendance-${a.id}`, type: 'Check-in', text: 'Checked in at the gym',
+          time: a.check_in_at ? new Date(a.check_in_at).toLocaleDateString() : '', _ts: a.check_in_at || ''
+        })),
+        ...payments.map((p: any) => ({
+          id: `payment-${p.id}`, type: 'Payment',
+          text: `Payment recorded · $${Number(p.amount || 0)} · ${String(p.method || '').replace(/_/g, ' ')}`,
+          time: p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '', _ts: p.paid_at || ''
+        }))
+      ].filter((a: any) => a._ts).sort((a: any, b: any) => new Date(b._ts).getTime() - new Date(a._ts).getTime()).map(({ _ts, ...rest }: any) => rest);
+      return Response.json({
+        payments: paymentHistory,
+        activities,
+        membership: membership ? {
+          plan: plan?.name || 'No plan',
+          startDate: membership.start_date || '',
+          endDate: membership.end_date || '',
+          amountDue: Number(membership.amount_due || 0),
+          amountPaid: Number(membership.amount_paid || 0),
+          status: membership.status || ''
+        } : null
+      });
+    }
 
     if (operation === 'create') {
       const input = body.member || {};

@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
-import { memberPaymentHistory, memberActivity } from "@/lib/mockData";
 import { useMembers } from "@/lib/memberStore";
+import { useMemberDetails } from "@/hooks/useMemberDetails";
 import QuickMessageModal from "@/components/QuickMessageModal";
 import ProfileImage from "@/components/ProfileImage";
 import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
@@ -18,6 +18,7 @@ export default function MemberDetails() {
   const [quickMsg, setQuickMsg] = useState(false);
   const allMembers = useMembers();
   const member = allMembers.find((m) => String(m.id) === id);
+  const { details, loading, error } = useMemberDetails(id);
   if (!member) return (
     <Layout>
       <div className="space-y-3">
@@ -34,8 +35,10 @@ export default function MemberDetails() {
   const daysRemaining = expiry && isValid(expiry) ? differenceInCalendarDays(expiry, new Date()) : null;
   const fmt = (d) => (d && isValid(d) ? format(d, "MMM d, yyyy") : "—");
 
-  const totalPaid = memberPaymentHistory.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-  const lastPayment = memberPaymentHistory[0];
+  const payments = details?.payments || [];
+  const activities = details?.activities || [];
+  const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
+  const lastPayment = payments[0] || null;
 
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
@@ -53,7 +56,7 @@ export default function MemberDetails() {
   ];
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
-    { icon: DollarSign, label: "Last Payment", value: `$${lastPayment.amount}` },
+    { icon: DollarSign, label: "Last Payment", value: lastPayment ? `$${lastPayment.amount}` : "—" },
     { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
     { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
@@ -128,6 +131,13 @@ export default function MemberDetails() {
         {/* Payment history */}
         <div className="bg-white border border-black/10 rounded-xl p-5">
           <h3 className="font-semibold mb-4">Payment History</h3>
+          {loading ? (
+            <div className="py-8 text-center text-sm text-black/40">Loading payment history…</div>
+          ) : error ? (
+            <div className="py-8 text-center text-sm text-black/50">{error}</div>
+          ) : payments.length === 0 ? (
+            <div className="py-8 text-center text-sm text-black/40">No payments recorded yet.</div>
+          ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-black/10 text-left text-xs text-black/40">
@@ -135,10 +145,10 @@ export default function MemberDetails() {
                 <th className="py-2 pr-3 font-medium">Method</th><th className="py-2 pr-3 font-medium">Status</th><th className="py-2 font-medium">Reference</th>
               </tr></thead>
               <tbody>
-                {memberPaymentHistory.map((p) => (
+                {payments.map((p) => (
                   <tr key={p.id} className="border-b border-black/5 last:border-0">
                     <td className="py-2.5 pr-3 font-medium tabular-nums">${p.amount}</td>
-                    <td className="py-2.5 pr-3 text-black/70">{format(parseISO(p.date), "MMM d, yyyy")}</td>
+                    <td className="py-2.5 pr-3 text-black/70">{fmt(parseISO(p.date))}</td>
                     <td className="py-2.5 pr-3 text-black/70">{p.method}</td>
                     <td className="py-2.5 pr-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
                     <td className="py-2.5 text-black/50 tabular-nums">{p.reference}</td>
@@ -147,6 +157,7 @@ export default function MemberDetails() {
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Internal note */}
@@ -158,12 +169,17 @@ export default function MemberDetails() {
         {/* Activity */}
         <div className="bg-white border border-black/10 rounded-xl p-5">
           <h3 className="font-semibold mb-4">Recent Activity</h3>
+          {loading ? (
+            <div className="py-8 text-center text-sm text-black/40">Loading activity…</div>
+          ) : activities.length === 0 ? (
+            <div className="py-8 text-center text-sm text-black/40">No recent activity.</div>
+          ) : (
           <div className="space-y-0">
-            {memberActivity.map((a, i) => (
+            {activities.map((a, i) => (
               <div key={a.id} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center shrink-0"><CreditCard className="w-4 h-4" /></div>
-                  {i < memberActivity.length - 1 && <div className="w-px flex-1 bg-black/10 my-1" />}
+                  {i < activities.length - 1 && <div className="w-px flex-1 bg-black/10 my-1" />}
                 </div>
                 <div className="pb-5">
                   <p className="text-sm font-medium">{a.type}</p>
@@ -173,6 +189,7 @@ export default function MemberDetails() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
       <QuickMessageModal open={quickMsg} onClose={() => setQuickMsg(false)} member={member} />
