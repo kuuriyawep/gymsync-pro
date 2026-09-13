@@ -7,9 +7,9 @@ const DefaultFallback = () => (
   </div>
 );
 
-function getRedirectPath(role) {
-  if (role === 'member') return '/member';
-  if (role === 'owner' || role === 'staff') return '/';
+function getRedirectPath(roles) {
+  if (roles.includes('owner') || roles.includes('staff')) return '/';
+  if (roles.includes('member')) return '/member';
   return '/onboarding';
 }
 
@@ -18,10 +18,14 @@ function getRedirectPath(role) {
  * role is in `allowedRoles`. While the role is still being resolved (or retried
  * after an error), shows a loading/error state — never the protected content.
  *
+ * Supports users with multiple roles (e.g. owner + member): access is granted
+ * if ANY of the user's roles match `allowedRoles`.
+ *
  * Must be nested inside <ProtectedRoute> so that authentication is checked first.
  */
 export default function RoleRoute({ allowedRoles, fallback = <DefaultFallback /> }) {
-  const { role, isLoadingRole, roleError, reloadRole } = useAuth();
+  const { roles, isLoadingRole, roleError, reloadRole } = useAuth();
+  const userRoles = roles || [];
 
   if (isLoadingRole) return fallback;
 
@@ -36,8 +40,9 @@ export default function RoleRoute({ allowedRoles, fallback = <DefaultFallback />
     );
   }
 
-  if (!allowedRoles.includes(role)) {
-    return <Navigate to={getRedirectPath(role)} replace />;
+  const hasAccess = allowedRoles.some((r) => userRoles.includes(r));
+  if (!hasAccess) {
+    return <Navigate to={getRedirectPath(userRoles)} replace />;
   }
 
   return <Outlet />;

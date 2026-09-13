@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [role, setRole] = useState(null);
+  const [roles, setRoles] = useState([]);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
   const [roleError, setRoleError] = useState(null);
 
@@ -23,9 +24,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await invokeWithAuth("gymAccess", { operation: "resolveRole" });
       setRole(response.data?.role ?? null);
+      setRoles(response.data?.roles ?? (response.data?.role ? [response.data.role] : []));
     } catch (error) {
       setRoleError(error?.response?.data?.error || error?.message || "Role resolution failed");
       setRole(null);
+      setRoles([]);
     } finally {
       setIsLoadingRole(false);
     }
@@ -40,6 +43,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
         setRole(null);
+        setRoles([]);
         setRoleError(null);
       } else {
         const currentUser = await base44.auth.me();
@@ -75,7 +79,7 @@ export const AuthProvider = ({ children }) => {
   const profile = user ? { id: user.id, role, gym_id: null } : null;
 
   return (
-    <AuthContext.Provider value={{ user, profile, role, isAuthenticated, isLoadingAuth, isLoadingRole, roleError, isLoadingPublicSettings: false, authError, appPublicSettings: null, authChecked, logout, navigateToLogin, checkUserAuth, checkAppState: checkUserAuth, reloadRole: resolveRole }}>
+    <AuthContext.Provider value={{ user, profile, role, roles, isAuthenticated, isLoadingAuth, isLoadingRole, roleError, isLoadingPublicSettings: false, authError, appPublicSettings: null, authChecked, logout, navigateToLogin, checkUserAuth, checkAppState: checkUserAuth, reloadRole: resolveRole }}>
       {children}
     </AuthContext.Provider>
   );

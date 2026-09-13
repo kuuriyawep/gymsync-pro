@@ -64,10 +64,11 @@ export default async function(req: Request): Promise<Response> {
         select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=id,role&limit=1`),
         select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`)
       ]);
-      if (gyms[0]) return Response.json({ role: 'owner' });
-      if (staffRows[0]) return Response.json({ role: 'staff', staffRole: staffRows[0].role });
-      if (memberRows[0]) return Response.json({ role: 'member' });
-      return Response.json({ role: null });
+      const roles: string[] = [];
+      if (gyms[0]) roles.push('owner');
+      if (staffRows[0]) roles.push('staff');
+      if (memberRows[0]) roles.push('member');
+      return Response.json({ roles, role: roles[0] || null });
     }
 
     if (operation === 'join') {
