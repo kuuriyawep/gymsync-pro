@@ -177,13 +177,15 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'inviteStaff') {
       const email = String(body.email || '').trim().toLowerCase();
+      const fullName = String(body.full_name || '').trim();
       const role = String(body.role || 'Front Desk');
+      if (!fullName) return Response.json({ error: 'Full name is required' }, { status: 400 });
       if (!email || !['Manager', 'Front Desk', 'Cashier'].includes(role)) return Response.json({ error: 'Valid email and role are required' }, { status: 400 });
       // Map UI role names to DB role values (lowercase with underscores)
       const roleMap: Record<string, string> = { 'Manager': 'manager', 'Front Desk': 'front_desk', 'Cashier': 'cashier' };
       const dbRole = roleMap[role] || 'front_desk';
-      // Insert staff record — full_name is NOT NULL, email/role/status use actual DB columns
-      await insert('staff', { gym_id: gym.id, full_name: email.split('@')[0], email, role: dbRole, status: 'invited' });
+      // Insert staff record — full_name comes from owner input, NOT derived from email
+      await insert('staff', { gym_id: gym.id, full_name: fullName, email, role: dbRole, status: 'invited' });
     }
     if (operation === 'revokeStaff') {
       await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });

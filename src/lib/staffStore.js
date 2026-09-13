@@ -9,7 +9,7 @@ export function useStaffAccess() {
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => { run("listStaff").then(setStaff).finally(() => setLoading(false)); }, []);
-  const invite = async (email, role) => { try { setStaff(await run("inviteStaff", { email, role })); } catch (error) { throw new Error(errorMessage(error)); } };
+  const invite = async (fullName, email, role) => { try { setStaff(await run("inviteStaff", { full_name: fullName, email, role })); } catch (error) { throw new Error(errorMessage(error)); } };
   const revoke = async (id) => { try { setStaff(await run("revokeStaff", { id })); } catch (error) { throw new Error(errorMessage(error)); } };
   return { staff, loading, invite, revoke };
 }

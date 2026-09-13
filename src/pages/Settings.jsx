@@ -58,7 +58,7 @@ export default function Settings() {
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
   const { user, logout } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [invite, setInvite] = useState({ email: "", role: "Front Desk" });
+  const [invite, setInvite] = useState({ fullName: "", email: "", role: "Front Desk" });
   const [inviteSaving, setInviteSaving] = useState(false);
   const [revoke, setRevoke] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -74,9 +74,10 @@ export default function Settings() {
   }, [gymStore]);
 
   const handleInviteStaff = async () => {
-    if (!invite.email.trim()) return;
+    if (!invite.fullName.trim()) { toast({ title: "Invite failed", description: "Full name is required." }); return; }
+    if (!invite.email.trim()) { toast({ title: "Invite failed", description: "Email is required." }); return; }
     setInviteSaving(true);
-    try { await inviteStaff(invite.email.trim(), invite.role); setInviteOpen(false); setInvite({ email: "", role: "Front Desk" }); toast({ title: "Invite sent", description: `${invite.email} was invited as ${invite.role}.` }); }
+    try { await inviteStaff(invite.fullName.trim(), invite.email.trim(), invite.role); setInviteOpen(false); setInvite({ fullName: "", email: "", role: "Front Desk" }); toast({ title: "Invite sent", description: `${invite.fullName} was invited as ${invite.role}.` }); }
     catch (error) { toast({ title: "Invite failed", description: error.message }); }
     finally { setInviteSaving(false); }
   };
