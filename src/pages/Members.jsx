@@ -34,7 +34,7 @@ const statusBadge = (s) => {
 const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-const emptyForm = { name: "", phone: "", email: "", plan: "Monthly", startDate: "", expiryDate: "", paymentStatus: "Paid", amount: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };
+const emptyForm = { name: "", phone: "", email: "", gender: "", plan: "Monthly", startDate: "", expiryDate: "", amount: "", amountPaid: "", balanceOverride: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };
 
 export default function Members() {
   const navigate = useNavigate();
@@ -85,9 +85,9 @@ export default function Members() {
   const openEdit = (m) => {
     setEditingId(m.id);
     setForm({
-      name: m.name, phone: m.phone, email: m.email || "", plan: m.plan,
+      name: m.name, phone: m.phone, email: m.email || "", gender: m.gender || "", plan: m.plan,
       startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate,
-      paymentStatus: m.paymentStatus, amount: String(m.fee || ""), paymentMethod: m.paymentMethod || "Cash", status: m.status,
+      amount: String(m.fee || ""), amountPaid: String(m.amountPaid || ""), balanceOverride: m.balanceOverride !== undefined && m.balanceOverride !== null ? String(m.balanceOverride) : "", paymentMethod: m.paymentMethod || "Cash", status: m.status,
       note: m.note || "", preferredTime: m.preferredTime || "Flexible", photoUrl: m.photoUrl || null,
     });
     setErrors({});
@@ -97,6 +97,7 @@ export default function Members() {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.phone.trim()) e.phone = "Phone is required";
+    if (!form.gender) e.gender = "Gender is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -309,6 +310,13 @@ export default function Members() {
                 {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}</div>
               <div><label className={labelCls}>Email (optional)</label>
                 <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
+              <div><label className={labelCls}>Gender</label>
+                <select className={`${inputCls} ${errors.gender ? "border-black bg-black/5" : ""}`} value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <option value="">Select gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+                {errors.gender && <p className="text-xs text-black font-medium mt-1">{errors.gender}</p>}</div>
               <div><label className={labelCls}>Profile Photo</label>
                 <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-20 h-20" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
               </div>
@@ -339,31 +347,26 @@ export default function Members() {
               <textarea rows={3} className={inputCls} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Prefers evening workouts. Payment usually made on the 5th." /></div>
           </div>
 
-          {!editingId ? (
-            <div>
-              <p className={sectionCls}>Payment</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div><label className={labelCls}>Payment Status</label>
-                  <select className={inputCls} value={form.paymentStatus} onChange={(e) => setForm({ ...form, paymentStatus: e.target.value })}>
-                    {payOptions.map((o) => <option key={o}>{o}</option>)}
-                  </select></div>
-                <div><label className={labelCls}>Amount ($)</label>
-                  <input type="number" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
-                <div><label className={labelCls}>Payment Method</label>
-                  <select className={inputCls} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
-                    {methodOptions.map((o) => <option key={o}>{o}</option>)}
-                  </select></div>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p className={sectionCls}>Status</p>
+          <div>
+            <p className={sectionCls}>Payment</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div><label className={labelCls}>Plan Amount ($)</label>
+                <input type="number" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
+              <div><label className={labelCls}>Amount Paid ($)</label>
+                <input type="number" className={inputCls} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" /></div>
+              <div><label className={labelCls}>Outstanding Balance ($)</label>
+                <input type="number" className={inputCls} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (Number(form.amount) || 0) - (Number(form.amountPaid) || 0)))} /></div>
+              <div><label className={labelCls}>Payment Method</label>
+                <select className={inputCls} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
+                  {methodOptions.map((o) => <option key={o}>{o}</option>)}
+                </select></div>
               <div><label className={labelCls}>Member Status</label>
                 <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   {statusOptions.map((o) => <option key={o}>{o}</option>)}
                 </select></div>
             </div>
-          )}
+            <p className="text-xs text-black/40 mt-2">Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override.</p>
+          </div>
         </div>
       </Modal>
 

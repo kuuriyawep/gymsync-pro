@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare, User, AlertCircle } from "lucide-react";
 import { useMembers } from "@/lib/memberStore";
 import { useMemberDetails } from "@/hooks/useMemberDetails";
 import QuickMessageModal from "@/components/QuickMessageModal";
@@ -43,6 +43,7 @@ export default function MemberDetails() {
   const info = [
     { icon: Phone, label: "Phone", value: member.phone },
     { icon: Mail, label: "Email", value: member.email || "—" },
+    { icon: User, label: "Gender", value: member.gender || "—" },
     { icon: CalendarDays, label: "Registration Date", value: fmt(registered) },
     { icon: UserCheck, label: "Status", value: member.status, badge: true },
   ];
@@ -54,10 +55,12 @@ export default function MemberDetails() {
     { label: "Days Remaining", value: daysRemaining != null ? `${daysRemaining} days` : "—" },
     { label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
+  const outstandingBalance = details?.balance ?? Math.max(0, (member.fee || 0) - (member.amountPaid || 0));
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
     { icon: DollarSign, label: "Last Payment", value: lastPayment ? `$${lastPayment.amount}` : "—" },
     { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
+    { icon: AlertCircle, label: "Outstanding Balance", value: `$${Number(outstandingBalance).toLocaleString()}`, danger: outstandingBalance > 0 },
     { icon: CreditCard, label: "Payment Status", value: member.paymentStatus, badge: true },
   ];
 
@@ -118,9 +121,9 @@ export default function MemberDetails() {
             <h3 className="font-semibold mb-4">Payment Summary</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {paySummary.map((c) => (
-                <div key={c.label} className="border border-black/10 rounded-xl p-4">
-                  <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center mb-2"><c.icon className="w-4 h-4" /></div>
-                  {c.badge ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(c.value)}`}>{c.value}</span> : <p className="text-lg font-bold">{c.value}</p>}
+                <div key={c.label} className={`border rounded-xl p-4 ${c.danger ? "border-orange-200 bg-orange-50" : "border-black/10"}`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${c.danger ? "bg-orange-100" : "bg-black/5"}`}><c.icon className={`w-4 h-4 ${c.danger ? "text-orange-600" : ""}`} /></div>
+                  {c.badge ? <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(c.value)}`}>{c.value}</span> : <p className={`text-lg font-bold ${c.danger ? "text-orange-600" : ""}`}>{c.value}</p>}
                   <p className="text-xs text-black/50 mt-0.5">{c.label}</p>
                 </div>
               ))}

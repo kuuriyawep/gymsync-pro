@@ -39,6 +39,8 @@ export default async function(req: Request): Promise<Response> {
       // Never trust a client-supplied gym_id — ownership comes from the authed user's gym.
       const owned = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&limit=1`);
       if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
+      let memberMetadata: any = {};
+      try { memberMetadata = JSON.parse(owned[0].notes || '{}'); } catch { memberMetadata = {}; }
       const [payments, attendance, memberships, plans] = await Promise.all([
         select('payments', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`),
         select('attendance', `member_id=eq.${memberId}&select=*&order=check_in_at.desc`),
@@ -66,15 +68,20 @@ export default async function(req: Request): Promise<Response> {
           time: p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '', _ts: p.paid_at || ''
         }))
       ].filter((a: any) => a._ts).sort((a: any, b: any) => new Date(b._ts).getTime() - new Date(a._ts).getTime()).map(({ _ts, ...rest }: any) => rest);
+      const mAmountDue = Number(membership?.amount_due || 0);
+      const mAmountPaid = Number(membership?.amount_paid || 0);
+      const mBalance = memberMetadata.balance_override !== undefined && memberMetadata.balance_override >= 0 ? memberMetadata.balance_override : Math.max(0, mAmountDue - mAmountPaid);
       return Response.json({
         payments: paymentHistory,
         activities,
+        gender: memberMetadata.gender || '',
+        balance: mBalance,
         membership: membership ? {
           plan: plan?.name || 'No plan',
           startDate: membership.start_date || '',
           endDate: membership.end_date || '',
-          amountDue: Number(membership.amount_due || 0),
-          amountPaid: Number(membership.amount_paid || 0),
+          amountDue: mAmountDue,
+          amountPaid: mAmountPaid,
           status: membership.status || ''
         } : null
       });
@@ -83,16 +90,20 @@ export default async function(req: Request): Promise<Response> {
     if (operation === 'create') {
       const input = body.member || {};
       if (!input.name?.trim() || !input.phone?.trim()) return Response.json({ error: 'Name and phone are required' }, { status: 400 });
+      if (!input.gender || !['Male', 'Female'].includes(input.gender)) return Response.json({ error: 'Gender is required' }, { status: 400 });
       const rows = await select('members', `gym_id=eq.${gymFilter}&select=notes`);
       const numbers = rows.map((row: { notes: string }) => { try { return Number(JSON.parse(row.notes || '{}').memberId?.split('-')[1]) || 1000; } catch { return 1000; } });
       const next = Math.max(1000, ...numbers) + 1;
       const amount = Number(input.amount) || 0;
+      const amountPaid = Number(input.amountPaid) || 0;
+      const balanceOverride = input.balanceOverride !== undefined && input.balanceOverride !== '' ? Number(input.balanceOverride) : null;
       const plan = await ensurePlan(input.plan || 'Monthly', amount);
-      const metadata = JSON.stringify({ memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active' });
+      const metadataFields: any = { memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender };
+      if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
+      const metadata = JSON.stringify(metadataFields);
       const member = (await insert('members', { gym_id: gym.id, full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')), joined_at: `${input.startDate}T00:00:00Z` }))[0];
-      const paid = input.paymentStatus === 'Paid' ? amount : 0;
-      const membership = (await insert('memberships', { member_id: member.id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amount, amount_paid: paid, status: input.status === 'Expired' ? 'expired' : 'active' }))[0];
-      if (paid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: paid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: `${input.startDate}T00:00:00Z` });
+      const membership = (await insert('memberships', { member_id: member.id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amount, amount_paid: amountPaid, status: input.status === 'Expired' ? 'expired' : 'active' }))[0];
+      if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: `${input.startDate}T00:00:00Z` });
     }
 
     if (operation === 'update') {
@@ -102,10 +113,14 @@ export default async function(req: Request): Promise<Response> {
       if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
       let existingMetadata: any = {};
       try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
-      const metadata = JSON.stringify({ memberId: existingMetadata.memberId, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status });
+      const amountPaid = Number(input.amountPaid) || 0;
+      const balanceOverride = input.balanceOverride !== undefined && input.balanceOverride !== '' ? Number(input.balanceOverride) : null;
+      const metadataFields: any = { memberId: existingMetadata.memberId, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status, gender: input.gender || existingMetadata.gender || '' };
+      if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
+      const metadata = JSON.stringify(metadataFields);
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status)) });
       const plan = await ensurePlan(input.plan || 'Monthly', Number(input.amount) || 0);
-      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: Number(input.amount) || 0, status: input.status === 'Expired' ? 'expired' : 'active' });
+      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: Number(input.amount) || 0, amount_paid: amountPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
     }
 
     if (operation === 'delete') {
@@ -194,7 +209,8 @@ export default async function(req: Request): Promise<Response> {
       const status = metadata.status || titleCase(member.status || 'active');
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
-      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', plan: plan?.name || 'Monthly', fee: amountDue, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, createdAt: member.created_at, updatedAt: member.updated_at };
+      const balance = metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid);
+      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', gender: metadata.gender || '', plan: plan?.name || 'Monthly', fee: amountDue, amountPaid, balance, balanceOverride: metadata.balance_override !== undefined ? metadata.balance_override : null, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, createdAt: member.created_at, updatedAt: member.updated_at };
     });
     const names = new Map(members.map((member: any) => [member.id, member.full_name]));
     const memberActivities = members.map((member: any) => ({ id: `member-${member.id}`, type: 'member', text: `${member.full_name} was added as a member`, occurredAt: member.created_at }));

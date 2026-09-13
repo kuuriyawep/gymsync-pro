@@ -8,12 +8,9 @@ import { base44 } from "@/api/base44Client";
 // capture missed it), function invocations fail with "Could not validate
 // credentials" because the axios client sends a stale or missing token.
 // Re-apply the latest token from storage before each call to prevent this.
-let lastAppliedToken = null;
-
 export async function invokeWithAuth(functionName, payload = {}) {
   const currentToken = localStorage.getItem("base44_access_token");
-  if (currentToken && currentToken !== lastAppliedToken) {
-    lastAppliedToken = currentToken;
+  if (currentToken) {
     base44.setToken(currentToken);
   }
   return base44.functions.invoke(functionName, payload);
