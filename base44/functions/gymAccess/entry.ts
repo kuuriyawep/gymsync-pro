@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -57,6 +57,18 @@ export default async function(req: Request): Promise<Response> {
         feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title, body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null }))
       };
     };
+
+    if (operation === 'resolveRole') {
+      const [gyms, staffRows, memberRows] = await Promise.all([
+        select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`),
+        select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=id,role&limit=1`),
+        select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`)
+      ]);
+      if (gyms[0]) return Response.json({ role: 'owner' });
+      if (staffRows[0]) return Response.json({ role: 'staff', staffRole: staffRows[0].role });
+      if (memberRows[0]) return Response.json({ role: 'member' });
+      return Response.json({ role: null });
+    }
 
     if (operation === 'join') {
       const phone = String(body.phone || '').trim();

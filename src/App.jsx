@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RoleRoute from '@/components/RoleRoute';
 import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
@@ -76,21 +77,30 @@ const AuthenticatedApp = () => {
       <Route path="/welcome" element={<WelcomeLobby />} />
       <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/members" element={<Members />} />
-        <Route path="/members/:id" element={<MemberDetails />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/membership" element={<Membership />} />
-        <Route path="/trainers" element={<Trainers />} />
-        <Route path="/feedback" element={<Feedback />} />
-        <Route path="/support" element={<Support />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/member" element={<MemberDashboard />} />
-        <Route path="/member/attendance" element={<MemberAttendance />} />
-        <Route path="/member/payments" element={<MemberPayments />} />
-        <Route path="/member/feedback" element={<MemberFeedback />} />
-        <Route path="/member/profile" element={<MemberProfile />} />
+        {/* Owner/Staff routes */}
+        <Route element={<RoleRoute allowedRoles={["owner", "staff"]} />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/members" element={<Members />} />
+          <Route path="/members/:id" element={<MemberDetails />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/membership" element={<Membership />} />
+          <Route path="/trainers" element={<Trainers />} />
+          <Route path="/feedback" element={<Feedback />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/reports" element={<Reports />} />
+        </Route>
+        {/* Owner-only routes */}
+        <Route element={<RoleRoute allowedRoles={["owner"]} />}>
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        {/* Member routes */}
+        <Route element={<RoleRoute allowedRoles={["member"]} />}>
+          <Route path="/member" element={<MemberDashboard />} />
+          <Route path="/member/attendance" element={<MemberAttendance />} />
+          <Route path="/member/payments" element={<MemberPayments />} />
+          <Route path="/member/feedback" element={<MemberFeedback />} />
+          <Route path="/member/profile" element={<MemberProfile />} />
+        </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

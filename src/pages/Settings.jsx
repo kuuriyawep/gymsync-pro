@@ -249,7 +249,7 @@ export default function Settings() {
 
       <ConfirmDialog
         open={deleteOpen}
-        onClose={() => setDeleteSaving(false) || setDeleteOpen(false)}
+        onClose={() => { setDeleteSaving(false); setDeleteOpen(false); }}
         onConfirm={async () => {
           setDeleteSaving(true);
           try {
