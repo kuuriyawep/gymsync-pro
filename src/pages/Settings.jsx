@@ -15,6 +15,7 @@ import StaffInviteModal from "@/components/settings/StaffInviteModal";
 import { useStaffAccess } from "@/lib/staffStore";
 import { useOwnerProfile, setOwnerProfile } from "@/lib/ownerProfileStore";
 import ProfileImage from "@/components/ProfileImage";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
@@ -64,6 +65,7 @@ export default function Settings() {
   const [inviteSaving, setInviteSaving] = useState(false);
   const [revoke, setRevoke] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -247,11 +249,24 @@ export default function Settings() {
 
       <ConfirmDialog
         open={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        onConfirm={() => { setDeleteOpen(false); toast({ title: "Account deletion requested", description: "This is a demo — no data was deleted." }); }}
+        onClose={() => setDeleteSaving(false) || setDeleteOpen(false)}
+        onConfirm={async () => {
+          setDeleteSaving(true);
+          try {
+            await invokeWithAuth("gymAccess", { operation: "deleteAccount" });
+            toast({ title: "Account deleted", description: "Your gym data has been permanently removed." });
+            setDeleteOpen(false);
+            await logout();
+            window.location.href = "/welcome";
+          } catch (error) {
+            toast({ title: "Deletion failed", description: error.message || "Could not delete account." });
+          } finally {
+            setDeleteSaving(false);
+          }
+        }}
         title="Delete your account?"
         message="This permanently deletes your account and all gym data. This action cannot be undone."
-        confirmLabel="Delete account"
+        confirmLabel={deleteSaving ? "Deleting…" : "Delete account"}
       />
     </Layout>
   );

@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -130,6 +130,29 @@ export default async function(req: Request): Promise<Response> {
       };
       gym = (await update('gyms', `id=eq.${encodeURIComponent(gym.id)}`, values))[0];
       return Response.json({ gym: gymProfile(gym) });
+    }
+
+    if (operation === 'deleteAccount') {
+      // Delete all gym-related data: staff, membership plans, members (and their
+      // related records), then the gym record itself.
+      const gymId = encodeURIComponent(gym.id);
+      // 1. Find all members for this gym so we can cascade their related data
+      const gymMembers = await select('members', `gym_id=eq.${gymId}&select=id`);
+      const memberIds = gymMembers.map((m: any) => encodeURIComponent(m.id)).join(',');
+      if (memberIds) {
+        const memberFilter = `member_id=in.(${memberIds})`;
+        await request(`memberships?${memberFilter}`, { method: 'DELETE' });
+        await request(`payments?${memberFilter}`, { method: 'DELETE' });
+        await request(`attendance?${memberFilter}`, { method: 'DELETE' });
+        await request(`notifications?${memberFilter}`, { method: 'DELETE' });
+        await request(`feedback_requests?${memberFilter}`, { method: 'DELETE' });
+      }
+      // 2. Delete staff, membership plans, members, and the gym itself
+      await request(`staff?gym_id=eq.${gymId}`, { method: 'DELETE' });
+      await request(`membership_plans?gym_id=eq.${gymId}`, { method: 'DELETE' });
+      await request(`members?gym_id=eq.${gymId}`, { method: 'DELETE' });
+      await request(`gyms?id=eq.${gymId}`, { method: 'DELETE' });
+      return Response.json({ success: true });
     }
 
     if (operation === 'inviteStaff') {

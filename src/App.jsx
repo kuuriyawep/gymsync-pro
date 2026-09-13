@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { Suspense, lazy } from 'react';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -10,27 +11,34 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { Navigate } from 'react-router-dom';
 import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
-import Settings from '@/pages/Settings';
-import Reports from '@/pages/Reports';
-import Payments from '@/pages/Payments';
-import Membership from '@/pages/Membership';
 import MemberDetails from '@/pages/MemberDetails';
-import Trainers from '@/pages/Trainers';
-import Feedback from '@/pages/Feedback';
-import Support from '@/pages/Support';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import JoinGym from '@/pages/JoinGym';
-import Onboarding from '@/pages/Onboarding';
 import WelcomeLobby from '@/pages/WelcomeLobby';
 import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberAttendance from '@/pages/member/MemberAttendance';
 import MemberPayments from '@/pages/member/MemberPayments';
 import MemberFeedback from '@/pages/member/MemberFeedback';
 import MemberProfile from '@/pages/member/MemberProfile';
+// Code-split secondary pages to reduce initial bundle size
+const Settings = lazy(() => import('@/pages/Settings'));
+const Reports = lazy(() => import('@/pages/Reports'));
+const Payments = lazy(() => import('@/pages/Payments'));
+const Membership = lazy(() => import('@/pages/Membership'));
+const Trainers = lazy(() => import('@/pages/Trainers'));
+const Feedback = lazy(() => import('@/pages/Feedback'));
+const Support = lazy(() => import('@/pages/Support'));
+const Onboarding = lazy(() => import('@/pages/Onboarding'));
 // Add page imports here
+
+const PageLoader = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-muted border-t-foreground rounded-full animate-spin"></div>
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -57,6 +65,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Add your page Route elements here */}
       <Route path="/login" element={<Login />} />
@@ -85,6 +94,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 
