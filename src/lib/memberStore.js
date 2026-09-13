@@ -5,6 +5,7 @@ const listeners = new Set();
 let members = [];
 let analytics = { payments: [], memberships: [], plans: [], recentActivities: [] };
 let loaded = false;
+let loadError = null;
 let loadingPromise = null;
 
 function emit() { listeners.forEach((listener) => listener()); }
@@ -12,14 +13,23 @@ function subscribe(listener) { listeners.add(listener); return () => listeners.d
 function getSnapshot() { return members; }
 function getAnalyticsSnapshot() { return analytics; }
 function getLoadedSnapshot() { return loaded; }
+function getLoadErrorSnapshot() { return loadError; }
 
 async function run(operation, payload = {}) {
-  const response = await invokeWithAuth("membersData", { operation, ...payload });
-  members = response.data.members;
-  analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
-  loaded = true;
-  emit();
-  return members;
+  try {
+    const response = await invokeWithAuth("membersData", { operation, ...payload });
+    members = response.data.members;
+    analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
+    loadError = null;
+    loaded = true;
+    emit();
+    return members;
+  } catch (e) {
+    loadError = e?.response?.data?.error || e?.message || "Failed to load gym data";
+    loaded = true;
+    emit();
+    throw e;
+  }
 }
 
 export function loadMembers(force = false) {
@@ -52,4 +62,8 @@ export function useGymAnalytics() {
 
 export function useMembersLoaded() {
   return useSyncExternalStore(subscribe, getLoadedSnapshot, getLoadedSnapshot);
+}
+
+export function useMembersError() {
+  return useSyncExternalStore(subscribe, getLoadErrorSnapshot, getLoadErrorSnapshot);
 }

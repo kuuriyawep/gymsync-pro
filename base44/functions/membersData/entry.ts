@@ -18,10 +18,7 @@ export default async function(req: Request): Promise<Response> {
 
     let gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
     let gym = gyms[0];
-    if (!gym) {
-      const created = await insert('gyms', { name: 'Olympic Gym', email: ownerEmail });
-      gym = created[0];
-    }
+    if (!gym) return Response.json({ error: 'No gym found for this account. Complete owner onboarding first.' }, { status: 404 });
     const gymFilter = encodeURIComponent(gym.id);
 
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');

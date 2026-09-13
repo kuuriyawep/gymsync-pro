@@ -103,9 +103,16 @@ export default async function(req: Request): Promise<Response> {
       const name = String(input.name || '').trim();
       const location = String(input.location || '').trim();
       if (!name) return Response.json({ error: 'Gym name is required' }, { status: 400 });
-      // Check if a gym already exists for this owner's email
+      // Check if a gym already exists for this owner's email (idempotent for existing owners)
       const existing = await getGym();
       if (existing) return Response.json({ gymId: existing.id, gym: { id: existing.id, name: existing.name || '', phone: existing.phone || '', email: existing.email || '', address: existing.address || '', logoUrl: existing.logo_url || null }, existed: true });
+      // Block users who already have a business association (staff or member) from
+      // creating a second owner gym. Only users with NO association may onboard.
+      const [staffRows, memberRows] = await Promise.all([
+        select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`),
+        select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`)
+      ]);
+      if (staffRows[0] || memberRows[0]) return Response.json({ error: 'You already have an account associated with a gym and cannot create a second one' }, { status: 403 });
       const created = (await insert('gyms?return=representation', {
         name: name.slice(0, 120),
         address: location ? location.slice(0, 240) : null,
