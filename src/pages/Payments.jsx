@@ -6,7 +6,8 @@ import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
 import { gymInfo } from "@/lib/mockData";
-import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment, updatePayment } from "@/lib/memberStore";
+import EditPaymentModal from "@/components/payments/EditPaymentModal";
 import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -51,6 +52,9 @@ export default function Payments() {
   const [recordOpen, setRecordOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
@@ -87,6 +91,19 @@ export default function Payments() {
   const openRecord = () => { setForm({ ...emptyForm, date: format(new Date(), "yyyy-MM-dd") }); setFormError(""); setRecordOpen(true); };
   const openDetails = (p) => { setViewing(p); setDetailsOpen(true); };
   const openReceipt = (p) => { setViewing(p); setReceiptOpen(true); setDetailsOpen(false); };
+  const openEdit = (p) => { setEditing(p); setEditOpen(true); };
+  const submitEdit = async (payload) => {
+    setEditSaving(true);
+    try {
+      await updatePayment(payload);
+      setEditOpen(false);
+      toast({ title: "Payment updated", description: `$${payload.amount} · ${editing.name}` });
+    } catch (error) {
+      toast({ title: "Update failed", description: error.message || "Unable to update payment." });
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
   const onMemberSelect = (name) => {
     const m = members.find((x) => x.name === name);
@@ -204,7 +221,7 @@ export default function Payments() {
                       <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
                       <td className="px-5 py-3"><div className="flex items-center justify-end gap-1">
                         <button onClick={() => openDetails(p)} className="p-1.5 rounded-lg hover:bg-black/5" title="View"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => openDetails(p)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
                       </div></td>
                     </tr>
                   ))}
@@ -293,6 +310,9 @@ export default function Payments() {
           </div>
         )}
       </Modal>
+
+      {/* Edit Payment */}
+      <EditPaymentModal open={editOpen} onClose={() => setEditOpen(false)} payment={editing} onSave={submitEdit} saving={editSaving} />
 
       {/* Receipt */}
       <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Payment Receipt"

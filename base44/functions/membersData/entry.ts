@@ -7,7 +7,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = body.operation;
-    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
+    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'updatePayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
@@ -143,6 +143,31 @@ export default async function(req: Request): Promise<Response> {
         const amountDue = Number(membership.amount_due || 0);
         const nextPaid = Math.min(amountDue, Number(membership.amount_paid || 0) + amount);
         await update('memberships', `id=eq.${encodeURIComponent(membership.id)}&gym_id=eq.${gymFilter}`, { amount_paid: nextPaid });
+      }
+    }
+
+    if (operation === 'updatePayment') {
+      const id = encodeURIComponent(String(body.id || ''));
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.id || ''))) return Response.json({ error: 'Payment not found' }, { status: 404 });
+      const amount = Number(body.amount);
+      if (!Number.isFinite(amount) || amount < 0) return Response.json({ error: 'A valid non-negative amount is required' }, { status: 400 });
+      const dateRaw = String(body.date || '');
+      if (!dateRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return Response.json({ error: 'A valid payment date is required' }, { status: 400 });
+      const rows = await select('payments', `id=eq.${id}&gym_id=eq.${gymFilter}&select=*&limit=1`);
+      if (!rows[0]) return Response.json({ error: 'Payment not found' }, { status: 404 });
+      const payment = rows[0];
+      await update('payments', `id=eq.${id}&gym_id=eq.${gymFilter}`, {
+        amount,
+        method: normalizeMethod(String(body.method || 'Cash')),
+        note: String(body.notes || '').slice(0, 500),
+        paid_at: `${dateRaw}T00:00:00Z`
+      });
+      // Recalculate the linked membership's amount_paid
+      if (payment.membership_id) {
+        const membershipId = encodeURIComponent(payment.membership_id);
+        const remaining = await select('payments', `membership_id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount`);
+        const totalPaid = remaining.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+        await update('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}`, { amount_paid: Math.min(Number((await select('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount_due&limit=1`))[0]?.amount_due || 0), totalPaid) });
       }
     }
 
