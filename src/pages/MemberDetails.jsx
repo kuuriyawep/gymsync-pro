@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare, User, AlertCircle } from "lucide-react";
+import { ArrowLeft, Pencil, RefreshCw, DollarSign, Phone, Mail, CalendarDays, CreditCard, UserCheck, Wallet, MessageSquare, User, AlertCircle, KeyRound } from "lucide-react";
 import { useMembers } from "@/lib/memberStore";
 import { useMemberDetails } from "@/hooks/useMemberDetails";
 import QuickMessageModal from "@/components/QuickMessageModal";
@@ -46,6 +46,7 @@ export default function MemberDetails() {
     { icon: User, label: "Gender", value: member.gender || "—" },
     { icon: CalendarDays, label: "Registration Date", value: fmt(registered) },
     { icon: UserCheck, label: "Status", value: member.status, badge: true },
+    { icon: KeyRound, label: "Join Code", value: member.joinToken || "—" },
   ];
   const membership = [
     { label: "Current Plan", value: member.plan },

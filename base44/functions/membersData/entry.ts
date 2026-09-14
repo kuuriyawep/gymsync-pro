@@ -98,7 +98,8 @@ export default async function(req: Request): Promise<Response> {
       const amountPaid = Number(input.amountPaid) || 0;
       const balanceOverride = input.balanceOverride !== undefined && input.balanceOverride !== '' ? Number(input.balanceOverride) : null;
       const plan = await ensurePlan(input.plan || 'Monthly', amount);
-      const metadataFields: any = { memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender };
+      const joinToken = Array.from(crypto.getRandomValues(new Uint8Array(4))).map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      const metadataFields: any = { memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender, joinToken };
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
       const member = (await insert('members', { gym_id: gym.id, full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')), joined_at: `${input.startDate}T00:00:00Z` }))[0];
@@ -115,7 +116,8 @@ export default async function(req: Request): Promise<Response> {
       try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
       const amountPaid = Number(input.amountPaid) || 0;
       const balanceOverride = input.balanceOverride !== undefined && input.balanceOverride !== '' ? Number(input.balanceOverride) : null;
-      const metadataFields: any = { memberId: existingMetadata.memberId, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status, gender: input.gender || existingMetadata.gender || '' };
+      const joinToken = existingMetadata.joinToken || Array.from(crypto.getRandomValues(new Uint8Array(4))).map((b: number) => b.toString(16).padStart(2, '0')).join('');
+      const metadataFields: any = { memberId: existingMetadata.memberId, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status, gender: input.gender || existingMetadata.gender || '', joinToken };
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status)) });
@@ -235,7 +237,7 @@ export default async function(req: Request): Promise<Response> {
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
       const balance = metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid);
-      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', gender: metadata.gender || '', plan: plan?.name || 'Monthly', fee: amountDue, amountPaid, balance, balanceOverride: metadata.balance_override !== undefined ? metadata.balance_override : null, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, createdAt: member.created_at, updatedAt: member.updated_at };
+      return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', gender: metadata.gender || '', plan: plan?.name || 'Monthly', fee: amountDue, amountPaid, balance, balanceOverride: metadata.balance_override !== undefined ? metadata.balance_override : null, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate: membership?.end_date || '', paymentStatus: amountDue > amountPaid ? (status === 'Expired' ? 'Overdue' : 'Pending') : 'Paid', paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, joinToken: metadata.joinToken || '', createdAt: member.created_at, updatedAt: member.updated_at };
     });
     const names = new Map(members.map((member: any) => [member.id, member.full_name]));
     const memberActivities = members.map((member: any) => ({ id: `member-${member.id}`, type: 'member', text: `${member.full_name} was added as a member`, occurredAt: member.created_at }));
@@ -250,6 +252,6 @@ export default async function(req: Request): Promise<Response> {
     };
     return Response.json({ members: result, analytics });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : 'Unable to load members' }, { status: 500 });
+    return Response.json({ error: 'Unable to load members' }, { status: 500 });
   }
 }

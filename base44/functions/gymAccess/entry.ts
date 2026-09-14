@@ -73,11 +73,17 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'join') {
       const phone = String(body.phone || '').trim();
-      const fullName = String(body.fullName || '').trim();
-      if (!phone || !fullName) return Response.json({ error: 'Phone and full name are required' }, { status: 400 });
-      const matches = await select('members', `phone=eq.${encodeURIComponent(phone)}&full_name=ilike.${encodeURIComponent(fullName)}&select=*&limit=2`);
-      if (matches.length !== 1) return Response.json({ error: 'Member details did not match exactly' }, { status: 404 });
+      const joinToken = String(body.joinToken || '').trim();
+      if (!phone || !joinToken) return Response.json({ error: 'Phone number and join code are required' }, { status: 400 });
+      // Look up member by phone (exact match — phone is a lookup key, not a secret).
+      const matches = await select('members', `phone=eq.${encodeURIComponent(phone)}&select=*&limit=2`);
+      if (matches.length !== 1) return Response.json({ error: 'Member details did not match' }, { status: 404 });
       const member = matches[0];
+      // Verify the owner-issued join token stored in member metadata — this is the
+      // secret that prevents unauthorized account linking. Phone+name alone is not enough.
+      let memberMetadata: any = {};
+      try { memberMetadata = JSON.parse(member.notes || '{}'); } catch { memberMetadata = {}; }
+      if (!memberMetadata.joinToken || memberMetadata.joinToken !== joinToken) return Response.json({ error: 'Invalid join code' }, { status: 403 });
       // Link the member to this Base44 user by email
       await update('members', `id=eq.${encodeURIComponent(member.id)}`, { email: ownerEmail });
       return Response.json({ success: true, member: await loadMemberData() });
@@ -201,6 +207,8 @@ export default async function(req: Request): Promise<Response> {
     });
     return Response.json({ staff });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : 'Request failed' }, { status: 500 });
+    // Do not forward raw database/Supabase error messages to the client — they can
+    // leak internal schema details. The generic message is sufficient for callers.
+    return Response.json({ error: 'Request failed' }, { status: 500 });
   }
 }

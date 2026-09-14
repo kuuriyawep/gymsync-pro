@@ -19,8 +19,8 @@ export async function loadMemberPortal(force = false) {
   pending = invoke("memberData").then((result) => { state = { data: result.member, loaded: true, loading: false, error: "" }; emit(); return result.member; }).catch((error) => { state = { data: null, loaded: true, loading: false, error: message(error) }; emit(); return null; }).finally(() => { pending = null; });
   return pending;
 }
-export async function joinGym(phone, fullName) {
-  const result = await invoke("join", { phone, fullName });
+export async function joinGym(phone, joinToken) {
+  const result = await invoke("join", { phone, joinToken });
   state = { data: result.member, loaded: true, loading: false, error: "" }; emit();
   return result.member;
 }
