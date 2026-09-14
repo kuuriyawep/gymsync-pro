@@ -6,8 +6,8 @@ import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
 import { useGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
-import { payments, trainers } from "@/lib/mockData";
-import { useMembers } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics } from "@/lib/memberStore";
+import { useTrainers } from "@/lib/trainerStore";
 import ProfileImage from "@/components/ProfileImage";
 
 const primaryNav = [
@@ -34,20 +34,23 @@ export default function Layout({ children }) {
   const [searchFocus, setSearchFocus] = useState(false);
   const gym = useGym();
   const members = useMembers();
+  const analytics = useGymAnalytics();
+  const { trainers } = useTrainers();
   const { logout } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
+  const realPayments = useMemo(() => (analytics.payments || []).map((p) => ({ id: p.id, paymentId: `PAY-${String(p.id).slice(0, 8).toUpperCase()}`, name: p.memberName, amount: Number(p.amount || 0) })), [analytics.payments]);
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return { members: [], payments: [], trainers: [] };
     return {
-      members: members.filter((m) => m.name.toLowerCase().includes(q) || m.memberId.toLowerCase().includes(q)).slice(0, 4).map((m) => ({ label: m.name, sub: m.memberId, photoUrl: m.photoUrl, to: `/members/${m.id}` })),
-      payments: payments.filter((p) => p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.name, sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
-      trainers: trainers.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name, sub: t.specialization, to: "/trainers" })),
+      members: members.filter((m) => m.name.toLowerCase().includes(q) || (m.memberId || "").toLowerCase().includes(q) || (m.phone || "").toLowerCase().includes(q) || (m.email || "").toLowerCase().includes(q)).slice(0, 4).map((m) => ({ label: m.name, sub: m.memberId, photoUrl: m.photoUrl, to: `/members/${m.id}` })),
+      payments: realPayments.filter((p) => p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q)).slice(0, 3).map((p) => ({ label: p.name, sub: `${p.paymentId} · $${p.amount}`, to: "/payments" })),
+      trainers: trainers.filter((t) => t.name.toLowerCase().includes(q) || (t.specialization || "").toLowerCase().includes(q)).slice(0, 3).map((t) => ({ label: t.name, sub: t.specialization, to: "/trainers" })),
     };
-  }, [search, members]);
+  }, [search, members, realPayments, trainers]);
   const totalResults = results.members.length + results.payments.length + results.trainers.length;
 
   const renderLink = (item, active, onClick) => (
