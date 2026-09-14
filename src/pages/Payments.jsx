@@ -5,8 +5,8 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
-import { gymInfo } from "@/lib/mockData";
 import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment, updatePayment } from "@/lib/memberStore";
+import { useGym } from "@/lib/gymStore";
 import EditPaymentModal from "@/components/payments/EditPaymentModal";
 import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
 
@@ -36,12 +36,13 @@ export default function Payments() {
   const members = useMembers();
   const analytics = useGymAnalytics();
   const loaded = useMembersLoaded();
+  const gym = useGym();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const payments = useMemo(() => (analytics.payments || []).map((payment) => {
     const member = members.find((item) => item.id === payment.memberId);
     const method = String(payment.method || "").replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-    return { id: payment.id, paymentId: `PAY-${String(payment.id).slice(0, 8).toUpperCase()}`, name: payment.memberName, plan: member?.plan || "Membership", amount: Number(payment.amount || 0), method, date: String(payment.paidAt).slice(0, 10), status: "Paid", reference: payment.reference || "—", notes: payment.note || "" };
+    return { id: payment.id, paymentId: `PAY-${String(payment.id).slice(0, 8).toUpperCase()}`, name: payment.memberName, plan: member?.plan || "Membership", amount: Number(payment.amount || 0), method, date: String(payment.paidAt).slice(0, 10), status: member?.paymentStatus || "Paid", reference: payment.reference || "—", notes: payment.note || "", memberPhone: member?.phone || "", memberEmail: member?.email || "" };
   }), [analytics.payments, members]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -60,12 +61,12 @@ export default function Payments() {
   const { toast } = useToast();
 
   const summary = useMemo(() => {
-    const total = payments.filter((p) => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-    const month = payments.filter((p) => isThisMonth(parseISO(p.date)) && p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-    const pending = payments.filter((p) => p.status === "Pending").length;
-    const overdue = payments.filter((p) => p.status === "Overdue").length;
+    const total = payments.reduce((s, p) => s + p.amount, 0);
+    const month = payments.filter((p) => isThisMonth(parseISO(p.date))).reduce((s, p) => s + p.amount, 0);
+    const pending = members.filter((m) => m.paymentStatus === "Pending").length;
+    const overdue = members.filter((m) => m.paymentStatus === "Overdue").length;
     return { total, month, pending, overdue };
-  }, [payments]);
+  }, [payments, members]);
 
   const filtered = useMemo(() => {
     let list = payments.filter((p) => {
@@ -323,14 +324,16 @@ export default function Payments() {
         {viewing && (
           <div className="border border-black/15 rounded-xl p-5">
             <div className="text-center pb-4 border-b border-dashed border-black/15">
-              <p className="text-lg font-bold">{gymInfo.name}</p>
-              <p className="text-xs text-black/50">{gymInfo.address}</p>
-              <p className="text-xs text-black/50">{gymInfo.phone} · {gymInfo.email}</p>
+              <p className="text-lg font-bold">{gym.name || "Gym"}</p>
+              <p className="text-xs text-black/50">{gym.address || "Not available"}</p>
+              <p className="text-xs text-black/50">{gym.phone || "Not available"} · {gym.email || "Not available"}</p>
             </div>
             <div className="py-4 border-b border-dashed border-black/15 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-black/50">Receipt No.</span><span className="font-medium tabular-nums">{viewing.paymentId}</span></div>
               <div className="flex justify-between"><span className="text-black/50">Date</span><span className="font-medium">{format(parseISO(viewing.date), "MMM d, yyyy")}</span></div>
               <div className="flex justify-between"><span className="text-black/50">Member</span><span className="font-medium">{viewing.name}</span></div>
+              {viewing.memberPhone && <div className="flex justify-between"><span className="text-black/50">Phone</span><span className="font-medium">{viewing.memberPhone}</span></div>}
+              {viewing.memberEmail && <div className="flex justify-between"><span className="text-black/50">Email</span><span className="font-medium">{viewing.memberEmail}</span></div>}
               <div className="flex justify-between"><span className="text-black/50">Plan</span><span className="font-medium">{viewing.plan}</span></div>
               <div className="flex justify-between"><span className="text-black/50">Method</span><span className="font-medium">{viewing.method}</span></div>
             </div>
