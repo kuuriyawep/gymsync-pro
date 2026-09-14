@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/EmptyState";
@@ -30,9 +31,10 @@ const payBadge = (s) => {
   return "bg-black/5 text-black/50 line-through";
 };
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-const emptyForm = { name: "", plan: "Monthly", amount: "", method: "Cash", date: format(new Date(), "yyyy-MM-dd"), status: "Paid", notes: "" };
+const emptyForm = { memberId: "", name: "", plan: "Monthly", amount: "", method: "Cash", date: format(new Date(), "yyyy-MM-dd"), status: "Paid", notes: "" };
 
 export default function Payments() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const members = useMembers();
   const analytics = useGymAnalytics();
   const loaded = useMembersLoaded();
@@ -90,6 +92,18 @@ export default function Payments() {
   }, [payments, query, statusFilter, methodFilter, dateFilter, sort]);
 
   const openRecord = () => { setForm({ ...emptyForm, date: format(new Date(), "yyyy-MM-dd") }); setFormError(""); setRecordOpen(true); };
+  const openRecordForMember = (member) => {
+    setForm({ ...emptyForm, memberId: member.id, name: member.name, plan: member.plan || "Monthly", amount: String(member.fee || ""), date: format(new Date(), "yyyy-MM-dd") });
+    setFormError("");
+    setRecordOpen(true);
+  };
+  useEffect(() => {
+    const memberId = searchParams.get("record");
+    if (!memberId || members.length === 0) return;
+    const member = members.find((item) => String(item.id) === memberId);
+    if (member) openRecordForMember(member);
+    setSearchParams({}, { replace: true });
+  }, [members, searchParams, setSearchParams]);
   const openDetails = (p) => { setViewing(p); setDetailsOpen(true); };
   const openReceipt = (p) => { setViewing(p); setReceiptOpen(true); setDetailsOpen(false); };
   const openEdit = (p) => { setEditing(p); setEditOpen(true); };
@@ -106,12 +120,12 @@ export default function Payments() {
     }
   };
 
-  const onMemberSelect = (name) => {
-    const m = members.find((x) => x.name === name);
-    setForm((f) => ({ ...f, name, plan: m?.plan || "Monthly", amount: m ? String(m.fee) : "" }));
+  const onMemberSelect = (memberId) => {
+    const member = members.find((item) => String(item.id) === memberId);
+    setForm((current) => ({ ...current, memberId, name: member?.name || "", plan: member?.plan || "Monthly", amount: member ? String(member.fee) : "" }));
   };
   const submit = async () => {
-    const member = members.find((item) => item.name === form.name);
+    const member = members.find((item) => String(item.id) === form.memberId);
     if (!member) { setFormError("Select a member."); return; }
     if (!Number.isFinite(Number(form.amount)) || Number(form.amount) <= 0) { setFormError("Enter an amount greater than zero."); return; }
     if (!form.date || !isValid(parseISO(form.date))) { setFormError("Enter a valid payment date."); return; }
@@ -258,9 +272,9 @@ export default function Payments() {
         <div className="space-y-4">
           {formError && <p role="alert" className="text-sm font-medium text-foreground">{formError}</p>}
           <div><label className={labelCls}>Member</label>
-            <select className={inputCls} value={form.name} onChange={(e) => onMemberSelect(e.target.value)}>
+            <select className={inputCls} value={form.memberId} onChange={(e) => onMemberSelect(e.target.value)}>
               <option value="">Select a member…</option>
-              {members.map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
+              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select></div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className={labelCls}>Membership Plan</label>

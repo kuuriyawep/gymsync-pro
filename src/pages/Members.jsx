@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
@@ -38,6 +38,7 @@ const emptyForm = { name: "", phone: "", email: "", gender: "", plan: "Monthly",
 
 export default function Members() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const members = useMembers();
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
@@ -46,6 +47,7 @@ export default function Members() {
   const [sortOpen, setSortOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [actionMode, setActionMode] = useState("edit");
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -75,6 +77,7 @@ export default function Members() {
   }, [members, query, filter, sort]);
 
   const openAdd = () => {
+    setActionMode("edit");
     setEditingId(null);
     const today = new Date().toISOString().slice(0, 10);
     const expiry = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
@@ -82,7 +85,8 @@ export default function Members() {
     setErrors({});
     setModalOpen(true);
   };
-  const openEdit = (m) => {
+  const openEdit = (m, mode = "edit") => {
+    setActionMode(mode);
     setEditingId(m.id);
     setForm({
       name: m.name, phone: m.phone, email: m.email || "", gender: m.gender || "", plan: m.plan,
@@ -93,6 +97,15 @@ export default function Members() {
     setErrors({});
     setModalOpen(true);
   };
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    const renewId = searchParams.get("renew");
+    const targetId = editId || renewId;
+    if (!targetId || members.length === 0) return;
+    const target = members.find((item) => String(item.id) === targetId);
+    if (target) openEdit(target, renewId ? "renew" : "edit");
+    setSearchParams({}, { replace: true });
+  }, [members, searchParams, setSearchParams]);
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
@@ -293,10 +306,10 @@ export default function Members() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Member" : "Add Member"}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={actionMode === "renew" ? "Renew Membership" : editingId ? "Edit Member" : "Add Member"}
         footer={<>
           <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-80 inline-flex items-center gap-2">{saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : editingId ? "Save Changes" : "Add Member"}</button>
+          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-80 inline-flex items-center gap-2">{saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : actionMode === "renew" ? "Renew Membership" : editingId ? "Save Changes" : "Add Member"}</button>
         </>}>
         <div className="space-y-6">
           <div>
@@ -333,7 +346,7 @@ export default function Members() {
               <div><label className={labelCls}>Start Date</label>
                 <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
               <div><label className={labelCls}>Expiry Date</label>
-                <input type="date" className={inputCls} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
+                <input type="date" aria-label="Expiry Date" className={inputCls} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
               <div className="sm:col-span-3"><label className={labelCls}>Preferred gym time</label>
                 <select className={inputCls} value={form.preferredTime} onChange={(e) => setForm({ ...form, preferredTime: e.target.value })}>
                   {["Morning", "Afternoon", "Evening", "Flexible"].map((t) => <option key={t}>{t}</option>)}

@@ -47,6 +47,7 @@ export default function MemberLayout({ children, title, back }) {
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-11 z-40 bg-popover border border-border rounded-xl shadow-lg w-80 max-w-[calc(100vw-2rem)]">
                   <div className="px-4 h-11 flex items-center border-b border-border"><h3 className="text-sm font-semibold">Notifications</h3></div>
                   <div className="max-h-80 overflow-y-auto">
+                    {memberNotifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No notifications</p>}
                     {memberNotifications.map((n) => (
                       <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-border last:border-0 ${n.read ? "" : "bg-muted/50"}`}>
                         <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />

@@ -18,7 +18,15 @@ export default async function(req: Request): Promise<Response> {
 
     let gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
     let gym = gyms[0];
-    if (!gym) return Response.json({ error: 'No gym found for this account. Complete owner onboarding first.' }, { status: 404 });
+    if (!gym) {
+      const staffRows = await select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=gym_id,status&limit=1`);
+      const staff = staffRows[0];
+      if (staff && staff.status !== 'revoked') {
+        gyms = await select('gyms', `id=eq.${encodeURIComponent(staff.gym_id)}&select=*&limit=1`);
+        gym = gyms[0];
+      }
+    }
+    if (!gym) return Response.json({ error: 'No gym found for this account.' }, { status: 404 });
     const gymFilter = encodeURIComponent(gym.id);
 
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');

@@ -6,16 +6,23 @@ import { Image } from "@/components/ui/image";
 export default function GymProfileSetup({ value, onChange }) {
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) { setUploadError("Choose a valid image file."); e.target.value = ""; return; }
+    setUploadError("");
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       onChange({ logoUrl: file_url });
-    } catch (_) {}
-    setUploading(false);
+    } catch (_) {
+      setUploadError("Logo upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -26,7 +33,7 @@ export default function GymProfileSetup({ value, onChange }) {
           <div className="w-20 h-20 rounded-2xl border border-dashed border-black/25 flex items-center justify-center overflow-hidden bg-black/[0.02]">
             {value.logoUrl ? <Image src={value.logoUrl} className="w-full h-full" fittingType="fit" /> : uploading ? <Loader2 className="w-5 h-5 animate-spin text-black/40" /> : <ImageIcon className="w-5 h-5 text-black/40" />}
           </div>
-          <div className="text-left"><p className="text-sm font-medium">{value.logoUrl ? "Change logo" : "Upload logo"}</p><p className="text-xs text-black/50">PNG or JPG, square</p></div>
+          <div className="text-left"><p className="text-sm font-medium">{value.logoUrl ? "Change logo" : "Upload logo"}</p><p className="text-xs text-black/50">{uploadError || "PNG or JPG, square"}</p></div>
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       </div>

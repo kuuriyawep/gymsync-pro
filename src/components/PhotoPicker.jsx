@@ -6,18 +6,24 @@ import { Image } from "@/components/ui/image";
 export default function PhotoPicker({ value, onChange, onRemove, shape = "circle", size = "w-16 h-16", placeholder, hint = "JPG or PNG." }) {
   const ref = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const round = shape === "circle";
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) { setUploadError("Choose a valid image file."); e.target.value = ""; return; }
+    setUploadError("");
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
       onChange?.(file_url);
-    } catch (_) {}
-    setUploading(false);
-    e.target.value = "";
+    } catch (_) {
+      setUploadError("Photo upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -48,7 +54,7 @@ export default function PhotoPicker({ value, onChange, onRemove, shape = "circle
             </button>
           )}
         </div>
-        <p className="text-xs text-black/40 mt-1.5">{hint}</p>
+        <p className="text-xs text-black/40 mt-1.5">{uploadError || hint}</p>
       </div>
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={handleFile} />
     </div>
