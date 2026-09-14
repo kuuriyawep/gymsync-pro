@@ -13,6 +13,7 @@ import { setGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { useToast } from "@/components/ui/use-toast";
+import { base44 } from "@/api/base44Client";
 import { UserCog, Users, ListChecks, Eye, CreditCard, BarChart3, Zap, Sparkles, Flame, MessageSquare, LayoutDashboard, Dumbbell, Building2 } from "lucide-react";
 
 const ownerQuestions = [
@@ -114,7 +115,7 @@ export default function Onboarding() {
     } finally { setSavingGym(false); }
   }
 
-  function finish() { sessionStorage.removeItem("gymsync_onboarding_draft"); navigate(path === "owner" ? "/" : "/join-gym"); }
+  function finish() { sessionStorage.removeItem("gymsync_onboarding_draft"); base44.analytics.track({ eventName: "onboarding_completed" }); navigate(path === "owner" ? "/" : "/join-gym"); }
 
   if (!path) return <OnboardingShell step={0} total={1} hideProgress><WelcomePath onChoose={choose} /></OnboardingShell>;
   if (!current) return null;

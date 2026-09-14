@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { UserPlus, DollarSign, RefreshCw, UserCog, Download } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -10,6 +10,7 @@ import { useMembers, useGymAnalytics, useMembersLoaded } from "@/lib/memberStore
 import { buildLiveGymAnalytics } from "@/lib/liveGymAnalytics";
 import { downloadDashboardCsv } from "@/lib/exportDashboardCsv";
 import { useToast } from "@/components/ui/use-toast";
+import { base44 } from "@/api/base44Client";
 
 const ranges = [{ key: "7d", label: "Last 7 days" }, { key: "30d", label: "Last 30 days" }, { key: "6m", label: "Last 6 months" }, { key: "year", label: "This year" }];
 const actions = [{ label: "Add Member", icon: UserPlus, to: "/members" }, { label: "Record Payment", icon: DollarSign, to: "/payments" }, { label: "Renew Membership", icon: RefreshCw, to: "/membership" }, { label: "Add Trainer", icon: UserCog, to: "/trainers" }];
@@ -21,6 +22,7 @@ export default function Dashboard() {
   const source = useGymAnalytics();
   const loaded = useMembersLoaded();
   const data = useMemo(() => buildLiveGymAnalytics(members, source, range), [members, source, range]);
+  useEffect(() => { base44.analytics.track({ eventName: "dashboard_viewed" }); }, []);
   if (!loaded) return <Layout><PageSkeleton /></Layout>;
 
   const handleExport = () => {

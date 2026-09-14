@@ -48,6 +48,7 @@ export default function Register() {
       if (result?.access_token) {
         base44.auth.setToken(result.access_token);
       }
+      base44.analytics.track({ eventName: "owner_signup_completed" });
       window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid verification code");
