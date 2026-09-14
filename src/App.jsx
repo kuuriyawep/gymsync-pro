@@ -33,6 +33,8 @@ const Trainers = lazy(() => import('@/pages/Trainers'));
 const Feedback = lazy(() => import('@/pages/Feedback'));
 const Support = lazy(() => import('@/pages/Support'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
+import About from '@/pages/About';
+import Contact from '@/pages/Contact';
 // Add page imports here
 
 const PageLoader = () => (
@@ -76,6 +78,8 @@ const AuthenticatedApp = () => {
       <Route path="/join-gym" element={<JoinGym />} />
       <Route path="/welcome" element={<WelcomeLobby />} />
       <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/contact" element={<Contact />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/welcome" replace />} />}>
         {/* Owner/Staff routes */}
         <Route element={<RoleRoute allowedRoles={["owner", "staff"]} />}>
