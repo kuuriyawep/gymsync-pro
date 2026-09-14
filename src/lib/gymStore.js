@@ -48,6 +48,13 @@ export async function setGym(gym) {
   return state;
 }
 
+export function resetGymStore() {
+  state = { ...emptyGym };
+  loaded = false;
+  loadingPromise = null;
+  emit();
+}
+
 export function useGym() {
   useEffect(() => { loadGym(); }, []);
   return useSyncExternalStore(subscribe, getGym, getGym);

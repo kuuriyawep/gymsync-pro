@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,7 @@ import ProfileImage from "@/components/ProfileImage";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const sections = [
-  { id: "profile", label: "Profile", icon: User, desc: "Your personal account and password" },
+  { id: "profile", label: "Profile", icon: User, desc: "Your personal account details" },
   { id: "gym", label: "Gym Profile", icon: Building2, desc: "Your gym's information and branding" },
   { id: "membership", label: "Membership", icon: CreditCard, desc: "Default currency and payment method" },
   { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
@@ -28,33 +28,26 @@ const sections = [
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
-const Toggle = ({ on, onClick }) => (
+const Toggle = ({ on, onClick, disabled = false }) => (
   <button
     type="button"
     role="switch"
     aria-checked={on}
     onClick={onClick}
-    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-black/10 transition-colors ${on ? "bg-black" : "bg-black/10"}`}
+    disabled={disabled}
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-black/10 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${on ? "bg-black" : "bg-black/10"}`}
   >
     <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
   </button>
 );
 const Field = ({ label, children }) => (<div><label className={labelCls}>{label}</label>{children}</div>);
 
-const sessions = [
-  { id: 1, device: "Chrome · macOS", location: "San Francisco, CA", current: true, time: "Active now" },
-  { id: 2, device: "Safari · iPhone", location: "San Francisco, CA", current: false, time: "2h ago" },
-  { id: 3, device: "Edge · Windows", location: "New York, NY", current: false, time: "3d ago" },
-];
-
 export default function Settings() {
   const location = useLocation();
   const requestedTab = new URLSearchParams(location.search).get("tab");
   const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
-  const [notif, setNotif] = useState({ expiry: true, payments: true, newMembers: true });
   const gymStore = useGym();
   const [gym, setGymLocal] = useState(gymStore);
-  const [membership, setMembership] = useState({ currency: "USD", method: "Mobile Money", defaultPlan: "Monthly", autoRenew: false });
   const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
   const { user, logout } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -95,7 +88,7 @@ export default function Settings() {
           <div className="w-full">
             <div className="grid grid-cols-1 gap-1">
               {sections.map((s) => (
-                <button key={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
+                <button key={s.id} data-settings-section={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
                   {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-black" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
                   <span className="relative flex items-center gap-3"><s.icon className="w-4.5 h-4.5" />{s.label}</span>
                 </button>
@@ -121,12 +114,7 @@ export default function Settings() {
                       <Field label="Role"><input className={inputCls} defaultValue="Owner" disabled /></Field>
                     </div>
                     <div className="pt-4 border-t border-black/5">
-                      <h3 className="font-semibold mb-3 text-sm">Change Password</h3>
-                      <div className="space-y-4">
-                        <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                        <Field label="New"><input type="password" className={inputCls} placeholder="•••••••••" /></Field>
-                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="•••••••••" /></Field>
-                      </div>
+                      <p className="text-sm text-black/50">Password changes are available in Security.</p>
                     </div>
                   </div>
                 )}
@@ -160,15 +148,15 @@ export default function Settings() {
                 {active === "membership" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                     <div className="space-y-4">
-                      <Field label="Default currency"><select className={inputCls} value={membership.currency} onChange={(e) => setMembership({ ...membership, currency: e.target.value })}><option value="USD">USD - US Dollar</option><option value="EUR">EUR - Euro</option><option value="GBP">GBP - British Pound</option><option value="SOS">SOS - Somali Shilling</option></select></Field>
-                      <Field label="Default payment method"><select className={inputCls} value={membership.method} onChange={(e) => setMembership({ ...membership, method: e.target.value })}><option>Cash</option><option>Mobile Money</option><option>Card</option><option>Other</option></select></Field>
-                      <Field label="Default membership plan"><select className={inputCls} value={membership.defaultPlan} onChange={(e) => setMembership({ ...membership, defaultPlan: e.target.value })}><option>Monthly</option><option>3 Months</option><option>6 Months</option></select></Field>
+                      <Field label="Default currency"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
+                      <Field label="Default payment method"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
+                      <Field label="Default membership plan"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
                     </div>
                     <div className="flex items-center justify-between py-2">
                       <div><p className="text-sm font-medium">Auto-renew memberships</p><p className="text-xs text-black/50">Automatically renew members on expiry</p></div>
-                      <Toggle on={membership.autoRenew} onClick={() => setMembership({ ...membership, autoRenew: !membership.autoRenew })} />
+                      <Toggle on={false} disabled />
                     </div>
-                    <div className="flex justify-end pt-2"><SaveButton onSave={() => toast({ title: "Membership settings saved", description: "Your membership defaults have been updated." })} /></div>
+                    <p className="text-sm text-black/50">Membership defaults are not supported by the current gym settings storage, so these controls are unavailable.</p>
                   </div>
                 )}
 
@@ -181,35 +169,25 @@ export default function Settings() {
                     ].map((n) => (
                       <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
                         <div className="pr-4"><p className="text-sm font-medium">{n.label}</p><p className="text-xs text-black/50">{n.desc}</p></div>
-                        <Toggle on={notif[n.key]} onClick={() => { setNotif({ ...notif, [n.key]: !notif[n.key] }); toast({ title: `${n.label} ${!notif[n.key] ? "enabled" : "disabled"}` }); }} />
+                        <Toggle on={false} disabled />
                       </div>
                     ))}
+                    <p className="pt-3 text-sm text-black/50">Notification preferences are not supported by the current gym settings storage, so these controls are unavailable.</p>
                   </div>
                 )}
 
                 {active === "security" && (
                   <div className="space-y-4">
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
-                      <h3 className="font-semibold mb-3 text-sm">Password</h3>
-                      <div className="space-y-4">
-                        <Field label="Current"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                        <Field label="New"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                        <Field label="Confirm"><input type="password" className={inputCls} placeholder="••••••••" /></Field>
-                      </div>
-                      <div className="flex justify-end mt-4"><SaveButton label="Update password" successLabel="Updated" onSave={() => toast({ title: "Password updated", description: "Your password has been changed." })} /></div>
+                      <h3 className="font-semibold mb-2 text-sm">Password</h3>
+                      <p className="text-sm text-black/50">Direct password changes are unavailable for this app's authentication method. Use the secure password reset flow instead.</p>
+                      <div className="flex justify-end mt-4"><Link to="/forgot-password" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Reset password</Link></div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">
                       <h3 className="font-semibold mb-4 text-sm">Active Sessions</h3>
-                      <div className="space-y-3">
-                        {sessions.map((s) => (
-                          <div key={s.id} className="flex items-center justify-between p-3 border border-black/10 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><Monitor className="w-4 h-4" /></div>
-                              <div><p className="text-sm font-medium">{s.device} {s.current && <span className="ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black text-white">Current</span>}</p><p className="text-xs text-black/50">{s.location} · {s.time}</p></div>
-                            </div>
-                            {!s.current && <button onClick={() => toast({ title: "Session revoked" })} className="text-xs font-medium text-black/60 hover:text-black">Revoke</button>}
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-3 p-3 border border-black/10 rounded-lg">
+                        <div className="w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center"><Monitor className="w-4 h-4" /></div>
+                        <div><p className="text-sm font-medium">Session details unavailable</p><p className="text-xs text-black/50">The current authentication provider does not expose active device or session information.</p></div>
                       </div>
                     </div>
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6">

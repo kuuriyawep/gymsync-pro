@@ -29,6 +29,11 @@ export async function createMemberFeedback(feedback) {
   state = { data: result.member, loaded: true, loading: false, error: "" }; emit();
   return result.member;
 }
+export function resetMemberPortalStore() {
+  state = { data: null, loaded: false, loading: false, error: "" };
+  pending = null;
+  emit();
+}
 export function useMemberPortal() {
   const value = useSyncExternalStore(subscribe, snapshot, snapshot);
   useEffect(() => { loadMemberPortal(); }, []);

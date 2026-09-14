@@ -48,6 +48,14 @@ export function updateMembershipPlan(id, plan) { return run("updatePlan", { id, 
 export function toggleMembershipPlan(id) { return run("togglePlan", { id }); }
 export function getMembers() { return members; }
 export function setMembers(next) { members = typeof next === "function" ? next(members) : next; emit(); }
+export function resetMemberStore() {
+  members = [];
+  analytics = { payments: [], memberships: [], plans: [], recentActivities: [] };
+  loaded = false;
+  loadError = null;
+  loadingPromise = null;
+  emit();
+}
 
 export function useMembers() {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);

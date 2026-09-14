@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import { clearClientSessionState } from "@/lib/sessionCleanup";
 
 const AuthContext = createContext();
 
@@ -67,9 +68,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => { checkUserAuth(); }, [checkUserAuth]);
 
   const logout = useCallback(async () => {
+    clearClientSessionState();
+    setUser(null);
+    setIsAuthenticated(false);
     setRole(null);
+    setRoles([]);
     setRoleError(null);
-    base44.auth.logout("/welcome");
+    setAuthError(null);
+    setIsLoadingRole(false);
+    await base44.auth.logout("/welcome");
   }, []);
 
   const navigateToLogin = useCallback((nextUrl = "/") => {
