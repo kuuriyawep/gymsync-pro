@@ -19,7 +19,7 @@ export default async function(req: Request): Promise<Response> {
     const ownerEmail = String(user.email || '').toLowerCase();
 
     const getGym = async () => access.gym;
-    const findLinkedMembers = async () => access.member ? [access.member] : select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=*&limit=1`);
+    const findLinkedMembers = async () => select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=*&limit=1`);
 
     const loadMemberData = async () => {
       const memberRows = await findLinkedMembers();
@@ -65,6 +65,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (operation === 'join') {
+      if (access.role === 'owner' || access.role === 'staff') return deny('Only a member account can join a gym');
       const phone = String(body.phone || '').trim();
       const joinToken = String(body.joinToken || '').trim();
       if (!phone || !joinToken) return Response.json({ error: 'Phone number and join code are required' }, { status: 400 });
@@ -77,6 +78,7 @@ export default async function(req: Request): Promise<Response> {
       let memberMetadata: any = {};
       try { memberMetadata = JSON.parse(member.notes || '{}'); } catch { memberMetadata = {}; }
       if (!memberMetadata.joinToken || memberMetadata.joinToken !== joinToken) return Response.json({ error: 'Invalid join code' }, { status: 403 });
+      if (access.member && access.member.id !== member.id) return Response.json({ error: 'This account is already linked to a member' }, { status: 409 });
       // Link the member to this immutable Base44 identity. Do not overwrite an
       // already-linked account belonging to another user.
       if (member.base44_user_id && member.base44_user_id !== access.userId) return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
@@ -111,8 +113,8 @@ export default async function(req: Request): Promise<Response> {
       // Block users who already have a business association (staff or member) from
       // creating a second owner gym. Only users with NO association may onboard.
       const [staffRows, memberRows] = await Promise.all([
-        select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`),
-        select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`)
+        select('staff', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`),
+        select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`)
       ]);
       if (staffRows[0] || memberRows[0]) return Response.json({ error: 'You already have an account associated with a gym and cannot create a second one' }, { status: 403 });
       const created = (await insert('gyms?return=representation', {
