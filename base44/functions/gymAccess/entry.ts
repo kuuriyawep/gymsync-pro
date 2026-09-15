@@ -119,9 +119,11 @@ export default async function(req: Request): Promise<Response> {
         name: name.slice(0, 120),
         address: location ? location.slice(0, 240) : null,
         logo_url: input.logoUrl ? String(input.logoUrl).slice(0, 1000) : null,
-        email: ownerEmail.slice(0, 160)
+        email: ownerEmail.slice(0, 160),
+        owner_base44_user_id: access.userId
       }))[0];
-      await insert('membership_plans?return=representation', { gym_id: created.id, name: 'Monthly', duration_months: 1, price: 0, status: 'Active' });
+      const defaultPrice = Number(created.membership_default_price ?? 15);
+      await insert('membership_plans?return=representation', { gym_id: created.id, name: 'Monthly', duration_months: 1, price: Number.isFinite(defaultPrice) && defaultPrice >= 0 ? defaultPrice : 15, is_active: true });
       return Response.json({ gymId: created.id, gym: { id: created.id, name: created.name || '', phone: created.phone || '', email: created.email || '', address: created.address || '', logoUrl: created.logo_url || null }, existed: false });
     }
 
