@@ -259,7 +259,7 @@ export default async function(req: Request): Promise<Response> {
     };
     const safeMembers = readMembers ? result.map((member: any) => {
       if (access.role === 'owner' || access.permissions.includes('members.write')) return member;
-      return { id: member.id, memberId: member.memberId, name: member.name, status: member.status, plan: member.plan, fee: member.fee, amountPaid: member.amountPaid, balance: member.balance, expiryDate: member.expiryDate, paymentStatus: readPayments ? member.paymentStatus : undefined, paymentMethod: readPayments ? member.paymentMethod : undefined, registeredDate: member.registeredDate, gym: member.gym };
+      return { id: member.id, memberId: member.memberId, name: member.name, phone: member.phone, status: member.status, plan: member.plan, expiryDate: member.expiryDate, registeredDate: member.registeredDate, gym: member.gym };
     }) : [];
     return Response.json({ members: safeMembers, analytics });
   } catch (error) {
