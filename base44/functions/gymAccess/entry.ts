@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
 import { createSupabaseRestClient } from '../../shared/supabaseRest.ts';
+import { deny, hasPermission, resolveAccess } from '../../shared/authz.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -11,18 +12,14 @@ export default async function(req: Request): Promise<Response> {
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
-    const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
-    // All auth is handled by Base44 — identify the caller via base44.auth.me()
+    const rest = createSupabaseRestClient(restUrl, serviceKey);
+    const { request, select, insert, update } = rest;
+    const access = await resolveAccess(base44, rest);
     const user: any = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const ownerEmail = String(user.email || '').toLowerCase();
 
-    const getGym = async () => {
-      const gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
-      return gyms[0] || null;
-    };
-
-    const findLinkedMembers = async () => select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
+    const getGym = async () => access.gym;
+    const findLinkedMembers = async () => access.member ? [access.member] : select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=*&limit=1`);
 
     const loadMemberData = async () => {
       const memberRows = await findLinkedMembers();
@@ -59,16 +56,12 @@ export default async function(req: Request): Promise<Response> {
     };
 
     if (operation === 'resolveRole') {
-      const [gyms, staffRows, memberRows] = await Promise.all([
-        select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`),
-        select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=id,role&limit=1`),
-        select('members', `email=eq.${encodeURIComponent(ownerEmail)}&select=id&limit=1`)
-      ]);
-      const roles: string[] = [];
-      if (gyms[0]) roles.push('owner');
-      if (staffRows[0]) roles.push('staff');
-      if (memberRows[0]) roles.push('member');
-      return Response.json({ roles, role: roles[0] || null });
+      return Response.json({
+        roles: access.role ? [access.role] : [],
+        role: access.role,
+        permissions: access.permissions.filter((item) => item !== '*'),
+        gymId: access.gym?.id || null
+      });
     }
 
     if (operation === 'join') {
@@ -84,8 +77,10 @@ export default async function(req: Request): Promise<Response> {
       let memberMetadata: any = {};
       try { memberMetadata = JSON.parse(member.notes || '{}'); } catch { memberMetadata = {}; }
       if (!memberMetadata.joinToken || memberMetadata.joinToken !== joinToken) return Response.json({ error: 'Invalid join code' }, { status: 403 });
-      // Link the member to this Base44 user by email
-      await update('members', `id=eq.${encodeURIComponent(member.id)}`, { email: ownerEmail });
+      // Link the member to this immutable Base44 identity. Do not overwrite an
+      // already-linked account belonging to another user.
+      if (member.base44_user_id && member.base44_user_id !== access.userId) return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
+      await update('members', `id=eq.${encodeURIComponent(member.id)}&base44_user_id=is.null`, { base44_user_id: access.userId, email: ownerEmail });
       return Response.json({ success: true, member: await loadMemberData() });
     }
 
@@ -132,6 +127,10 @@ export default async function(req: Request): Promise<Response> {
 
     let gym = await getGym();
     if (!gym) return Response.json({ error: 'Gym not found' }, { status: 404 });
+
+    const ownerOnly = new Set(['listStaff', 'inviteStaff', 'revokeStaff', 'updateGymProfile', 'deleteAccount']);
+    if (ownerOnly.has(operation) && access.role !== 'owner') return deny();
+    if (operation === 'getGymProfile' && !hasPermission(access, 'gym.read')) return deny();
     const gymProfile = (row: any) => ({
       id: row.id,
       name: row.name || '',
