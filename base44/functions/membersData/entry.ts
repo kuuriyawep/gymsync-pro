@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
 import { secrets } from 'base44:runtime';
 import { createSupabaseRestClient } from '../../shared/supabaseRest.ts';
-import { deny, hasPermission, resolveAccess } from '../../shared/authz.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -11,22 +10,24 @@ export default async function(req: Request): Promise<Response> {
     if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'updatePayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
-    const rest = createSupabaseRestClient(restUrl, serviceKey);
-    const { request, select, insert, update } = rest;
-    const access = await resolveAccess(base44, rest);
-    const gym = access.gym;
+    const { headers, request, select, insert, update } = createSupabaseRestClient(restUrl, serviceKey);
+    // All auth is handled by Base44 — identify the caller via base44.auth.me()
+    const user: any = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    const ownerEmail = String(user.email || '').toLowerCase();
+
+    let gyms = await select('gyms', `email=eq.${encodeURIComponent(ownerEmail)}&select=*&limit=1`);
+    let gym = gyms[0];
+    if (!gym) {
+      const staffRows = await select('staff', `email=eq.${encodeURIComponent(ownerEmail)}&select=gym_id,status&limit=1`);
+      const staff = staffRows[0];
+      if (staff && staff.status !== 'revoked') {
+        gyms = await select('gyms', `id=eq.${encodeURIComponent(staff.gym_id)}&select=*&limit=1`);
+        gym = gyms[0];
+      }
+    }
     if (!gym) return Response.json({ error: 'No gym found for this account.' }, { status: 404 });
     const gymFilter = encodeURIComponent(gym.id);
-    const readMembers = hasPermission(access, 'members.read');
-    const writeMembers = hasPermission(access, 'members.write');
-    const readPayments = hasPermission(access, 'payments.read');
-    const writePayments = hasPermission(access, 'payments.write');
-    const writePlans = hasPermission(access, 'plans.write');
-    if (operation === 'bootstrap' && !readMembers && !readPayments) return deny();
-    if (operation === 'memberDetails' && !readMembers) return deny();
-    if (['create', 'update', 'delete'].includes(operation) && !writeMembers) return deny();
-    if (['recordPayment', 'updatePayment', 'deletePayment'].includes(operation) && !writePayments) return deny();
-    if (['createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation) && !writePlans) return deny();
 
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');
     const memberStatus = (value: string) => value === 'Suspended' ? 'suspended' : 'active';
@@ -109,7 +110,7 @@ export default async function(req: Request): Promise<Response> {
       const metadataFields: any = { memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender, joinToken };
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
-      const member = (await insert('members', { gym_id: gym.id, full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, base44_user_id: null, notes: metadata, status: memberStatus(String(input.status || 'Active')), joined_at: `${input.startDate}T00:00:00Z` }))[0];
+      const member = (await insert('members', { gym_id: gym.id, full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')), joined_at: `${input.startDate}T00:00:00Z` }))[0];
       const membership = (await insert('memberships', { member_id: member.id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amount, amount_paid: amountPaid, status: input.status === 'Expired' ? 'expired' : 'active' }))[0];
       if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: `${input.startDate}T00:00:00Z` });
     }
@@ -252,16 +253,12 @@ export default async function(req: Request): Promise<Response> {
     const updateActivities = members.filter((member: any) => member.updated_at && new Date(member.updated_at).getTime() - new Date(member.created_at).getTime() > 1000).map((member: any) => ({ id: `update-${member.id}`, type: 'update', text: `${member.full_name}'s profile was updated`, occurredAt: member.updated_at }));
     const recentActivities = [...memberActivities, ...paymentActivities, ...updateActivities].filter((item: any) => item.occurredAt).sort((a: any, b: any) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 10);
     const analytics = {
-      payments: readPayments ? payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })) : [],
-      memberships: (access.role === 'owner' || access.permissions.includes('plans.read')) ? memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })) : [],
-      plans: (access.role === 'owner' || access.permissions.includes('plans.read')) ? plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })) : [],
-      recentActivities: reports || access.role === 'owner' ? recentActivities : recentActivities.filter((item: any) => item.type === 'member')
+      payments: payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })),
+      memberships: memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })),
+      plans: plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })),
+      recentActivities
     };
-    const safeMembers = readMembers ? result.map((member: any) => {
-      if (access.role === 'owner' || access.permissions.includes('members.write')) return member;
-      return { id: member.id, memberId: member.memberId, name: member.name, phone: member.phone, status: member.status, plan: member.plan, expiryDate: member.expiryDate, registeredDate: member.registeredDate, gym: member.gym };
-    }) : [];
-    return Response.json({ members: safeMembers, analytics });
+    return Response.json({ members: result, analytics });
   } catch (error) {
     return Response.json({ error: 'Unable to load members' }, { status: 500 });
   }
