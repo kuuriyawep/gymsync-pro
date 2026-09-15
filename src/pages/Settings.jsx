@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, Plus, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
-import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SaveButton from "@/components/SaveButton";
 import PhotoPicker from "@/components/PhotoPicker";
