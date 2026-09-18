@@ -31,12 +31,12 @@ export default function Login() {
     }
   };
 
-  const Toggle = () => (
-    <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted mb-6">
+  const Toggle = () =>
+  <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-muted mb-6">
       <button type="button" onClick={() => setRole("owner")} className={`py-2 text-sm font-medium rounded-md transition-colors ${role === "owner" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Manage a gym</button>
       <button type="button" onClick={() => setRole("member")} className={`py-2 text-sm font-medium rounded-md transition-colors ${role === "member" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>I'm a member</button>
-    </div>
-  );
+    </div>;
+
 
   return (
     <AuthLayout
@@ -44,19 +44,19 @@ export default function Login() {
       title={role === "owner" ? "Welcome back" : "Member sign in"}
       subtitle={role === "owner" ? "Log in to manage your gym" : "Access your gym membership"}
       footer={
-        role === "owner" ? (
-          <>
+      role === "owner" ?
+      <>
             Don't have an account?{" "}
             <Link to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")} className="text-primary font-medium hover:underline">Create one</Link>
-          </>
-        ) : (
-          <>
+          </> :
+
+      <>
             First time here?{" "}
             <Link to="/join-gym" className="text-primary font-medium hover:underline">Join your gym</Link>
           </>
-        )
-      }
-    >
+
+      }>
+      
       <Toggle />
       <SocialAuthButtons redirectTo={role === "member" ? "/join-gym" : returnTo} onError={setError} />
       <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">or</span></div></div>
@@ -79,11 +79,11 @@ export default function Login() {
             <Input id="password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10 h-12" required />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
-          {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Logging in...</>) : ("Log in")}
+        <Button type="submit" className="w-full h-12 font-medium bg-[hsl(var(--popover-foreground))]" disabled={loading}>
+          {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Logging in...</> : "Log in"}
         </Button>
       </form>
       {role === "member" && <p className="text-xs text-muted-foreground text-center mt-5">Sign in with the email account linked to your registered gym membership.</p>}
-    </AuthLayout>
-  );
+    </AuthLayout>);
+
 }
