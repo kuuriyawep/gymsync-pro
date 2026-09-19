@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +30,13 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      // register() does NOT log in — user is unverified until OTP
-      await base44.auth.register({ email: email.trim().toLowerCase(), password });
+      // signUp() does not establish a usable session until the email is
+      // verified — same "unverified until OTP" shape as before.
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (signUpError) throw signUpError;
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -43,12 +49,19 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email: email.trim().toLowerCase(), otpCode });
-      // verifyOtp returns an access_token for the now-verified user
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: otpCode,
+        type: "signup",
+      });
+      if (verifyError) throw verifyError;
+      // verifyOtp establishes the session directly on success — AuthContext's
+      // onAuthStateChange listener picks it up, no manual token handling needed.
+      try {
+        base44.analytics.track({ eventName: "owner_signup_completed" });
+      } catch {
+        // best-effort analytics only — never block the redirect on this
       }
-      base44.analytics.track({ eventName: "owner_signup_completed" });
       window.location.href = safeReturnTo();
     } catch (err) {
       setError(err.message || "Invalid verification code");
@@ -59,7 +72,11 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      await base44.auth.resendOtp(email.trim().toLowerCase());
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim().toLowerCase(),
+      });
+      if (resendError) throw resendError;
       toast({ title: "Code sent", description: "Check your email for the new code." });
     } catch (err) {
       setError(err.message || "Failed to resend code");
