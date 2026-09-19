@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,8 +22,12 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await base44.auth.loginViaEmailPassword(email.trim().toLowerCase(), password);
-      // SDK sets the token automatically — hard redirect to post-login destination
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (signInError) throw signInError;
+      // Session is set by the SDK automatically — hard redirect to post-login destination
       window.location.href = role === "member" ? "/join-gym" : returnTo;
     } catch (err) {
       setError(err.message || "Invalid email or password");
