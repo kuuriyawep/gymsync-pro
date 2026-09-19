@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Apple, Loader2 } from "lucide-react";
 import GoogleIcon from "@/components/GoogleIcon";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SocialAuthButtons({ redirectTo, onError }) {
   const [loading, setLoading] = useState("");
@@ -10,8 +10,16 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
     setLoading(provider);
     onError("");
     try {
-      // loginWithProvider redirects to the OAuth provider — no await needed
-      base44.auth.loginWithProvider(provider, redirectTo || "/");
+      const destination = redirectTo || "/";
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: new URL(destination, window.location.origin).toString(),
+        },
+      });
+      if (error) throw error;
+      // On success the browser navigates away to the provider immediately;
+      // loading state intentionally isn't cleared here.
     } catch (error) {
       onError(error.message || `${provider} sign-in is unavailable`);
       setLoading("");
