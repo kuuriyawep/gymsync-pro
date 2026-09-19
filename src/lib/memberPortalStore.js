@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import { supabase } from "@/lib/supabaseClient";
 
 const listeners = new Set();
 let state = { data: null, loaded: false, loading: false, error: "" };
@@ -20,9 +21,12 @@ export async function loadMemberPortal(force = false) {
   return pending;
 }
 export async function joinGym(phone, joinToken) {
-  const result = await invoke("join", { phone, joinToken });
-  state = { data: result.member, loaded: true, loading: false, error: "" }; emit();
-  return result.member;
+  const { data, error } = await supabase.functions.invoke("join-gym", { body: { phone, joinToken } });
+  if (error) throw error;
+  // The edge function only confirms the link (ids), not the full member
+  // record. Reuse the existing memberData load path (still Base44-backed,
+  // unaffected by this) to populate the portal with the real record.
+  return loadMemberPortal(true).then(() => data);
 }
 export async function createMemberFeedback(feedback) {
   const result = await invoke("createFeedback", { feedback });
