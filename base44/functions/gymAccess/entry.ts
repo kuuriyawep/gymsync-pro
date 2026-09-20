@@ -14,9 +14,9 @@ export default async function(req: Request): Promise<Response> {
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const rest = createSupabaseRestClient(restUrl, serviceKey);
     const { request, select, insert, update } = rest;
-    const access = await resolveAccess(base44, rest);
-    const user: any = await base44.auth.me();
-    const ownerEmail = String(user.email || '').toLowerCase();
+    const supabaseAccessToken = String(body._supabaseAccessToken || '');
+    const access = await resolveAccess(base44, rest, { url: restUrl, serviceKey, accessToken: supabaseAccessToken });
+    const ownerEmail = access.email;
 
     const getGym = async () => access.gym;
     const findLinkedMembers = async () => select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=*&limit=1`);
@@ -45,7 +45,7 @@ export default async function(req: Request): Promise<Response> {
       const status = metadata.status || (member.status === 'active' ? 'Active' : member.status === 'suspended' ? 'Suspended' : 'Expired');
       const initials = String(member.full_name || '').split(' ').filter(Boolean).map((part: string) => part[0]).join('').slice(0, 2).toUpperCase();
       return {
-        profile: { id: member.id, name: member.full_name, memberId: metadata.memberId || member.id.slice(0, 8).toUpperCase(), phone: member.phone, email: member.email || user.email || '', gym: gyms[0]?.name || '', joinDate: String(member.joined_at || member.created_at).slice(0, 10), avatar: initials, photoUrl: member.avatar_url || null, gender: metadata.gender || '' },
+        profile: { id: member.id, name: member.full_name, memberId: metadata.memberId || member.id.slice(0, 8).toUpperCase(), phone: member.phone, email: member.email || access.email || '', gym: gyms[0]?.name || '', joinDate: String(member.joined_at || member.created_at).slice(0, 10), avatar: initials, photoUrl: member.avatar_url || null, gender: metadata.gender || '' },
         membership: { plan: plan?.name || 'No plan', price: amountDue, startDate: membership?.start_date || '', expiryDate: membership?.end_date || '', status, autoRenew: Boolean(membership?.auto_renew) },
         balance: { price: amountDue, paid: amountPaid, balance: metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid), status: amountDue <= amountPaid ? 'Paid' : amountPaid > 0 ? 'Partially Paid' : 'Outstanding', renewalDate: membership?.end_date || '' },
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
