@@ -19,11 +19,12 @@ export default async function(req: Request): Promise<Response> {
     const ownerEmail = access.email;
 
     const getGym = async () => access.gym;
-    const findLinkedMembers = async () => select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=*&limit=1`);
 
     const loadMemberData = async () => {
-      const memberRows = await findLinkedMembers();
-      const member = memberRows[0];
+      // access.member is already resolved by resolveAccess for either
+      // identity path (Supabase user_id or legacy base44_user_id) — don't
+      // re-query by a hardcoded column, or a Supabase-linked member is lost.
+      const member = access.member;
       if (!member) return null;
       const gymFilter = encodeURIComponent(member.gym_id);
       const memberFilter = encodeURIComponent(member.id);
@@ -95,10 +96,9 @@ export default async function(req: Request): Promise<Response> {
     if (operation === 'createFeedback') {
       const memberData = await loadMemberData();
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
-      const memberRows = await findLinkedMembers();
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
-      await insert('feedback_requests', { gym_id: memberRows[0].gym_id, member_id: memberRows[0].id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
+      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
       return Response.json({ member: await loadMemberData() });
     }
 
