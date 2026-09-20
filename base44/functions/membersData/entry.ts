@@ -13,7 +13,8 @@ export default async function(req: Request): Promise<Response> {
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const rest = createSupabaseRestClient(restUrl, serviceKey);
     const { request, select, insert, update } = rest;
-    const access = await resolveAccess(base44, rest);
+    const supabaseAccessToken = String(body._supabaseAccessToken || '');
+    const access = await resolveAccess(base44, rest, { url: restUrl, serviceKey, accessToken: supabaseAccessToken });
     const gym = access.gym;
     if (!gym) return Response.json({ error: 'No gym found for this account.' }, { status: 404 });
     const gymFilter = encodeURIComponent(gym.id);
