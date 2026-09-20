@@ -30,15 +30,65 @@ export function hasPermission(access: Access, permission: string): boolean {
   return access.role === 'owner' || access.permissions.includes(permission);
 }
 
-export async function resolveAccess(base44: any, rest: ReturnType<typeof createSupabaseRestClient>): Promise<Access> {
+export type SupabaseAuthContext = { url: string; serviceKey: string; accessToken?: string };
+
+// Verifies a Supabase access token against Supabase's own auth server. No JWT
+// secret is handled here — GoTrue does the signature/expiry check for us and
+// simply returns the identity, or a 4xx if the token is missing/invalid/expired.
+async function resolveSupabaseIdentity(ctx: SupabaseAuthContext): Promise<{ id: string; email: string } | null> {
+  if (!ctx.accessToken) return null;
+  try {
+    const res = await fetch(`${ctx.url}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${ctx.accessToken}`, apikey: ctx.serviceKey },
+    });
+    if (!res.ok) return null;
+    const user: any = await res.json();
+    if (!user?.id) return null;
+    return { id: String(user.id), email: String(user.email || '').trim().toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveAccess(base44: any, rest: ReturnType<typeof createSupabaseRestClient>, supabaseAuth?: SupabaseAuthContext): Promise<Access> {
+  const { select, update } = rest;
+
+  // Canonical identity is now Supabase Auth (gyms.owner_id / staff.user_id /
+  // members.user_id). This is tried first whenever the caller supplies a
+  // Supabase access token.
+  const supabaseIdentity = supabaseAuth ? await resolveSupabaseIdentity(supabaseAuth) : null;
+  if (supabaseIdentity) {
+    const { id: userId, email } = supabaseIdentity;
+
+    const gyms = await select('gyms', `owner_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`);
+    const gym = gyms[0] || null;
+    if (gym) return { userId, email, role: 'owner', gym, staff: null, member: null, permissions: ['*'] };
+
+    const staffRows = await select('staff', `user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*&limit=1`);
+    const staff = staffRows[0] || null;
+    if (staff) {
+      const gymRows = await select('gyms', `id=eq.${encodeURIComponent(staff.gym_id)}&select=*&limit=1`);
+      return { userId, email, role: 'staff', gym: gymRows[0] || null, staff, member: null, permissions: permissionList(staff) };
+    }
+
+    const memberRows = await select('members', `user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`);
+    const member = memberRows[0] || null;
+    if (member) {
+      const gymRows = await select('gyms', `id=eq.${encodeURIComponent(member.gym_id)}&select=*&limit=1`);
+      return { userId, email, role: 'member', gym: gymRows[0] || null, staff: null, member, permissions: ['member.portal'] };
+    }
+
+    return { userId, email, role: null, gym: null, staff: null, member: null, permissions: [] };
+  }
+
+  // Legacy path: kept only for any caller still carrying a Base44 session
+  // (pre-migration staff, until Phase 2's staff auth ships). Unchanged from
+  // before — same lookups, same one-time email-linking fallback.
   const user: any = await base44.auth.me();
   if (!user?.id) throw new Error('Unauthorized');
   const userId = String(user.id);
   const email = String(user.email || '').trim().toLowerCase();
-  const { select, update } = rest;
 
-  // Canonical identity: Base44 user ID. Email is used only as a one-time legacy
-  // migration path for rows that have no Base44 ID yet, then immediately linked.
   let gyms = await select('gyms', `owner_base44_user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`);
   let gym = gyms[0] || null;
   if (!gym && email) {
