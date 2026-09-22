@@ -38,7 +38,11 @@ export type SupabaseAuthContext = { url: string; serviceKey: string; accessToken
 async function resolveSupabaseIdentity(ctx: SupabaseAuthContext): Promise<{ id: string; email: string } | null> {
   if (!ctx.accessToken) return null;
   try {
-    const res = await fetch(`${ctx.url}/auth/v1/user`, {
+    // ctx.url is the REST-API-rooted URL (already ends in /rest/v1, per how
+    // select/insert/update use it in supabaseRest.ts) — the Auth API lives
+    // at the project root, not under /rest/v1, so strip that suffix first.
+    const authRoot = ctx.url.replace(/\/rest\/v1\/?$/, '');
+    const res = await fetch(`${authRoot}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${ctx.accessToken}`, apikey: ctx.serviceKey },
     });
     if (!res.ok) return null;
