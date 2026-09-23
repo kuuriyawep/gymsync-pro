@@ -264,11 +264,9 @@ export default async function(req: Request): Promise<Response> {
     }) : [];
     return Response.json({ members: safeMembers, analytics });
   } catch (error) {
-    // Surface the real cause instead of one generic message for every
-    // operation — this exact ambiguity cost hours of screenshot-based
-    // debugging before the actual bugs (malformed auth URL, an undeclared
-    // variable) were found.
-    const detail = error instanceof Error ? error.message : String(error);
-    return Response.json({ error: `Unable to complete ${operation || 'request'}: ${detail}` }, { status: 500 });
+    // Name the failed operation, not the raw error — same reasoning as
+    // gymAccess: useful debugging signal without forwarding raw
+    // database/Supabase error text that could leak schema details.
+    return Response.json({ error: `Unable to complete ${operation || 'request'}` }, { status: 500 });
   }
 }
