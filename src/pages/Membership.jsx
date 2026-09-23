@@ -6,7 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Users, Calendar, Check, Pencil, Eye, Power, CreditCard } from "lucide-react";
-import { useGymAnalytics, useMembersLoaded, createMembershipPlan, updateMembershipPlan, toggleMembershipPlan } from "@/lib/memberStore";
+import { useGymAnalytics, useMembersLoaded, useMembersError, createMembershipPlan, updateMembershipPlan, toggleMembershipPlan } from "@/lib/memberStore";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
@@ -15,6 +15,7 @@ const emptyForm = { name: "", price: "", duration: "1", status: "Active" };
 export default function Membership() {
   const analytics = useGymAnalytics();
   const loaded = useMembersLoaded();
+  const loadError = useMembersError();
   const plans = analytics.plans || [];
   const [saving, setSaving] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -70,6 +71,8 @@ export default function Membership() {
             <Plus className="w-4 h-4" /> Add Plan
           </button>
         </div>
+
+        {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
 
         {plans.length === 0 ? (
           <EmptyState icon={CreditCard} title="No membership plans" description="Create your first plan to get started." actionLabel="Add Plan" onAction={openAdd} />
