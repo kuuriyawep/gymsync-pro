@@ -264,6 +264,11 @@ export default async function(req: Request): Promise<Response> {
     }) : [];
     return Response.json({ members: safeMembers, analytics });
   } catch (error) {
-    return Response.json({ error: 'Unable to load members' }, { status: 500 });
+    // Surface the real cause instead of one generic message for every
+    // operation — this exact ambiguity cost hours of screenshot-based
+    // debugging before the actual bugs (malformed auth URL, an undeclared
+    // variable) were found.
+    const detail = error instanceof Error ? error.message : String(error);
+    return Response.json({ error: `Unable to complete ${operation || 'request'}: ${detail}` }, { status: 500 });
   }
 }
