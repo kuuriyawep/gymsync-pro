@@ -6,7 +6,7 @@ import PageSkeleton from "@/components/PageSkeleton";
 import LiveRevenueReport from "@/components/reports/LiveRevenueReport";
 import LiveMemberReport from "@/components/reports/LiveMemberReport";
 import LiveMembershipReport from "@/components/reports/LiveMembershipReport";
-import { useMembers, useGymAnalytics, useMembersLoaded } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, useMembersLoaded, useMembersError } from "@/lib/memberStore";
 import { buildLiveGymAnalytics } from "@/lib/liveGymAnalytics";
 import { downloadReportsCsv } from "@/lib/exportReportsCsv";
 import { downloadReportsPdf } from "@/lib/exportReportsPdf";
@@ -20,6 +20,7 @@ export default function Reports() {
   const members = useMembers();
   const source = useGymAnalytics();
   const loaded = useMembersLoaded();
+  const loadError = useMembersError();
   const data = useMemo(() => buildLiveGymAnalytics(members, source, range), [members, source, range]);
   if (!loaded) return <Layout><PageSkeleton cards={5} rows={4} /></Layout>;
   const label = ranges.find((item) => item.key === range)?.label;
@@ -44,6 +45,7 @@ export default function Reports() {
   };
   return <Layout><div className="space-y-8">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Reports</h1><p className="text-sm text-black/50 mt-0.5">Performance calculated from your real records</p></div><div className="relative"><button onClick={() => setExportOpen((open) => !open)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white"><Download className="w-4 h-4" /> Export <ChevronDown className="w-3.5 h-3.5" /></button><AnimatePresence>{exportOpen && <><div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} /><motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="absolute right-0 top-11 z-20 bg-white border border-black/10 rounded-lg shadow-lg w-44 py-1"><button onClick={handleExportCsv} className="flex items-center gap-2 w-full px-3 py-2 text-sm"><FileSpreadsheet className="w-4 h-4" /> Export CSV</button><button onClick={handleExportPdf} className="flex items-center gap-2 w-full px-3 py-2 text-sm"><FileText className="w-4 h-4" /> Export PDF</button><button onClick={() => window.print()} className="flex items-center gap-2 w-full px-3 py-2 text-sm"><Printer className="w-4 h-4" /> Print</button></motion.div></>}</AnimatePresence></div></div>
+    {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
     <div className="flex items-center gap-1.5 flex-wrap">{ranges.map((item) => <button key={item.key} onClick={() => setRange(item.key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${range === item.key ? "bg-black text-white border-black" : "bg-white text-black/70 border-black/15"}`}>{item.label}</button>)}</div>
     <LiveRevenueReport data={data} label={label} />
     <LiveMemberReport data={data} />
