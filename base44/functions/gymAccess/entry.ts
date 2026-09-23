@@ -211,8 +211,8 @@ export default async function(req: Request): Promise<Response> {
     return Response.json({ staff });
   } catch (error) {
     // Do not forward raw database/Supabase error messages to the client — they can
-    // leak internal schema details. The generic message is sufficient for callers.
-    const detail = error instanceof Error ? error.message : String(error);
-    return Response.json({ error: `Unable to complete ${operation || 'request'}: ${detail}` }, { status: 500 });
+    // leak internal schema details. Naming the failed operation (not the raw
+    // error) still gives useful signal without that risk.
+    return Response.json({ error: `Unable to complete ${operation || 'request'}` }, { status: 500 });
   }
 }
