@@ -33,7 +33,11 @@ async function run(operation, payload = {}) {
 }
 
 export function loadMembers(force = false) {
-  if (loaded && !force) return Promise.resolve(members);
+  // Only skip a refetch if the last attempt actually succeeded — a failed
+  // load still sets loaded=true (so the UI can stop showing a skeleton and
+  // show the real error instead), but must not block a natural retry on the
+  // next mount/navigation the way a plain `loaded` check would.
+  if (loaded && !force && !loadError) return Promise.resolve(members);
   if (!loadingPromise) loadingPromise = run("bootstrap").finally(() => { loadingPromise = null; });
   return loadingPromise;
 }
