@@ -6,7 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown, Check } from "lucide-react";
-import { useMembers, useGymAnalytics, useMembersLoaded, recordPayment, updatePayment } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, useMembersLoaded, useMembersError, recordPayment, updatePayment } from "@/lib/memberStore";
 import { useGym } from "@/lib/gymStore";
 import EditPaymentModal from "@/components/payments/EditPaymentModal";
 import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
@@ -38,6 +38,7 @@ export default function Payments() {
   const members = useMembers();
   const analytics = useGymAnalytics();
   const loaded = useMembersLoaded();
+  const loadError = useMembersError();
   const gym = useGym();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
@@ -163,6 +164,8 @@ export default function Payments() {
             <Plus className="w-4 h-4" /> Record Payment
           </button>
         </div>
+
+        {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {summaryCards.map((s) => (
