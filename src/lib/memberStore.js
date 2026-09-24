@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import { Sentry } from "@/lib/sentry";
 
 const listeners = new Set();
 let members = [];
@@ -28,6 +29,10 @@ async function run(operation, payload = {}) {
     loadError = e?.response?.data?.error || e?.message || "Failed to load gym data";
     loaded = true;
     emit();
+    // Caught here and shown as a toast/banner in the UI — which means it
+    // never reaches Sentry's automatic handlers unless explicitly reported.
+    // This single choke point covers every members/payments/plans operation.
+    Sentry.captureException(e, { tags: { operation }, extra: { payload } });
     throw e;
   }
 }
