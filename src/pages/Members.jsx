@@ -34,7 +34,8 @@ const statusBadge = (s) => {
 const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-const emptyForm = { name: "", phone: "", email: "", gender: "", plan: "Monthly", startDate: "", expiryDate: "", amount: "", amountPaid: "", balanceOverride: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };\nconst normalizePhone = (value) => String(value || "").replace(/\\D/g, "");
+const emptyForm = { name: "", phone: "", email: "", gender: "", plan: "Monthly", startDate: "", expiryDate: "", amount: "", amountPaid: "", balanceOverride: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };
+const normalizePhone = (value) => String(value || "").replace(/\D/g, "");
 
 export default function Members() {
   const navigate = useNavigate();
@@ -53,7 +54,13 @@ export default function Members() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
 
-  const duplicatePhoneMember = useMemo(() => {\n    const normalized = normalizePhone(form.phone);\n    if (normalized.length < 7) return null;\n    return members.find((member) => normalizePhone(member.phone) === normalized && String(member.id) !== String(editingId || "")) || null;\n  }, [members, form.phone, editingId]);\n\n  const summary = useMemo(() => ({
+  const duplicatePhoneMember = useMemo(() => {
+    const normalized = normalizePhone(form.phone);
+    if (normalized.length < 7) return null;
+    return members.find((member) => normalizePhone(member.phone) === normalized && String(member.id) !== String(editingId || "")) || null;
+  }, [members, form.phone, editingId]);
+
+  const summary = useMemo(() => ({
     total: members.length,
     active: members.filter((m) => m.status === "Active").length,
     expiring: members.filter((m) => m.status === "Expiring Soon").length,
@@ -320,7 +327,11 @@ export default function Members() {
                 {errors.name && <p className="text-xs text-black font-medium mt-1">{errors.name}</p>}</div>
               <div><label className={labelCls}>Phone Number</label>
                 <input className={`${inputCls} ${errors.phone ? "border-black bg-black/5" : ""}`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" />
-                {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}\n                {duplicatePhoneMember && (\n                  <p className="text-xs text-red-600 font-medium mt-1.5">This phone number is already registered in the system.</p>\n                )}\n              </div>
+                {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}
+                {duplicatePhoneMember && (
+                  <p className="text-xs text-red-600 font-medium mt-1.5">This phone number is already registered in the system.</p>
+                )}
+              </div>
               <div><label className={labelCls}>Email (optional)</label>
                 <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
               <div><label className={labelCls}>Gender</label>
