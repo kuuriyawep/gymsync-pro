@@ -141,16 +141,16 @@ export default function PhoneNumberField({ value, onChange, error }) {
 
   return (
     <div className="relative">
-      <div className={`flex items-stretch rounded-lg border bg-white overflow-visible transition-colors ${error ? "border-black bg-black/5" : "border-black/15 focus-within:border-black focus-within:ring-1 focus-within:ring-black"}`}>
+      <div className={`rounded-lg border bg-white overflow-visible transition-colors ${error ? "border-black bg-black/5" : "border-black/15 focus-within:border-black focus-within:ring-1 focus-within:ring-black"}`}>
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
-          className="shrink-0 min-w-[142px] px-3 py-2.5 border-r border-black/10 flex items-center gap-2 text-left hover:bg-black/[0.03]"
+          className="w-full min-h-[46px] px-3 py-2.5 border-b border-black/10 flex items-center gap-2 text-left hover:bg-black/[0.03]"
           aria-label="Select country calling code"
           aria-expanded={open}
         >
-          <span className="truncate text-sm font-medium">{selectedCountry?.name || "Country"}</span>
-          <span className="text-sm text-black/50 ml-auto">{selectedCountry?.dialCode}</span>
+          <span className="truncate flex-1 text-sm font-medium">{selectedCountry?.name || "Country"}</span>
+          <span className="text-sm text-black/50 tabular-nums">{selectedCountry?.dialCode}</span>
           {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-black/40" /> : <ChevronDown className="w-3.5 h-3.5 text-black/40" />}
         </button>
 
@@ -160,9 +160,9 @@ export default function PhoneNumberField({ value, onChange, error }) {
           autoComplete="tel-national"
           value={nationalNumber}
           onChange={handleNationalChange}
-          placeholder="Phone number"
-          className="min-w-0 flex-1 px-3 py-2.5 bg-transparent text-sm outline-none"
-          aria-label="Phone number"
+          placeholder="Mobile"
+          className="w-full min-h-[46px] px-3 py-2.5 bg-transparent text-sm outline-none"
+          aria-label="Mobile phone number"
         />
       </div>
 
