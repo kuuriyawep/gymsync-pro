@@ -9,8 +9,8 @@ import ProfileImage from "@/components/ProfileImage";
 import { differenceInCalendarDays, format, parseISO, isValid } from "date-fns";
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : s === "Expiring Soon" ? "bg-black/10 text-black" : s === "Expired" ? "bg-black/5 text-black/50" : "bg-black/10 text-black/60");
-const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
+const statusBadge = (s) => (s === "Active" ? "bg-emerald-600 text-white" : s === "Expiring Soon" ? "bg-black/10 text-black" : s === "Expired" ? "bg-black/5 text-black/50" : "bg-black/10 text-black/60");
+const payBadge = (s) => (s === "Paid" ? "bg-emerald-600 text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 
 export default function MemberDetails() {
   const { id } = useParams();
