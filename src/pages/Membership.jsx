@@ -81,7 +81,7 @@ export default function Membership() {
             {plans.map((p) => (
               <div key={p.id} className="bg-white border border-black/10 rounded-xl p-5 flex flex-col">
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${p.status === "Active" ? "bg-black text-white" : "bg-black/5 text-black/50"}`}>
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${p.status === "Active" ? "bg-emerald-600 text-white" : "bg-black/5 text-black/50"}`}>
                     {p.status === "Active" && <Check className="w-3 h-3" />} {p.status}
                   </span>
                 </div>
@@ -137,7 +137,7 @@ export default function Membership() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Active Members</p><p className="text-lg font-bold mt-0.5">{viewing.activeMembers}</p></div>
-              <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Status</p><span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${viewing.status === "Active" ? "bg-black text-white" : "bg-black/5 text-black/50"}`}>{viewing.status}</span></div>
+              <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Status</p><span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${viewing.status === "Active" ? "bg-emerald-600 text-white" : "bg-black/5 text-black/50"}`}>{viewing.status}</span></div>
             </div>
           </div>
         )}
