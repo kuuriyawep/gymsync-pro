@@ -25,7 +25,7 @@ const payOptions = ["Paid"];
 const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
 
 const payBadge = (s) => {
-  if (s === "Paid") return "bg-black text-white";
+  if (s === "Paid") return "bg-emerald-600 text-white";
   if (s === "Pending") return "bg-black/10 text-black";
   if (s === "Overdue") return "border border-black text-black";
   return "bg-black/5 text-black/50 line-through";
