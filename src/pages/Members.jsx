@@ -27,12 +27,12 @@ const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
 const statusOptions = ["Active", "Expiring Soon", "Expired", "Suspended"];
 
 const statusBadge = (s) => {
-  if (s === "Active") return "bg-black text-white";
+  if (s === "Active") return "bg-emerald-600 text-white";
   if (s === "Expiring Soon") return "bg-black/10 text-black";
   if (s === "Expired") return "bg-black/5 text-black/50";
   return "bg-black/10 text-black/60";
 };
-const payBadge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
+const payBadge = (s) => (s === "Paid" ? "bg-emerald-600 text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
 const emptyForm = { name: "", phone: "", email: "", gender: "", plan: "Monthly", startDate: "", expiryDate: "", amount: "", amountPaid: "", balanceOverride: "", paymentMethod: "Cash", status: "Active", note: "", preferredTime: "Flexible", photoUrl: null };
