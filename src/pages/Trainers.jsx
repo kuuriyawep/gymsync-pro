@@ -12,7 +12,7 @@ import { useMembers } from "@/lib/memberStore";
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : "bg-black/10 text-black/50");
+const statusBadge = (s) => (s === "Active" ? "bg-emerald-600 text-white" : "bg-black/10 text-black/50");
 const emptyForm = { name: "", phone: "", email: "", specialization: "", joinDate: "", status: "Active", notes: "" };
 
 export default function Trainers() {
