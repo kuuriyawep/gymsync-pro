@@ -7,6 +7,7 @@ import { useMembers, addMember, updateMember, deleteMember } from "@/lib/memberS
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProfileImage from "@/components/ProfileImage";
+import PhoneNumberField from "@/components/PhoneNumberField";
 import { useToast } from "@/components/ui/use-toast";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
@@ -117,6 +118,7 @@ export default function Members() {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.phone.trim()) e.phone = "Phone is required";
+    else if (normalizePhone(form.phone).length < 7) e.phone = "Enter a valid phone number";
     if (!form.gender) e.gender = "Gender is required";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -326,7 +328,12 @@ export default function Members() {
                 <input className={`${inputCls} ${errors.name ? "border-black bg-black/5" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
                 {errors.name && <p className="text-xs text-black font-medium mt-1">{errors.name}</p>}</div>
               <div><label className={labelCls}>Phone Number</label>
-                <input className={`${inputCls} ${errors.phone ? "border-black bg-black/5" : ""}`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number with country code" />
+                <PhoneNumberField
+                  key={`${modalOpen}-${editingId || "new"}`}
+                  value={form.phone}
+                  onChange={(phone) => setForm((current) => ({ ...current, phone }))}
+                  error={errors.phone}
+                />
                 {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}
                 {duplicatePhoneMember && (
                   <p className="text-xs text-red-600 font-medium mt-1.5">This phone number is already registered in the system.</p>
