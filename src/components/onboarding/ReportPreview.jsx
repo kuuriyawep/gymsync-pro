@@ -5,7 +5,7 @@ function MembersReport() {
   const growth = [40, 52, 61, 70, 88, 96, 110];
   const max = 110;
   const rows = [["Sarah Chen", "Monthly", "Active"], ["Marcus Reed", "Quarterly", "Active"], ["Lena Park", "Monthly", "Expiring"], ["Diego Santos", "Annual", "Active"]];
-  const badge = (s) => (s === "Active" ? "bg-black text-white" : "bg-black/10 text-black");
+  const badge = (s) => (s === "Active" ? "bg-emerald-600 text-white" : "bg-black/10 text-black");
   return (
     <div className="space-y-3">
       <div className="bg-white border border-black/10 rounded-xl p-4">
