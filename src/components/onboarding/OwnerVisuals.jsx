@@ -42,7 +42,7 @@ export function DashboardPreview() {
 // Mimics the Owner Payments page
 export function PaymentsPreview() {
   const rows = [["Sarah Chen", "$60", "Paid"], ["Marcus Reed", "$150", "Paid"], ["Lena Park", "$60", "Pending"], ["Diego Santos", "$300", "Overdue"]];
-  const badge = (s) => (s === "Paid" ? "bg-black text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
+  const badge = (s) => (s === "Paid" ? "bg-emerald-600 text-white" : s === "Pending" ? "bg-black/10 text-black" : "border border-black text-black");
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-2">
@@ -77,7 +77,7 @@ export function StaffPreview() {
             <div key={i} className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-semibold">{s[0].split(" ").map((n) => n[0]).join("")}</div>
               <div className="flex-1"><p className="text-sm font-medium">{s[0]}</p><p className="text-[10px] text-black/50">{s[1]}</p></div>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s[2] === "Active" ? "bg-black text-white" : "bg-black/10 text-black"}`}>{s[2]}</span>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s[2] === "Active" ? "bg-emerald-600 text-white" : "bg-black/10 text-black"}`}>{s[2]}</span>
             </div>
           ))}
         </div>
