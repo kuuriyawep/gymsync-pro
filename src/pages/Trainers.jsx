@@ -7,6 +7,7 @@ import PageSkeleton from "@/components/PageSkeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Plus, Pencil, Eye, Trash2, Users, UserCheck, UserX, UserCog, Phone, Mail, Calendar, Activity, Power } from "lucide-react";
 import { useTrainers } from "@/lib/trainerStore";
+import { useMembers } from "@/lib/memberStore";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 const labelCls = "block text-sm font-medium mb-1.5";
@@ -15,16 +16,34 @@ const statusBadge = (s) => (s === "Active" ? "bg-black text-white" : "bg-black/1
 const emptyForm = { name: "", phone: "", email: "", specialization: "", joinDate: "", status: "Active", notes: "" };
 
 export default function Trainers() {
-  const { trainers, loading, createTrainer, updateTrainer, toggleTrainer, deleteTrainer } = useTrainers();
+  const { trainers, loading, createTrainer, updateTrainer, toggleTrainer, deleteTrainer, assignMember, removeMember } = useTrainers();
+  const members = useMembers();
   const [formModal, setFormModal] = useState(false);
   const [detailsModal, setDetailsModal] = useState(false);
+  const [membersModalId, setMembersModalId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [confirm, setConfirm] = useState(null);
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState("");
+  const [assignBusy, setAssignBusy] = useState(false);
   const { toast } = useToast();
+
+  // Derived from the live trainers array (not a captured snapshot) so the
+  // modal reflects the new state immediately after assignMember/removeMember
+  // triggers a reload inside useTrainers().
+  const managingTrainer = useMemo(() => trainers.find((t) => t.id === membersModalId) || null, [trainers, membersModalId]);
+  const assignedMemberList = useMemo(() => {
+    if (!managingTrainer) return [];
+    return managingTrainer.assignedMembers.map((id) => members.find((m) => m.id === id)).filter(Boolean);
+  }, [managingTrainer, members]);
+  const availableMembers = useMemo(() => {
+    if (!managingTrainer) return [];
+    const assignedSet = new Set(managingTrainer.assignedMembers);
+    return members.filter((m) => !assignedSet.has(m.id));
+  }, [managingTrainer, members]);
 
   const summary = useMemo(() => ({
     total: trainers.length,
@@ -35,6 +54,29 @@ export default function Trainers() {
   const openAdd = () => { setEditingId(null); setForm(emptyForm); setFormError(""); setFormModal(true); };
   const openEdit = (t) => { setEditingId(t.id); setForm({ name: t.name, phone: t.phone, email: t.email, specialization: t.specialization, joinDate: t.joinDate, status: t.status, notes: t.notes || "" }); setFormError(""); setFormModal(true); };
   const openView = (t) => { setViewing(t); setDetailsModal(true); };
+  const openManageMembers = (t) => { setMembersModalId(t.id); setSelectedMemberId(""); };
+  const handleAssign = async () => {
+    if (!selectedMemberId || !managingTrainer) return;
+    setAssignBusy(true);
+    try {
+      await assignMember(managingTrainer.id, selectedMemberId);
+      setSelectedMemberId("");
+      toast({ title: "Member assigned" });
+    } catch (error) {
+      toast({ title: "Unable to assign member", description: error.message });
+    } finally {
+      setAssignBusy(false);
+    }
+  };
+  const handleRemoveMember = async (memberId) => {
+    if (!managingTrainer) return;
+    try {
+      await removeMember(managingTrainer.id, memberId);
+      toast({ title: "Member removed" });
+    } catch (error) {
+      toast({ title: "Unable to remove member", description: error.message });
+    }
+  };
   const submit = async () => {
     if (!form.name.trim()) return setFormError("Trainer name is required");
     setBusy(true); setFormError("");
@@ -102,7 +144,7 @@ export default function Trainers() {
                   <div className="flex items-center gap-2 text-black/60"><Phone className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t.phone}</span></div>
                   <div className="flex items-center gap-2 text-black/60"><Mail className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">{t.email}</span></div>
                   <div className="flex items-center gap-2 text-black/60"><Calendar className="w-3.5 h-3.5 shrink-0" /> Joined {t.joinDate}</div>
-                  <div className="flex items-center gap-2 text-black/60"><Users className="w-3.5 h-3.5" /> {t.assigned} members assigned</div>
+                  <button type="button" onClick={() => openManageMembers(t)} className="flex items-center gap-2 text-black/60 hover:text-black hover:underline underline-offset-2"><Users className="w-3.5 h-3.5" /> {t.assigned} members assigned</button>
                 </div>
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-black/5">
                   <button onClick={() => openView(t)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-black/15 hover:bg-black/5"><Eye className="w-3.5 h-3.5" /> View</button>
@@ -174,6 +216,40 @@ export default function Trainers() {
             <div className="flex gap-2 pt-2 border-t border-black/5">
               <button onClick={() => setConfirm({ type: "toggle", trainer: viewing })} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Power className="w-4 h-4" /> {viewing.status === "Active" ? "Deactivate" : "Activate"}</button>
               <button onClick={() => { setConfirm({ type: "delete", trainer: viewing }); setDetailsModal(false); }} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Trash2 className="w-4 h-4" /> Delete</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Manage assigned members */}
+      <Modal open={!!managingTrainer} onClose={() => setMembersModalId(null)} title={managingTrainer ? `${managingTrainer.name} — Assigned Members` : "Assigned Members"}
+        footer={<button onClick={() => setMembersModalId(null)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Close</button>}>
+        {managingTrainer && (
+          <div className="space-y-4">
+            <div>
+              <label className={labelCls}>Assign a member</label>
+              <div className="flex gap-2">
+                <select className={inputCls} value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}>
+                  <option value="">{availableMembers.length === 0 ? "No members available" : "Select a member…"}</option>
+                  {availableMembers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+                <button onClick={handleAssign} disabled={!selectedMemberId || assignBusy} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-50 shrink-0">{assignBusy ? "Assigning…" : "Assign"}</button>
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Currently assigned ({assignedMemberList.length})</label>
+              {assignedMemberList.length === 0 ? (
+                <p className="text-sm text-black/40">No members assigned yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {assignedMemberList.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between gap-3 border border-black/10 rounded-lg px-3 py-2">
+                      <span className="text-sm truncate">{m.name}</span>
+                      <button onClick={() => handleRemoveMember(m.id)} className="p-1.5 rounded-md border border-black/15 hover:bg-black/5 shrink-0" title="Remove"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
