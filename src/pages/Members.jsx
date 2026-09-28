@@ -323,10 +323,10 @@ export default function Members() {
             <p className={sectionCls}>Personal Information</p>
             <div className="space-y-4">
               <div><label className={labelCls}>Full Name</label>
-                <input className={`${inputCls} ${errors.name ? "border-black bg-black/5" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Doe" />
+                <input className={`${inputCls} ${errors.name ? "border-black bg-black/5" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
                 {errors.name && <p className="text-xs text-black font-medium mt-1">{errors.name}</p>}</div>
               <div><label className={labelCls}>Phone Number</label>
-                <input className={`${inputCls} ${errors.phone ? "border-black bg-black/5" : ""}`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1 555 0100" />
+                <input className={`${inputCls} ${errors.phone ? "border-black bg-black/5" : ""}`} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number with country code" />
                 {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}
                 {duplicatePhoneMember && (
                   <p className="text-xs text-red-600 font-medium mt-1.5">This phone number is already registered in the system.</p>
