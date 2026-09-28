@@ -42,7 +42,7 @@ export function MembershipCardVisual() {
       <div className="bg-white border border-black/10 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
           <div><p className="text-xs text-black/50">Membership</p><p className="text-lg font-bold">Monthly</p></div>
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-black text-white">Active</span>
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-600 text-white">Active</span>
         </div>
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div><p className="text-xs text-black/50">Start</p><p className="text-sm font-semibold">Aug 1, 2026</p></div>
@@ -52,7 +52,7 @@ export function MembershipCardVisual() {
         <div className="h-2 rounded-full bg-black/5 overflow-hidden"><div className="h-full bg-black rounded-full" style={{ width: "60%" }} /></div>
       </div>
       <div className="bg-white border border-black/10 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Payments</h3><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-black text-white">Paid</span></div>
+        <div className="flex items-center justify-between mb-3"><h3 className="font-semibold">Payments</h3><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-600 text-white">Paid</span></div>
         <div className="grid grid-cols-3 gap-2 text-center">
           {[["Price", "$60"], ["Paid", "$60"], ["Balance", "$0"]].map(([l, v]) => (
             <div key={l} className="bg-black/[0.02] rounded-xl p-3"><p className="text-xs text-black/50">{l}</p><p className="text-base font-bold">{v}</p></div>
@@ -89,7 +89,7 @@ export function MemberDashboardPreview() {
     <div className="space-y-3">
       <div><p className="text-sm text-black/50">Good morning,</p><h2 className="text-xl font-heading font-bold">Sarah Chen</h2></div>
       <div className="bg-white border border-black/10 rounded-2xl p-4">
-        <div className="flex items-center justify-between mb-2"><p className="text-xs text-black/50">Membership</p><span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black text-white">Active</span></div>
+        <div className="flex items-center justify-between mb-2"><p className="text-xs text-black/50">Membership</p><span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-600 text-white">Active</span></div>
         <p className="text-base font-bold">Monthly</p>
         <div className="h-2 rounded-full bg-black/5 mt-3 overflow-hidden"><div className="h-full bg-black rounded-full" style={{ width: "60%" }} /></div>
         <p className="text-[10px] text-black/50 mt-1">12 days remaining</p>
