@@ -1229,4 +1229,4 @@ export const PHONE_COUNTRIES = [
     "code": "AX",
     "dialCode": "+358"
   }
-];\n
+];
