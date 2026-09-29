@@ -51,6 +51,7 @@ export default async function(req: Request): Promise<Response> {
     const rest = createSupabaseRestClient(restUrl, serviceKey);
     const { request, select, insert, update } = rest;
     const supabaseAccessToken = String(body._supabaseAccessToken || '');
+    const usingSupabaseIdentity = Boolean(supabaseAccessToken);
     const access = await resolveAccess(base44, rest, { url: restUrl, serviceKey, accessToken: supabaseAccessToken });
     const ownerEmail = access.email;
 
@@ -113,7 +114,7 @@ export default async function(req: Request): Promise<Response> {
       // Phone numbers are a lookup hint, not the account-linking secret.
       // Accept common Somali formats and let the owner-issued join token
       // disambiguate duplicate phone records safely.
-      const matches = [];
+      const matches: any[] = [];
       for (const candidate of phoneCandidates(phone)) {
         const rows = await select(
           'members',
