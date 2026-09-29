@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
-import { useMembers, addMember, updateMember, deleteMember } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, addMember, updateMember, deleteMember } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProfileImage from "@/components/ProfileImage";
@@ -21,7 +21,6 @@ const sortOptions = [
   { key: "expiry", label: "Membership Expiry" },
   { key: "payment", label: "Payment Status" },
 ];
-const planOptions = ["Monthly", "3 Months", "6 Months", "Custom"];
 const payOptions = ["Paid", "Pending", "Overdue"];
 const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
 const statusOptions = ["Active", "Expiring Soon", "Expired", "Suspended"];
@@ -54,6 +53,17 @@ export default function Members() {
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
+  const analytics = useGymAnalytics();
+
+  // Membership plans configured by the owner on the Membership page.
+  const activePlans = useMemo(
+    () => (analytics?.plans || []).filter((p) => p.status === "Active"),
+    [analytics]
+  );
+  const selectedPlan = useMemo(
+    () => activePlans.find((p) => p.name === form.plan) || null,
+    [activePlans, form.plan]
+  );
 
   const duplicatePhoneMember = useMemo(() => {
     const normalized = normalizePhone(form.phone);
@@ -359,7 +369,7 @@ export default function Members() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div><label className={labelCls}>Membership Plan</label>
                 <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-                  {activePlans.length === 0 && <option value={form.plan}>{form.plan || "No plans available"}</option>}
+                  {!selectedPlan && <option value={form.plan}>{form.plan || "No plans available"}</option>}
                   {activePlans.map((p) => <option key={p.id} value={p.name}>{p.name} — ${p.price}</option>)}
                 </select></div>
               <div><label className={labelCls}>Start Date</label>
