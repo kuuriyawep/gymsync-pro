@@ -3,6 +3,42 @@ import { secrets } from 'base44:runtime';
 import { createSupabaseRestClient } from '../../shared/supabaseRest.ts';
 import { deny, hasPermission, resolveAccess } from '../../shared/authz.ts';
 
+function phoneCandidates(input: string): string[] {
+  const raw = String(input || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return [];
+
+  const candidates = new Set<string>();
+  const add = (value: string) => { if (value) candidates.add(value); };
+
+  add(raw);
+  add(digits);
+
+  if (digits.startsWith("00")) add(digits.slice(2));
+
+  if (digits.startsWith("252")) {
+    const national = digits.slice(3);
+    if (national) {
+      add(national);
+      add("0" + national);
+      add("252" + national);
+      add("+252" + national);
+    }
+  } else if (digits.startsWith("0") && digits.length >= 9) {
+    const national = digits.slice(1);
+    add(national);
+    add("252" + national);
+    add("+252" + national);
+  } else if (digits.length === 9) {
+    add("0" + digits);
+    add("252" + digits);
+    add("+252" + digits);
+  }
+
+  if (raw.startsWith("+")) add("+" + digits);
+  return [...candidates];
+}
+
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -67,23 +103,96 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'join') {
       if (access.role === 'owner' || access.role === 'staff') return deny('Only a member account can join a gym');
+
       const phone = String(body.phone || '').trim();
       const joinToken = String(body.joinToken || '').trim();
-      if (!phone || !joinToken) return Response.json({ error: 'Phone number and join code are required' }, { status: 400 });
-      // Look up member by phone (exact match — phone is a lookup key, not a secret).
-      const matches = await select('members', `phone=eq.${encodeURIComponent(phone)}&select=*&limit=2`);
-      if (matches.length !== 1) return Response.json({ error: 'Member details did not match' }, { status: 404 });
-      const member = matches[0];
-      // Verify the owner-issued join token stored in member metadata — this is the
-      // secret that prevents unauthorized account linking. Phone+name alone is not enough.
-      let memberMetadata: any = {};
-      try { memberMetadata = JSON.parse(member.notes || '{}'); } catch { memberMetadata = {}; }
-      if (!memberMetadata.joinToken || memberMetadata.joinToken !== joinToken) return Response.json({ error: 'Invalid join code' }, { status: 403 });
-      if (access.member && access.member.id !== member.id) return Response.json({ error: 'This account is already linked to a member' }, { status: 409 });
-      // Link the member to this immutable Base44 identity. Do not overwrite an
-      // already-linked account belonging to another user.
-      if (member.base44_user_id && member.base44_user_id !== access.userId) return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
-      await update('members', `id=eq.${encodeURIComponent(member.id)}&base44_user_id=is.null`, { base44_user_id: access.userId, email: ownerEmail });
+      if (!phone || !joinToken) {
+        return Response.json({ error: 'Phone number and join code are required' }, { status: 400 });
+      }
+
+      // Phone numbers are a lookup hint, not the account-linking secret.
+      // Accept common Somali formats and let the owner-issued join token
+      // disambiguate duplicate phone records safely.
+      const matches = [];
+      for (const candidate of phoneCandidates(phone)) {
+        const rows = await select(
+          'members',
+          `phone=eq.${encodeURIComponent(candidate)}&select=*&limit=20`
+        );
+        for (const row of rows) {
+          if (!matches.some((item: any) => item.id === row.id)) matches.push(row);
+        }
+      }
+
+      if (!matches.length) {
+        return Response.json({ error: 'Member details did not match' }, { status: 404 });
+      }
+
+      const tokenMatches = matches.filter((row: any) => {
+        try {
+          const metadata = JSON.parse(row.notes || '{}');
+          return metadata?.joinToken === joinToken;
+        } catch {
+          return false;
+        }
+      });
+
+      if (!tokenMatches.length) {
+        return Response.json({ error: 'Invalid join code' }, { status: 403 });
+      }
+
+      if (tokenMatches.length > 1) {
+        return Response.json({ error: 'Multiple members match this phone and join code' }, { status: 409 });
+      }
+
+      const member = tokenMatches[0];
+
+      if (access.member && access.member.id !== member.id) {
+        return Response.json({ error: 'This account is already linked to a member' }, { status: 409 });
+      }
+
+      // Supabase Auth is the canonical identity. Legacy Base44 callers keep
+      // their old field so the migration remains backward compatible.
+      if (access.userId) {
+        if (member.user_id && member.user_id !== access.userId) {
+          return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
+        }
+
+        if (member.base44_user_id && member.base44_user_id !== access.userId && !member.user_id) {
+          return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
+        }
+
+        const updateValues: Record<string, any> = {
+          email: ownerEmail,
+          user_id: member.user_id || access.userId,
+        };
+
+        if (!member.user_id && !String(member.base44_user_id || '').trim()) {
+          updateValues.base44_user_id = null;
+        }
+
+        await update(
+          'members',
+          `id=eq.${encodeURIComponent(member.id)}&user_id=is.null`,
+          updateValues
+        );
+      }
+
+      // Keep the profile/gym relationship in sync for the member portal.
+      if (access.userId && member.gym_id) {
+        await request('profiles?on_conflict=id', {
+          method: 'POST',
+          headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify({
+            id: access.userId,
+            role: 'member',
+            gym_id: member.gym_id,
+            full_name: member.full_name,
+            email: ownerEmail,
+          }),
+        });
+      }
+
       return Response.json({ success: true, member: await loadMemberData() });
     }
 
