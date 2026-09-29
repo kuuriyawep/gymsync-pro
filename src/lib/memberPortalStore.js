@@ -23,16 +23,14 @@ export async function loadMemberPortal(force = false) {
 export async function joinGym(phone, joinToken) {
   const { data, error } = await supabase.functions.invoke("join-gym", { body: { phone, joinToken } });
   if (error) throw error;
-  // The edge function only confirms the link (ids), not the full member
-  // record. loadMemberPortal() would normally refresh that via gymAccess,
-  // but gymAccess still identifies callers by a Base44 session token, which
-  // a Supabase-only member no longer has — that call would fail until the
-  // gymAccess/membersData identity bridge is fixed (tracked separately, not
-  // done yet). Not calling it here so we fail loudly at that known point
-  // instead of masking it; the caller gets gym_id/member_id back directly.
+  // The join function links the authenticated Supabase user to the real
+  // member record. Refresh the portal through the normal authenticated
+  // gymAccess path so the UI immediately reads the linked membership data.
   state = { data: null, loaded: false, loading: false, error: "" };
   emit();
-  return data;
+  const member = await loadMemberPortal(true);
+  if (!member) throw new Error(state.error || "Membership linked but could not be loaded");
+  return { ...data, member };
 }
 export async function createMemberFeedback(feedback) {
   const result = await invoke("createFeedback", { feedback });
