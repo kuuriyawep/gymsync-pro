@@ -89,7 +89,7 @@ export default function Members() {
     setEditingId(null);
     const today = new Date().toISOString().slice(0, 10);
     const expiry = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
-    setForm({ ...emptyForm, startDate: today, expiryDate: expiry });
+    setForm({ ...emptyForm, plan: activePlans[0]?.name || emptyForm.plan, startDate: today, expiryDate: expiry });
     setErrors({});
     setModalOpen(true);
   };
