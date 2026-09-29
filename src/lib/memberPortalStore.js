@@ -21,11 +21,19 @@ export async function loadMemberPortal(force = false) {
   return pending;
 }
 export async function joinGym(phone, joinToken) {
-  const { data, error } = await supabase.functions.invoke("join-gym", { body: { phone, joinToken } });
-  if (error) throw error;
-  // The join function links the authenticated Supabase user to the real
-  // member record. Refresh the portal through the normal authenticated
-  // gymAccess path so the UI immediately reads the linked membership data.
+  // Use the same Base44 backend gateway already used by the member portal.
+  // This avoids a browser-side direct Edge Function call, which can surface
+  // generic CORS/platform errors even when the function itself is healthy.
+  const response = await invokeWithAuth("gymAccess", {
+    operation: "join",
+    phone,
+    joinToken,
+  });
+  const data = response?.data;
+  if (!data?.success) throw new Error(data?.error || "Membership verification failed");
+
+  // The join operation links the authenticated Supabase user to the real
+  // member record. Refresh the portal through the normal authenticated path.
   state = { data: null, loaded: false, loading: false, error: "" };
   emit();
   const member = await loadMemberPortal(true);
