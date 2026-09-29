@@ -102,16 +102,28 @@ export default async function(req: Request): Promise<Response> {
       const rows = await select('members', `gym_id=eq.${gymFilter}&select=notes`);
       const numbers = rows.map((row: { notes: string }) => { try { return Number(JSON.parse(row.notes || '{}').memberId?.split('-')[1]) || 1000; } catch { return 1000; } });
       const next = Math.max(1000, ...numbers) + 1;
-      const amount = Number(input.amount) || 0;
       const amountPaid = Number(input.amountPaid) || 0;
       const balanceOverride = input.balanceOverride !== undefined && input.balanceOverride !== '' ? Number(input.balanceOverride) : null;
-      const plan = await ensurePlan(input.plan || 'Monthly', amount);
+      // Price comes only from the plan the owner already set up in Membership
+      // Plans — never from a client-supplied amount. If the named plan
+      // somehow doesn't exist yet, it's created at $0 rather than trusting an
+      // arbitrary frontend price; the real fix in that case is adding the
+      // plan properly on the Membership page.
+      const plan = await ensurePlan(input.plan || 'Monthly', 0);
+      const amountDue = Number(plan.price) || 0;
+      // Never let a recorded payment exceed what's actually owed — same
+      // capping rule recordPayment already applies, so a balance can't go
+      // negative regardless of what was typed into Amount Paid.
+      const cappedPaid = Math.min(amountDue, amountPaid);
       const joinToken = Array.from(crypto.getRandomValues(new Uint8Array(4))).map((b: number) => b.toString(16).padStart(2, '0')).join('');
       const metadataFields: any = { memberId: `GYM-${next}`, note: input.note || '', preferredTime: input.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender, joinToken };
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
       const member = (await insert('members', { gym_id: gym.id, full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, base44_user_id: null, notes: metadata, status: memberStatus(String(input.status || 'Active')), joined_at: `${input.startDate}T00:00:00Z` }))[0];
-      const membership = (await insert('memberships', { member_id: member.id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amount, amount_paid: amountPaid, status: input.status === 'Expired' ? 'expired' : 'active' }))[0];
+      const membership = (await insert('memberships', { member_id: member.id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: input.status === 'Expired' ? 'expired' : 'active' }))[0];
+      // The real payment record keeps the full amount actually paid (even if
+      // it exceeds amountDue) — only the membership's running balance is
+      // capped, the payment history itself is never altered.
       if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: `${input.startDate}T00:00:00Z` });
     }
 
@@ -129,8 +141,13 @@ export default async function(req: Request): Promise<Response> {
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status)) });
-      const plan = await ensurePlan(input.plan || 'Monthly', Number(input.amount) || 0);
-      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: Number(input.amount) || 0, amount_paid: amountPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+      // Same rule as create: plan price is the source of truth, not a
+      // client-supplied amount, and a recorded balance is never allowed to
+      // exceed what's actually owed.
+      const plan = await ensurePlan(input.plan || 'Monthly', 0);
+      const amountDue = Number(plan.price) || 0;
+      const cappedPaid = Math.min(amountDue, amountPaid);
+      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
     }
 
     if (operation === 'delete') {
