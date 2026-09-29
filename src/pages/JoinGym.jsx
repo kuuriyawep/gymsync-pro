@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, Phone, KeyRound, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Dumbbell, KeyRound, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { joinGym } from "@/lib/memberPortalStore";
 import { useAuth } from "@/lib/AuthContext";
