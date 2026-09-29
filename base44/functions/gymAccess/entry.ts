@@ -154,7 +154,7 @@ export default async function(req: Request): Promise<Response> {
 
       // Supabase Auth is the canonical identity. Legacy Base44 callers keep
       // their old field so the migration remains backward compatible.
-      if (access.userId) {
+      if (usingSupabaseIdentity) {
         if (member.user_id && member.user_id !== access.userId) {
           return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
         }
@@ -163,24 +163,25 @@ export default async function(req: Request): Promise<Response> {
           return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
         }
 
-        const updateValues: Record<string, any> = {
-          email: ownerEmail,
-          user_id: member.user_id || access.userId,
-        };
-
-        if (!member.user_id && !String(member.base44_user_id || '').trim()) {
-          updateValues.base44_user_id = null;
+        await update(
+          'members',
+          `id=eq.${encodeURIComponent(member.id)}&user_id=is.null`,
+          { user_id: access.userId, email: ownerEmail }
+        );
+      } else {
+        if (member.base44_user_id && member.base44_user_id !== access.userId) {
+          return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
         }
 
         await update(
           'members',
-          `id=eq.${encodeURIComponent(member.id)}&user_id=is.null`,
-          updateValues
+          `id=eq.${encodeURIComponent(member.id)}&base44_user_id=is.null`,
+          { base44_user_id: access.userId, email: ownerEmail }
         );
       }
 
       // Keep the profile/gym relationship in sync for the member portal.
-      if (access.userId && member.gym_id) {
+      if (usingSupabaseIdentity && access.userId && member.gym_id) {
         await request('profiles?on_conflict=id', {
           method: 'POST',
           headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
