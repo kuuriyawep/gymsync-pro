@@ -359,7 +359,8 @@ export default function Members() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div><label className={labelCls}>Membership Plan</label>
                 <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-                  {planOptions.map((o) => <option key={o}>{o}</option>)}
+                  {activePlans.length === 0 && <option value={form.plan}>{form.plan || "No plans available"}</option>}
+                  {activePlans.map((p) => <option key={p.id} value={p.name}>{p.name} — ${p.price}</option>)}
                 </select></div>
               <div><label className={labelCls}>Start Date</label>
                 <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
@@ -381,12 +382,10 @@ export default function Members() {
           <div>
             <p className={sectionCls}>Payment</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div><label className={labelCls}>Plan Amount ($)</label>
-                <input type="number" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
               <div><label className={labelCls}>Amount Paid ($)</label>
                 <input type="number" className={inputCls} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" /></div>
               <div><label className={labelCls}>Outstanding Balance ($)</label>
-                <input type="number" className={inputCls} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (Number(form.amount) || 0) - (Number(form.amountPaid) || 0)))} /></div>
+                <input type="number" className={inputCls} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} /></div>
               <div><label className={labelCls}>Payment Method</label>
                 <select className={inputCls} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
                   {methodOptions.map((o) => <option key={o}>{o}</option>)}
