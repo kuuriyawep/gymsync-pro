@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
-import { useMembers, addMember, updateMember, deleteMember } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, addMember, updateMember, deleteMember } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProfileImage from "@/components/ProfileImage";
@@ -21,7 +21,6 @@ const sortOptions = [
   { key: "expiry", label: "Membership Expiry" },
   { key: "payment", label: "Payment Status" },
 ];
-const planOptions = ["Monthly", "3 Months", "6 Months", "Custom"];
 const payOptions = ["Paid", "Pending", "Overdue"];
 const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
 const statusOptions = ["Active", "Expiring Soon", "Expired", "Suspended"];
@@ -42,6 +41,7 @@ export default function Members() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const members = useMembers();
+  const analytics = useGymAnalytics();
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
@@ -83,6 +83,11 @@ export default function Members() {
     });
     return list;
   }, [members, query, filter, sort]);
+
+  // Only plans the owner has actually set up (with a real price) are
+  // selectable — never a hardcoded list, and never a manually-typed amount.
+  const activePlans = useMemo(() => (analytics.plans || []).filter((p) => p.status === "Active"), [analytics.plans]);
+  const selectedPlan = useMemo(() => activePlans.find((p) => p.name === form.plan) || null, [activePlans, form.plan]);
 
   const openAdd = () => {
     setActionMode("edit");
