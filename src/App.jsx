@@ -7,6 +7,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import ChunkErrorBoundary from '@/components/ChunkErrorBoundary';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RoleRoute from '@/components/RoleRoute';
 import { Navigate } from 'react-router-dom';
@@ -68,6 +69,7 @@ const AuthenticatedApp = () => {
 
   // Render the main app
   return (
+    <ChunkErrorBoundary>
     <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Add your page Route elements here */}
@@ -109,6 +111,7 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
     </Suspense>
+    </ChunkErrorBoundary>
   );
 };
 
