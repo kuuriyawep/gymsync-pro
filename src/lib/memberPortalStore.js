@@ -20,9 +20,9 @@ export async function loadMemberPortal(force = false) {
   pending = invoke("memberData").then((result) => { state = { data: result.member, loaded: true, loading: false, error: "" }; emit(); return result.member; }).catch((error) => { state = { data: null, loaded: true, loading: false, error: message(error) }; emit(); return null; }).finally(() => { pending = null; });
   return pending;
 }
-export async function joinGym(phone, joinToken) {
+export async function joinGym(phone, fullName) {
   const { data, error } = await supabase.functions.invoke("join-gym", {
-    body: { phone, joinToken },
+    body: { phone, fullName },
   });
 
   if (error) {
