@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Dumbbell, KeyRound, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Mail, Lock } from "lucide-react";
+import { Dumbbell, User, ArrowRight, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Mail, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { joinGym } from "@/lib/memberPortalStore";
 import { useAuth } from "@/lib/AuthContext";
@@ -20,7 +20,7 @@ export default function JoinGym() {
   // e.g. via MemberDataState's "link your membership" redirect).
   const [step, setStep] = useState("checking");
   const [phone, setPhone] = useState("");
-  const [joinToken, setJoinToken] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
@@ -75,7 +75,7 @@ export default function JoinGym() {
     setError("");
     setStep("verifying");
     try {
-      await joinGym(phone.trim(), joinToken.trim());
+      await joinGym(phone.trim(), fullName.trim());
       await reloadRole();
       setStep("success");
     } catch (err) {
@@ -114,7 +114,7 @@ export default function JoinGym() {
 
       {step === "verifyingOtp" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /><p className="text-sm mt-4">Verifying…</p></div>}
 
-      {step === "form" && <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><h1 className="text-2xl font-bold">Join your gym</h1><p className="text-sm text-black/50 mt-1 mb-6">Enter your phone number and the join code your gym gave you.</p>{error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}<form onSubmit={verify} className="space-y-4"><label className="block text-sm font-medium">Registered phone number<div className="relative mt-1.5"><PhoneNumberField value={phone} onChange={setPhone} /></div></label><label className="block text-sm font-medium">Join code<div className="relative mt-1.5"><KeyRound className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input className={`${inputCls} pl-10`} value={joinToken} onChange={(e) => setJoinToken(e.target.value)} required /></div></label><button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black text-white text-sm font-medium">Verify information <ArrowRight className="w-4 h-4" /></button></form></motion.div>}
+      {step === "form" && <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><h1 className="text-2xl font-bold">Join your gym</h1><p className="text-sm text-black/50 mt-1 mb-6">Enter your phone number and the full name your gym registered you with.</p>{error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}<form onSubmit={verify} className="space-y-4"><label className="block text-sm font-medium">Registered phone number<div className="relative mt-1.5"><PhoneNumberField value={phone} onChange={setPhone} /></div></label><label className="block text-sm font-medium">Full name (as registered by your gym)<div className="relative mt-1.5"><User className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input className={`${inputCls} pl-10`} value={fullName} onChange={(e) => setFullName(e.target.value)} required /></div></label><button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black text-white text-sm font-medium">Verify information <ArrowRight className="w-4 h-4" /></button></form></motion.div>}
 
       {step === "verifying" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /><p className="text-sm mt-4">Verifying your information…</p></div>}
 
