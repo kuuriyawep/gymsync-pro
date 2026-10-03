@@ -29,6 +29,14 @@ export default async function(req: Request): Promise<Response> {
     if (['recordPayment', 'updatePayment', 'deletePayment'].includes(operation) && !writePayments) return deny();
     if (['createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation) && !writePlans) return deny();
 
+    // A payment entered for today should show as "just now", not "16 hours
+    // ago" because its time got forced to midnight UTC. Genuinely backdated
+    // entries (owner catching up on an old cash payment) keep the plain
+    // date, since day-level accuracy is all that matters there.
+    const resolvePaidAt = (dateStr: string) => {
+      const today = new Date().toISOString().slice(0, 10);
+      return dateStr === today ? new Date().toISOString() : `${dateStr}T00:00:00Z`;
+    };
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');
     const memberStatus = (value: string) => value === 'Suspended' ? 'suspended' : 'active';
     const ensurePlan = async (name: string, price: number) => {
@@ -124,7 +132,7 @@ export default async function(req: Request): Promise<Response> {
       // The real payment record keeps the full amount actually paid (even if
       // it exceeds amountDue) — only the membership's running balance is
       // capped, the payment history itself is never altered.
-      if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: `${input.startDate}T00:00:00Z` });
+      if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: resolvePaidAt(input.startDate) });
     }
 
     if (operation === 'update') {
@@ -165,7 +173,7 @@ export default async function(req: Request): Promise<Response> {
       const memberships = await select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc&limit=1`);
       const membership = memberships[0] || null;
       const reference = `TXN-${Date.now()}`;
-      await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: `${input.date}T00:00:00Z` });
+      await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: resolvePaidAt(input.date) });
       if (membership) {
         const amountDue = Number(membership.amount_due || 0);
         const nextPaid = Math.min(amountDue, Number(membership.amount_paid || 0) + amount);
@@ -187,7 +195,7 @@ export default async function(req: Request): Promise<Response> {
         amount,
         method: normalizeMethod(String(body.method || 'Cash')),
         note: String(body.notes || '').slice(0, 500),
-        paid_at: `${dateRaw}T00:00:00Z`
+        paid_at: resolvePaidAt(dateRaw)
       });
       // Recalculate the linked membership's amount_paid
       if (payment.membership_id) {
