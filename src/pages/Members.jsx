@@ -54,6 +54,17 @@ export default function Members() {
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
+  const analytics = useGymAnalytics();
+
+  // Membership plans configured by the owner on the Membership page.
+  const activePlans = useMemo(
+    () => (analytics?.plans || []).filter((p) => p.status === "Active"),
+    [analytics]
+  );
+  const selectedPlan = useMemo(
+    () => activePlans.find((p) => p.name === form.plan) || null,
+    [activePlans, form.plan]
+  );
 
   const duplicatePhoneMember = useMemo(() => {
     const normalized = normalizePhone(form.phone);
@@ -364,7 +375,7 @@ export default function Members() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div><label className={labelCls}>Membership Plan</label>
                 <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-                  {activePlans.length === 0 && <option value={form.plan}>{form.plan || "No plans available"}</option>}
+                  {!selectedPlan && <option value={form.plan}>{form.plan || "No plans available"}</option>}
                   {activePlans.map((p) => <option key={p.id} value={p.name}>{p.name} — ${p.price}</option>)}
                 </select></div>
               <div><label className={labelCls}>Start Date</label>
