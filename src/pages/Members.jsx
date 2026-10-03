@@ -54,7 +54,6 @@ export default function Members() {
   const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
-  const analytics = useGymAnalytics();
 
   // Membership plans configured by the owner on the Membership page.
   const activePlans = useMemo(
@@ -94,11 +93,6 @@ export default function Members() {
     });
     return list;
   }, [members, query, filter, sort]);
-
-  // Only plans the owner has actually set up (with a real price) are
-  // selectable — never a hardcoded list, and never a manually-typed amount.
-  const activePlans = useMemo(() => (analytics.plans || []).filter((p) => p.status === "Active"), [analytics.plans]);
-  const selectedPlan = useMemo(() => activePlans.find((p) => p.name === form.plan) || null, [activePlans, form.plan]);
 
   const openAdd = () => {
     setActionMode("edit");
