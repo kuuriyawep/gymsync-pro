@@ -19,9 +19,9 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
         <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
         }
         <div className="flex items-center justify-center gap-4 mt-6 text-sm text-muted-foreground">
-          <Link to="/about" className="hover:text-foreground transition-colors hidden">About</Link>
+          
           <span className="text-border">·</span>
-          <Link to="/contact" className="hover:text-foreground transition-colors hidden">Contact</Link>
+          
         </div>
       </div>
     </div>);
