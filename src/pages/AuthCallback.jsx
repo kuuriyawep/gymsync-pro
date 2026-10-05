@@ -47,7 +47,16 @@ export default function AuthCallback() {
 
         if (cancelled) return;
 
-        if (profile?.role === "member" || member?.id) {
+        if (profile?.role === "member") {
+          if (member?.id || profile.gym_id) {
+            window.location.replace("/member");
+          } else {
+            window.location.replace("/join-gym");
+          }
+          return;
+        }
+
+        if (member?.id) {
           window.location.replace("/member");
           return;
         }
