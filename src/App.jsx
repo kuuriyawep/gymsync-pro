@@ -15,6 +15,7 @@ import Dashboard from '@/pages/Dashboard';
 import Members from '@/pages/Members';
 import MemberDetails from '@/pages/MemberDetails';
 import Login from '@/pages/Login';
+import AuthCallback from '@/pages/AuthCallback';
 import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Add your page Route elements here */}
       <Route path="/login" element={<Login />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
