@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -65,14 +65,15 @@ export default async function(req: Request): Promise<Response> {
       if (!member) return null;
       const gymFilter = encodeURIComponent(member.gym_id);
       const memberFilter = encodeURIComponent(member.id);
-      const [gyms, memberships, plans, payments, attendance, notifications, feedback] = await Promise.all([
+      const [gyms, memberships, plans, payments, attendance, notifications, feedback, messages] = await Promise.all([
         select('gyms', `id=eq.${gymFilter}&select=*&limit=1`),
         select('memberships', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`),
         select('payments', `member_id=eq.${memberFilter}&select=*&order=paid_at.desc`),
         select('attendance', `member_id=eq.${memberFilter}&select=*&order=check_in_at.desc`),
         select('notifications', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
-        select('feedback_requests', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`)
+        select('feedback_requests', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
+        select('member_messages', `member_id=eq.${memberFilter}&select=*&order=sent_at.desc&limit=20`)
       ]);
       const membership = memberships[0] || null;
       const plan = plans.find((item: any) => item.id === membership?.plan_id);
@@ -89,7 +90,8 @@ export default async function(req: Request): Promise<Response> {
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
-        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title, body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null }))
+        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title, body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
+        messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
     };
 
@@ -246,6 +248,7 @@ export default async function(req: Request): Promise<Response> {
     const ownerOnly = new Set(['listStaff', 'inviteStaff', 'revokeStaff', 'updateGymProfile', 'deleteAccount']);
     if (ownerOnly.has(operation) && access.role !== 'owner') return deny();
     if (operation === 'getGymProfile' && !hasPermission(access, 'gym.read')) return deny();
+    if (operation === 'sendMessage' && !hasPermission(access, 'members.write')) return deny();
     const gymProfile = (row: any) => ({
       id: row.id,
       name: row.name || '',
@@ -256,6 +259,18 @@ export default async function(req: Request): Promise<Response> {
     });
 
     if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
+
+    if (operation === 'sendMessage') {
+      const memberId = String(body.memberId || '').trim();
+      const message = String(body.message || '').trim();
+      if (!memberId || !message) return Response.json({ error: 'Member and message are required' }, { status: 400 });
+      if (message.length > 1000) return Response.json({ error: 'Message is too long' }, { status: 400 });
+      const owned = await select('members', `id=eq.${encodeURIComponent(memberId)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id&limit=1`);
+      if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const senderId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(access.userId)) ? access.userId : null;
+      const row = (await insert('member_messages', { gym_id: gym.id, member_id: memberId, sender_id: senderId, message, channel: 'in_app' }))[0];
+      return Response.json({ success: true, message: { id: row.id, message: row.message, channel: row.channel, sentAt: row.sent_at || row.created_at } });
+    }
 
     if (operation === 'updateGymProfile') {
       const input = body.gym || {};
