@@ -3,6 +3,16 @@ import { Apple, Loader2 } from "lucide-react";
 import GoogleIcon from "@/components/GoogleIcon";
 import { supabase } from "@/lib/supabaseClient";
 
+const PRODUCTION_APP_ORIGIN = "https://gym-sync-pro-634080e3.base44.app";
+
+function getOAuthRedirectUrl(destination) {
+  // Always return OAuth to the published app, never to a Base44 editor/preview
+  // origin. This prevents Google/Apple from falling back to the builder UI when
+  // auth is initiated from a preview surface.
+  const path = new URL(destination || "/", PRODUCTION_APP_ORIGIN);
+  return path.toString();
+}
+
 export default function SocialAuthButtons({ redirectTo, onError }) {
   const [loading, setLoading] = useState("");
 
@@ -14,7 +24,7 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: new URL(destination, window.location.origin).toString(),
+          redirectTo: getOAuthRedirectUrl(destination),
         },
       });
       if (error) throw error;
