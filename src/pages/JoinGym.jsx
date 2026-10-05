@@ -36,11 +36,21 @@ export default function JoinGym() {
     setError("");
     setStep("creatingAccount");
     try {
-      const { error: signUpError } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password });
-      if (signUpError) throw signUpError;
+      const normalizedEmail = email.trim().toLowerCase();
+      // Use Supabase's email OTP flow here. The previous implementation used
+      // signUp(), while the UI expected a 6-digit OTP from the confirmation
+      // email. signUp() normally uses the Confirm signup template/link, so the
+      // two flows did not match.
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+      if (otpError) throw otpError;
       setStep("otp");
     } catch (err) {
-      setError(err.message || "Could not create your account");
+      setError(err.message || "Could not send your verification code");
       setStep("account");
     }
   };
@@ -49,10 +59,19 @@ export default function JoinGym() {
     setError("");
     setStep("verifyingOtp");
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ email: email.trim().toLowerCase(), token: otpCode, type: "signup" });
+      const normalizedEmail = email.trim().toLowerCase();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: otpCode,
+        type: "email",
+      });
       if (verifyError) throw verifyError;
-      // verifyOtp establishes the session directly — AuthContext's
-      // onAuthStateChange picks it up; we just move to the phone/code step.
+
+      // OTP verification creates the authenticated session. Now attach the
+      // password the member chose so normal email/password login works later.
+      const { error: passwordError } = await supabase.auth.updateUser({ password });
+      if (passwordError) throw passwordError;
+
       setStep("form");
     } catch (err) {
       setError(err.message || "Invalid verification code");
@@ -63,10 +82,15 @@ export default function JoinGym() {
   const resendOtp = async () => {
     setError("");
     try {
-      const { error: resendError } = await supabase.auth.resend({ type: "signup", email: email.trim().toLowerCase() });
+      const { error: resendError } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          shouldCreateUser: true,
+        },
+      });
       if (resendError) throw resendError;
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(err.message || "Failed to resend verification code");
     }
   };
 
