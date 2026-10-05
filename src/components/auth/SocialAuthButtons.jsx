@@ -24,7 +24,13 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
       // intended destination locally instead of putting query parameters on
       // redirectTo, which can fail an exact Supabase redirect-URL match.
       try {
-        window.localStorage.setItem("gymsync.oauth_return_to", destination);
+        const intentUrl = new URL(destination, window.location.origin);
+        const next = intentUrl.searchParams.get("next") || "";
+        const returnTo = intentUrl.searchParams.get("returnTo") || "";
+        window.localStorage.setItem(
+          "gymsync.oauth_intent",
+          JSON.stringify({ next, returnTo })
+        );
       } catch {
         // localStorage may be unavailable in privacy-restricted browsers;
         // AuthCallback safely falls back to the default route.
