@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/EmptyState";
 import { useToast } from "@/components/ui/use-toast";
-import { MessageSquare, AlertCircle, Lightbulb, Dumbbell, UserCog } from "lucide-react";
-import { memberRequests as seed } from "@/lib/memberMockData";
+import { MessageSquare, AlertCircle, Lightbulb, Dumbbell, UserCog, RefreshCw } from "lucide-react";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const typeIcon = { Feedback: MessageSquare, Complaint: AlertCircle, "Feature Request": Lightbulb, "Machine Request": Dumbbell, "Coach Request": UserCog };
 const statusTone = {
@@ -19,35 +19,55 @@ const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white 
 
 export default function Feedback() {
   const { toast } = useToast();
-  const [items, setItems] = useState(seed);
+  const [items, setItems] = useState([]);
   const [filter, setFilter] = useState("All");
   const [active, setActive] = useState(null);
   const [response, setResponse] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const result = await invokeWithAuth("gymAccess", { operation: "listFeedback" });
+      setItems(result?.data?.feedback || []);
+    } catch (error) {
+      toast({ title: "Could not load feedback", description: error?.response?.data?.error || error?.message || "Please try again." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
 
   const filtered = filter === "All" ? items : items.filter((r) => r.status === filter);
 
   const open = (r) => { setActive(r); setResponse(r.response || ""); };
-  const save = () => {
+  const save = async () => {
+    if (!active) return;
     setSaving(true);
-    setTimeout(() => {
-      setItems((rs) => rs.map((r) => (r.id === active.id ? { ...r, response: response.trim() || null, status: r.status === "Pending" ? "Under Review" : r.status } : r)));
-      setSaving(false);
+    try {
+      await invokeWithAuth("gymAccess", { operation: "updateFeedback", id: active.id, response: response.trim(), status: active.status });
       toast({ title: "Response sent", description: `${active.title} updated.` });
       setActive(null);
-    }, 600);
+      await load();
+    } catch (error) {
+      toast({ title: "Update failed", description: error?.response?.data?.error || error?.message || "Please try again." });
+    } finally {
+      setSaving(false);
+    }
   };
-  const setStatus = (status) => {
-    setItems((rs) => rs.map((r) => (r.id === active.id ? { ...r, status } : r)));
-    setActive({ ...active, status });
-  };
+  const setStatus = (status) => setActive((current) => current ? { ...current, status } : current);
 
   return (
     <Layout>
       <div className="space-y-5">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Member Feedback</h1>
-          <p className="text-sm text-black/50 mt-0.5">Feedback and requests from your gym members</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Member Feedback</h1>
+            <p className="text-sm text-black/50 mt-0.5">Feedback and requests from your gym members</p>
+          </div>
+          <button onClick={load} disabled={loading} className="p-2 rounded-lg border border-black/10 hover:bg-black/5 disabled:opacity-50" aria-label="Refresh feedback"><RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} /></button>
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
@@ -56,7 +76,9 @@ export default function Feedback() {
           ))}
         </div>
 
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-28 rounded-xl bg-black/5 animate-pulse" />)}</div>
+        ) : filtered.length === 0 ? (
           <EmptyState icon={MessageSquare} title="No feedback here" description="Member feedback will appear here as it comes in." />
         ) : (
           <div className="space-y-3">
@@ -72,7 +94,7 @@ export default function Feedback() {
                   <p className="text-sm font-semibold">{r.title}</p>
                   <p className="text-sm text-black/50 mt-1 line-clamp-2">{r.body}</p>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5">
-                    <span className="text-xs text-black/40">{r.date}</span>
+                    <span className="text-xs text-black/40">{r.member?.name || "Member"} · {r.date}</span>
                     {r.response ? <span className="text-xs text-black/60 truncate ml-3">Gym: {r.response}</span> : <span className="text-xs text-black/40">Tap to respond</span>}
                   </div>
                 </button>
@@ -91,8 +113,9 @@ export default function Feedback() {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-black/40">{active.type}</span>
-              <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusTone[active.status]}`}>{active.status}</span>
+              <span className={`ml-auto px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusTone[active.status] || "bg-black/5 text-black/60"}`}>{active.status}</span>
             </div>
+            <div className="text-xs text-black/40">{active.member?.name || "Member"}{active.member?.phone ? ` · ${active.member.phone}` : ""}</div>
             <p className="text-sm text-black/60">{active.body}</p>
             <div>
               <label className="block text-sm font-medium mb-1.5">Your response</label>
