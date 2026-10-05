@@ -18,22 +18,23 @@ export default function AuthCallback() {
 
         // Prefer the intent saved before the OAuth redirect. Keep support for
         // legacy query parameters so older links do not break.
-        let storedReturnTo = null;
+        let storedIntent = null;
         try {
-          storedReturnTo = window.localStorage.getItem("gymsync.oauth_return_to");
-          window.localStorage.removeItem("gymsync.oauth_return_to");
+          const rawIntent = window.localStorage.getItem("gymsync.oauth_intent");
+          window.localStorage.removeItem("gymsync.oauth_intent");
+          storedIntent = rawIntent ? JSON.parse(rawIntent) : null;
         } catch {
           // Fall back to query params/default below.
         }
 
         const next = normalizeNext(
-          params.get("next") || (storedReturnTo?.includes("next=member") ? "member" : "owner")
+          params.get("next") || storedIntent?.next || "owner"
         );
         const requestedReturnTo = params.get("returnTo");
         const returnTo = requestedReturnTo
           ? safeReturnToFromValue(requestedReturnTo)
-          : storedReturnTo
-            ? safeReturnToFromValue(storedReturnTo)
+          : storedIntent?.returnTo
+            ? safeReturnToFromValue(storedIntent.returnTo)
             : "/";
 
         const { data, error: sessionError } = await supabase.auth.getSession();
