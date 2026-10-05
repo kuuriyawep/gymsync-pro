@@ -90,7 +90,7 @@ export default async function(req: Request): Promise<Response> {
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
-        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.subject || '', body: item.message || '', status: item.status === 'open' ? 'Pending' : item.status === 'in_progress' ? 'Under Review' : item.status === 'approved' ? 'Approved' : item.status === 'resolved' ? 'Completed' : item.status === 'rejected' ? 'Rejected' : item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
+        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title || '', body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
     };
