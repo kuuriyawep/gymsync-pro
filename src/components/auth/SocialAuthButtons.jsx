@@ -6,10 +6,11 @@ import { supabase } from "@/lib/supabaseClient";
 const PRODUCTION_APP_ORIGIN = "https://gym-sync-pro-634080e3.base44.app";
 
 function getOAuthRedirectUrl() {
-  // Keep the OAuth callback URL exact and stable. Supabase's redirect allow-list
-  // is configured for this path; the requested destination is stored locally
-  // before leaving for Google/Apple and restored by AuthCallback.
-  return new URL("/auth/callback", PRODUCTION_APP_ORIGIN).toString();
+  // Never derive this from window.location.origin: inside the Base44 Editor
+  // that origin is app.base44.com, which is not the production app callback.
+  // Use the deployed app origin explicitly for every Google/Apple OAuth flow.
+  const appOrigin = (import.meta.env.VITE_BASE44_APP_BASE_URL || PRODUCTION_APP_ORIGIN).replace(/\\/$/, "");
+  return new URL("/auth/callback", appOrigin).toString();
 }
 
 export default function SocialAuthButtons({ redirectTo, onError }) {
