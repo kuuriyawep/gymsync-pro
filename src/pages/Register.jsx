@@ -30,13 +30,14 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      // signUp() does not establish a usable session until the email is
-      // verified — same "unverified until OTP" shape as before.
-      const { error: signUpError } = await supabase.auth.signUp({
+      // Use Supabase's email OTP flow so the UI's 6-digit verification step
+      // matches the actual mailer behavior. The password is attached after
+      // OTP verification because signInWithOtp does not take a password.
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        password,
+        options: { shouldCreateUser: true },
       });
-      if (signUpError) throw signUpError;
+      if (otpError) throw otpError;
       setShowOtp(true);
     } catch (err) {
       setError(err.message || "Registration failed");
@@ -52,11 +53,14 @@ export default function Register() {
       const { error: verifyError } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
         token: otpCode,
-        type: "signup",
+        type: "email",
       });
       if (verifyError) throw verifyError;
-      // verifyOtp establishes the session directly on success — AuthContext's
-      // onAuthStateChange listener picks it up, no manual token handling needed.
+
+      const { error: passwordError } = await supabase.auth.updateUser({ password });
+      if (passwordError) throw passwordError;
+      // OTP verification establishes the session; AuthContext's
+      // onAuthStateChange listener picks it up automatically.
       try {
         base44.analytics.track({ eventName: "owner_signup_completed" });
       } catch {
@@ -72,9 +76,9 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
+      const { error: resendError } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
+        options: { shouldCreateUser: true },
       });
       if (resendError) throw resendError;
       toast({ title: "Code sent", description: "Check your email for the new code." });
