@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -90,7 +90,7 @@ export default async function(req: Request): Promise<Response> {
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
-        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title, body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
+        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.subject || '', body: item.message || '', status: item.status === 'open' ? 'Pending' : item.status === 'in_progress' ? 'Under Review' : item.status === 'resolved' ? 'Completed' : item.status === 'rejected' ? 'Rejected' : item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
     };
@@ -211,8 +211,41 @@ export default async function(req: Request): Promise<Response> {
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
-      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, type: input.type, title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
+      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: String(input.type || 'Feedback').trim(), subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' });
       return Response.json({ member: await loadMemberData() });
+    }
+
+    if (operation === 'listFeedback') {
+      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(gym.id)}&select=*&order=created_at.desc`);
+      const memberIds = [...new Set(rows.map((item: any) => item.member_id).filter(Boolean))];
+      let members: any[] = [];
+      if (memberIds.length) members = await select('members', `id=in.(${memberIds.map((id) => encodeURIComponent(id)).join(',')})&select=id,full_name,phone,email`);
+      const memberMap = new Map(members.map((member: any) => [member.id, member]));
+      return Response.json({ feedback: rows.map((item: any) => {
+        const member = memberMap.get(item.member_id) || {};
+        const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Completed', rejected: 'Rejected' };
+        return { id: item.id, type: item.type, title: item.subject || '', body: item.message || '', status: statusMap[item.status] || item.status, date: String(item.created_at).slice(0, 10), response: item.response || null, member: { id: item.member_id, name: member.full_name || 'Member', phone: member.phone || '', email: member.email || '' } };
+      }) });
+    }
+
+    if (operation === 'updateFeedback') {
+      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      const id = String(body.id || '').trim();
+      const responseText = String(body.response || '').trim();
+      const statusInput = String(body.status || '').trim();
+      if (!id) return Response.json({ error: 'Feedback item is required' }, { status: 400 });
+      const statusMap: Record<string, string> = { Pending: 'open', 'Under Review': 'in_progress', Approved: 'in_progress', Rejected: 'rejected', Completed: 'resolved' };
+      const values: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (statusInput && statusMap[statusInput]) values.status = statusMap[statusInput];
+      if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; values.responded_at = new Date().toISOString(); }
+      const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,subject,message,status,response&limit=1`);
+      if (!rows[0]) return Response.json({ error: 'Feedback not found' }, { status: 404 });
+      const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, values))[0];
+      if (responseText && updated?.member_id) {
+        await insert('notifications', { member_id: updated.member_id, gym_id: gym.id, title: 'Gym responded to your feedback', body: responseText.slice(0, 500), read: false });
+      }
+      return Response.json({ success: true });
     }
 
     if (operation === 'createOwnerGym') {
