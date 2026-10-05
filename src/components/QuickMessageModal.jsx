@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/use-toast";
 import { Send } from "lucide-react";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 
@@ -36,14 +37,19 @@ export default function QuickMessageModal({ open, onClose, member }) {
 
   if (!member) return null;
 
-  const send = () => {
-    if (!body.trim()) return;
+  const send = async () => {
+    const message = body.trim();
+    if (!message || !member?.id) return;
     setSending(true);
-    setTimeout(() => {
-      setSending(false);
+    try {
+      await invokeWithAuth("gymAccess", { operation: "sendMessage", memberId: member.id, message });
       onClose();
-      toast({ title: "Message prepared", description: `Saved to ${member.name}'s record (demo).` });
-    }, 600);
+      toast({ title: "Message sent", description: `${member.name} will see it in their member app.` });
+    } catch (error) {
+      toast({ title: "Message failed", description: error?.response?.data?.error || error?.message || "Could not send the message." });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -68,8 +74,12 @@ export default function QuickMessageModal({ open, onClose, member }) {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Message</label>
-          <textarea rows={5} className={inputCls} value={body} onChange={(e) => setBody(e.target.value)} />
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-sm font-medium">Message</label>
+            <span className="text-[11px] text-black/40">In-app · {body.length}/1000</span>
+          </div>
+          <textarea rows={5} maxLength={1000} className={inputCls} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message to this member…" />
+          <p className="text-xs text-black/40 mt-1.5">The member will receive this message inside GymSync.</p>
         </div>
       </div>
     </Modal>
