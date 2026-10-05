@@ -62,7 +62,14 @@ export default function Login() {
       }>
       
       <Toggle />
-      <SocialAuthButtons redirectTo={role === "member" ? "/join-gym" : returnTo} onError={setError} />
+      <SocialAuthButtons
+        redirectTo={
+          role === "member"
+            ? "/auth/callback?next=member"
+            : "/auth/callback?next=owner&returnTo=" + encodeURIComponent(returnTo)
+        }
+        onError={setError}
+      />
       <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">or</span></div></div>
       {error && <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{error}</div>}
       <form onSubmit={handleSubmit} className="space-y-4">
