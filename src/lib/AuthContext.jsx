@@ -40,9 +40,50 @@ export const AuthProvider = ({ children }) => {
       if (requestId !== roleRequestId.current) return; // superseded
       if (error) throw error;
 
-      setProfile(data ?? null);
-      setRole(data?.role ?? null);
-      setRoles(data?.role ? [data.role] : []);
+      let resolvedProfile = data ?? null;
+      let resolvedRole = data?.role ?? null;
+
+      // A member can already be linked in members even if an older auth flow
+      // left profiles.gym_id empty or the profile row was not created yet.
+      // Use the linked membership as a safe member-role fallback.
+      if (!resolvedRole) {
+        const { data: member } = await supabase
+          .from("members")
+          .select("id, gym_id, full_name, email")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (member?.id) {
+          resolvedRole = "member";
+          resolvedProfile = {
+            id: userId,
+            role: "member",
+            gym_id: member.gym_id,
+            full_name: member.full_name,
+            email: member.email || data?.email || null,
+            ...(data || {}),
+          };
+        }
+      } else if (resolvedRole === "member" && !resolvedProfile.gym_id) {
+        const { data: member } = await supabase
+          .from("members")
+          .select("gym_id, full_name, email")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (member?.gym_id) {
+          resolvedProfile = {
+            ...resolvedProfile,
+            gym_id: member.gym_id,
+            full_name: member.full_name || resolvedProfile.full_name,
+            email: member.email || resolvedProfile.email,
+          };
+        }
+      }
+
+      setProfile(resolvedProfile);
+      setRole(resolvedRole);
+      setRoles(resolvedRole ? [resolvedRole] : []);
     } catch (error) {
       if (requestId !== roleRequestId.current) return;
       setRoleError(error?.message || "Role resolution failed");
