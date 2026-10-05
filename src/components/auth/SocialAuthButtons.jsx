@@ -9,7 +9,7 @@ function getOAuthRedirectUrl() {
   // Never derive this from window.location.origin: inside the Base44 Editor
   // that origin is app.base44.com, which is not the production app callback.
   // Use the deployed app origin explicitly for every Google/Apple OAuth flow.
-  const appOrigin = (import.meta.env.VITE_BASE44_APP_BASE_URL || PRODUCTION_APP_ORIGIN).replace(/\\/$/, "");
+  const appOrigin = (import.meta.env.VITE_BASE44_APP_BASE_URL || PRODUCTION_APP_ORIGIN).replace(/\/$/, "");
   return new URL("/auth/callback", appOrigin).toString();
 }
 
