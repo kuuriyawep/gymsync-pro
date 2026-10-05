@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { safeReturnTo } from "@/lib/authReturnTo";
 
 function normalizeNext(value) {
   return value === "member" ? "member" : "owner";
