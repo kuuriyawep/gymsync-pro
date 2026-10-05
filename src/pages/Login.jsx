@@ -28,7 +28,9 @@ export default function Login() {
       });
       if (signInError) throw signInError;
       // Session is set by the SDK automatically — hard redirect to post-login destination
-      window.location.href = role === "member" ? "/join-gym" : returnTo;
+      window.location.href = role === "member"
+        ? "/auth/callback?next=member"
+        : returnTo;
     } catch (err) {
       setError(err.message || "Invalid email or password");
       setLoading(false);
