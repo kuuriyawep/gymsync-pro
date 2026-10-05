@@ -18,11 +18,7 @@ export default function AuthCallback() {
         const params = new URLSearchParams(window.location.search);
         const next = normalizeNext(params.get("next"));
         const requestedReturnTo = params.get("returnTo");
-        const returnTo = requestedReturnTo
-          ? new URLSearchParams(`?returnTo=${requestedReturnTo}`).toString()
-            ? safeReturnToFromValue(requestedReturnTo)
-            : "/"
-          : "/";
+        const returnTo = requestedReturnTo ? safeReturnToFromValue(requestedReturnTo) : "/";
 
         const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
