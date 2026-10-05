@@ -116,7 +116,7 @@ export default function JoinGym() {
         <h1 className="text-2xl font-bold">Create your account</h1>
         <p className="text-sm text-black/50 mt-1 mb-6">First, set up your login — then we'll verify your gym membership.</p>
         {error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}
-        <SocialAuthButtons redirectTo="/join-gym" onError={setError} />
+        <SocialAuthButtons redirectTo="/auth/callback?next=member" onError={setError} />
         <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-black/10" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-3 text-black/40">or</span></div></div>
         <form onSubmit={createAccount} className="space-y-4">
           <label className="block text-sm font-medium">Email<div className="relative mt-1.5"><Mail className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input type="email" autoComplete="email" className={`${inputCls} pl-10`} value={email} onChange={(e) => setEmail(e.target.value)} required /></div></label>
