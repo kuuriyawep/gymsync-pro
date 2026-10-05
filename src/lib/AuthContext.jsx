@@ -56,12 +56,12 @@ export const AuthProvider = ({ children }) => {
         if (member?.id) {
           resolvedRole = "member";
           resolvedProfile = {
+            ...(data || {}),
             id: userId,
             role: "member",
             gym_id: member.gym_id,
-            full_name: member.full_name,
+            full_name: member.full_name || data?.full_name || null,
             email: member.email || data?.email || null,
-            ...(data || {}),
           };
         }
       } else if (resolvedRole === "member" && !resolvedProfile.gym_id) {
