@@ -5,12 +5,11 @@ import { supabase } from "@/lib/supabaseClient";
 
 const PRODUCTION_APP_ORIGIN = "https://gym-sync-pro-634080e3.base44.app";
 
-function getOAuthRedirectUrl(destination) {
-  // Always return OAuth to the published app, never to a Base44 editor/preview
-  // origin. This prevents Google/Apple from falling back to the builder UI when
-  // auth is initiated from a preview surface.
-  const path = new URL(destination || "/", PRODUCTION_APP_ORIGIN);
-  return path.toString();
+function getOAuthRedirectUrl() {
+  // Keep the OAuth callback URL exact and stable. Supabase's redirect allow-list
+  // is configured for this path; the requested destination is stored locally
+  // before leaving for Google/Apple and restored by AuthCallback.
+  return new URL("/auth/callback", PRODUCTION_APP_ORIGIN).toString();
 }
 
 export default function SocialAuthButtons({ redirectTo, onError }) {
@@ -21,10 +20,20 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
     onError("");
     try {
       const destination = redirectTo || "/";
+      // OAuth providers return to the exact allow-listed callback. Persist the
+      // intended destination locally instead of putting query parameters on
+      // redirectTo, which can fail an exact Supabase redirect-URL match.
+      try {
+        window.localStorage.setItem("gymsync.oauth_return_to", destination);
+      } catch {
+        // localStorage may be unavailable in privacy-restricted browsers;
+        // AuthCallback safely falls back to the default route.
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: getOAuthRedirectUrl(destination),
+          redirectTo: getOAuthRedirectUrl(),
         },
       });
       if (error) throw error;
