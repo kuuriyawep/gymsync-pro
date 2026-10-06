@@ -103,7 +103,19 @@ export default function JoinGym() {
       await reloadRole();
       setStep("success");
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || "Verification failed");
+      const code = err?.response?.data?.error || err?.code || err?.message || "";
+      const messages = {
+        member_not_found: "We couldn't find a gym member with that phone number.",
+        name_mismatch: "The phone number is registered, but the full name does not match the gym's record.",
+        account_already_linked: "This account is already linked to another gym membership. Sign out and use the Google/email account that belongs to this member.",
+        link_failed: "We couldn't link this account to the membership. Please try again.",
+        profile_link_failed: "Your membership was found, but your member profile could not be completed. Please try again.",
+        multiple_members_for_phone: "This phone number is linked to more than one member record. Please ask the gym owner to correct the records.",
+        member_account_required: "Please use a member account for Join Gym.",
+        rate_limited: "Too many attempts. Please wait a few minutes and try again.",
+        authentication_required: "Your sign-in session has expired. Please sign in again.",
+      };
+      setError(messages[code] || (String(code).includes("non-2xx") ? "Membership verification could not be completed. Please check your member details and try again." : String(code) || "Verification failed"));
       setStep("error");
     }
   };
