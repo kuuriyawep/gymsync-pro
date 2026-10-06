@@ -101,7 +101,12 @@ export async function createMemberFeedback(feedback) {
     "Coach Request": "coach_request",
   };
 
-  const { data: created, error: insertError } = await supabase
+  // Insert without requesting the inserted row back. The member RLS policy
+  // allows the write, but a PostgREST INSERT ... RETURNING can be filtered by
+  // the SELECT policy and then .single() turns that successful write into a
+  // misleading 400/500-style error. The gymAccess service path already reads
+  // feedback with the service role, so the next portal refresh can load it.
+  const { error: insertError } = await supabase
     .from("feedback_requests")
     .insert({
       gym_id: memberRow.gym_id,
@@ -113,9 +118,7 @@ export async function createMemberFeedback(feedback) {
       message: body,
       status: "open",
       priority: "normal",
-    })
-    .select("id,gym_id,member_id,user_id,channel,type,subject,message,status,priority,response,created_at,updated_at")
-    .single();
+    });
 
   if (insertError) {
     throw new Error(insertError.message || "Your request could not be submitted.");
@@ -125,12 +128,12 @@ export async function createMemberFeedback(feedback) {
   // after a successful insert; a secondary read failure must never show a
   // false submission error.
   const createdFeedback = {
-    id: created.id,
+    id: `local-${Date.now()}`,
     type,
-    title: created.subject || title,
-    body: created.message || body,
+    title,
+    body,
     status: "Pending",
-    date: String(created.created_at || new Date().toISOString()).slice(0, 10),
+    date: new Date().toISOString().slice(0, 10),
     response: null,
   };
   if (state.data) {
