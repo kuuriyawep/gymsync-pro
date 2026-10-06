@@ -23,6 +23,17 @@ export default async function(req: Request): Promise<Response> {
     const readPayments = hasPermission(access, 'payments.read');
     const writePayments = hasPermission(access, 'payments.write');
     const writePlans = hasPermission(access, 'plans.write');
+    const notificationEnabled = (key: string) => Boolean(gym.settings?.notifications?.[key] ?? true);
+    const notifyOwner = async (key: string, title: string, message: string) => {
+      if (!notificationEnabled(key) || !gym.owner_id) return;
+      await insert('notifications', {
+        gym_id: gym.id,
+        user_id: gym.owner_id,
+        type: key,
+        title,
+        message: message.slice(0, 500),
+      });
+    };
     if (operation === 'bootstrap' && !readMembers && !readPayments) return deny();
     if (operation === 'memberDetails' && !readMembers) return deny();
     if (['create', 'update', 'delete'].includes(operation) && !writeMembers) return deny();
@@ -132,7 +143,11 @@ export default async function(req: Request): Promise<Response> {
       // The real payment record keeps the full amount actually paid (even if
       // it exceeds amountDue) — only the membership's running balance is
       // capped, the payment history itself is never altered.
-      if (amountPaid > 0) await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: resolvePaidAt(input.startDate) });
+      if (amountPaid > 0) {
+        await insert('payments', { gym_id: gym.id, member_id: member.id, membership_id: membership.id, amount: amountPaid, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${next}`, note: 'Initial membership payment', paid_at: resolvePaidAt(input.startDate) });
+        await notifyOwner('payments', 'Payment received', `${member.full_name} paid $${Number(amountPaid).toLocaleString()}`);
+      }
+      await notifyOwner('newMembers', 'New member registered', `${member.full_name} joined ${gym.name}`);
     }
 
     if (operation === 'update') {
@@ -174,6 +189,8 @@ export default async function(req: Request): Promise<Response> {
       const membership = memberships[0] || null;
       const reference = `TXN-${Date.now()}`;
       await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: resolvePaidAt(input.date) });
+      const memberRows = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=full_name&limit=1`);
+      await notifyOwner('payments', 'Payment received', `${memberRows[0]?.full_name || 'A member'} paid $${Number(amount).toLocaleString()}`);
       if (membership) {
         const amountDue = Number(membership.amount_due || 0);
         const nextPaid = Math.min(amountDue, Number(membership.amount_paid || 0) + amount);
