@@ -21,8 +21,27 @@ export async function loadMemberPortal(force = false) {
   return pending;
 }
 export async function joinGym(phone, fullName) {
+  // Make the member-link request explicit about the current Supabase session.
+  // This avoids intermittent 401/authentication_required failures after OAuth
+  // redirects or when the browser has not refreshed the session yet.
+  let { data: sessionData } = await supabase.auth.getSession();
+  let session = sessionData?.session ?? null;
+
+  if (!session) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) throw new Error("Your sign-in session expired. Please sign in again.");
+    session = refreshed?.session ?? null;
+  }
+
+  if (!session?.access_token) {
+    throw new Error("Your sign-in session is missing. Please sign in again before joining the gym.");
+  }
+
   const { data, error } = await supabase.functions.invoke("join-gym", {
     body: { phone, fullName },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error) {
