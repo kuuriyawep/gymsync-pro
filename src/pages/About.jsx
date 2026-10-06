@@ -34,7 +34,7 @@ export default function About() {
             your workflow and helps you stay on top of the operational details that matter most:
             who has paid, whose membership is expiring, and how your revenue is trending over time.
           </p>
-          <p>
+          <p className="text-left uppercase">
             GymSync Pro is built by a team passionate about fitness and technology. We believe
             that independent gym owners deserve access to the same powerful software tools that
             large chains use, without the steep learning curve or prohibitive pricing. Our
