@@ -3,6 +3,7 @@ import { Inbox, UserX, Clock, UserPlus, DollarSign, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNowStrict, format } from "date-fns";
 import { useMembers, useGymAnalytics, useMembersLoaded } from "@/lib/memberStore";
+import { useGym } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 
 const iconFor = { expired: UserX, expiring: Clock, member: UserPlus, payment: DollarSign, pending: DollarSign, overdue: DollarSign };
@@ -22,6 +23,7 @@ export default function NotificationsMenu() {
   });
   const members = useMembers();
   const analytics = useGymAnalytics();
+  const gym = useGym();
   const loaded = useMembersLoaded();
   const { roles } = useAuth();
   const canViewWorkspaceNotifications = roles.includes("owner") || roles.includes("staff");
@@ -31,15 +33,17 @@ export default function NotificationsMenu() {
     const notifications = [];
     members.forEach((member) => {
       const expiry = member.expiryDate ? new Date(`${member.expiryDate}T23:59:59`) : null;
-      if (expiry && !Number.isNaN(expiry.getTime()) && member.status === "Expired") notifications.push({ id: `expired-${member.id}-${member.expiryDate}`, type: "expired", title: "Membership expired", description: `${member.name}'s membership expired on ${format(expiry, "MMM d, yyyy")}`, occurredAt: expiry.toISOString() });
-      if (expiry && !Number.isNaN(expiry.getTime()) && member.status === "Expiring Soon") notifications.push({ id: `expiring-${member.id}-${member.expiryDate}`, type: "expiring", title: "Membership expires soon", description: `${member.name}'s membership expires on ${format(expiry, "MMM d, yyyy")}`, occurredAt: member.updatedAt || member.createdAt || expiry.toISOString() });
-      if (member.paymentStatus === "Pending") notifications.push({ id: `pending-${member.id}`, type: "pending", title: "Payment pending", description: `${member.name} has a pending balance of $${Number(member.balance || 0).toLocaleString()}`, occurredAt: member.updatedAt || member.createdAt });
-      if (member.paymentStatus === "Overdue") notifications.push({ id: `overdue-${member.id}`, type: "overdue", title: "Payment overdue", description: `${member.name} has an overdue balance of $${Number(member.balance || 0).toLocaleString()}`, occurredAt: member.updatedAt || member.createdAt });
-      if (member.createdAt) notifications.push({ id: `member-${member.id}`, type: "member", title: "New member registered", description: `${member.name} joined ${member.gym}`, occurredAt: member.createdAt });
+      if (gym.notifications?.expiry && expiry && !Number.isNaN(expiry.getTime()) && member.status === "Expired") notifications.push({ id: `expired-${member.id}-${member.expiryDate}`, type: "expired", title: "Membership expired", description: `${member.name}'s membership expired on ${format(expiry, "MMM d, yyyy")}`, occurredAt: expiry.toISOString() });
+      if (gym.notifications?.expiry && expiry && !Number.isNaN(expiry.getTime()) && member.status === "Expiring Soon") notifications.push({ id: `expiring-${member.id}-${member.expiryDate}`, type: "expiring", title: "Membership expires soon", description: `${member.name}'s membership expires on ${format(expiry, "MMM d, yyyy")}`, occurredAt: member.updatedAt || member.createdAt || expiry.toISOString() });
+      if (gym.notifications?.payments && member.paymentStatus === "Pending") notifications.push({ id: `pending-${member.id}`, type: "pending", title: "Payment pending", description: `${member.name} has a pending balance of $${Number(member.balance || 0).toLocaleString()}`, occurredAt: member.updatedAt || member.createdAt });
+      if (gym.notifications?.payments && member.paymentStatus === "Overdue") notifications.push({ id: `overdue-${member.id}`, type: "overdue", title: "Payment overdue", description: `${member.name} has an overdue balance of $${Number(member.balance || 0).toLocaleString()}`, occurredAt: member.updatedAt || member.createdAt });
+      if (gym.notifications?.newMembers && member.createdAt) notifications.push({ id: `member-${member.id}`, type: "member", title: "New member registered", description: `${member.name} joined ${member.gym}`, occurredAt: member.createdAt });
     });
-    (analytics.payments || []).forEach((payment) => notifications.push({ id: `payment-${payment.id}`, type: "payment", title: "Payment received", description: `${payment.memberName} paid $${Number(payment.amount || 0).toLocaleString()}${payment.method ? ` (${payment.method.replace(/_/g, " ")})` : ""}`, occurredAt: payment.paidAt }));
+    if (gym.notifications?.payments) {
+      (analytics.payments || []).forEach((payment) => notifications.push({ id: `payment-${payment.id}`, type: "payment", title: "Payment received", description: `${payment.memberName} paid $${Number(payment.amount || 0).toLocaleString()}${payment.method ? ` (${payment.method.replace(/_/g, " ")})` : ""}`, occurredAt: payment.paidAt }));
+    }
     return notifications.filter((item) => item.occurredAt).sort((a, b) => new Date(b.occurredAt) - new Date(a.occurredAt)).map((item) => ({ ...item, time: relativeTime(item.occurredAt), read: readIds.has(item.id) }));
-  }, [members, analytics.payments, readIds, canViewWorkspaceNotifications]);
+  }, [members, analytics.payments, readIds, canViewWorkspaceNotifications, gym.notifications]);
 
   const saveReadIds = (next) => {
     setReadIds(next);
