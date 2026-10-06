@@ -212,19 +212,17 @@ export default async function(req: Request): Promise<Response> {
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
       const typeMap: Record<string, string> = { Feedback: 'feedback', Complaint: 'complaint', 'Feature Request': 'feature_request', 'Machine Request': 'machine_request', 'Coach Request': 'coach_request' };
-      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: typeMap[String(input.type || 'Feedback').trim()] || 'feedback', subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' });
-      return Response.json({ member: await loadMemberData() });
+      const created = (await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: typeMap[String(input.type || 'Feedback').trim()] || 'feedback', subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' }))[0];
+      // Do not reload the entire member portal here. A successful INSERT must
+      // not become a false 500 just because an unrelated portal query fails.
+      return Response.json({ success: true, feedback: created || null });
     }
 
     if (operation === 'listFeedback') {
       if (access.role !== 'owner' && access.role !== 'staff') return deny();
-      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(gym.id)}&select=*&order=created_at.desc`);
-      const memberIds = [...new Set(rows.map((item: any) => item.member_id).filter(Boolean))];
-      let members: any[] = [];
-      if (memberIds.length) members = await select('members', `id=in.(${memberIds.map((id) => encodeURIComponent(id)).join(',')})&select=id,full_name,phone,email`);
-      const memberMap = new Map(members.map((member: any) => [member.id, member]));
+      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at,members(id,full_name,phone,email)&order=created_at.desc`);
       return Response.json({ feedback: rows.map((item: any) => {
-        const member = memberMap.get(item.member_id) || {};
+        const member = item.members || {};
         const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' };
         const typeMap: Record<string, string> = { feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' };
         return { id: item.id, type: typeMap[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: statusMap[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null, member: { id: item.member_id, name: member.full_name || 'Member', phone: member.phone || '', email: member.email || '' } };
@@ -240,7 +238,7 @@ export default async function(req: Request): Promise<Response> {
       const statusMap: Record<string, string> = { Pending: 'open', 'Under Review': 'in_progress', Approved: 'resolved', Rejected: 'closed', Completed: 'closed' };
       const values: Record<string, any> = { updated_at: new Date().toISOString() };
       if (statusInput && statusMap[statusInput]) values.status = statusMap[statusInput];
-      if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; }
+      if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; values.responded_at = new Date().toISOString(); }
       const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,subject,message,status,response&limit=1`);
       if (!rows[0]) return Response.json({ error: 'Feedback not found' }, { status: 404 });
       const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, values))[0];
