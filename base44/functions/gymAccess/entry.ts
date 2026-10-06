@@ -90,7 +90,7 @@ export default async function(req: Request): Promise<Response> {
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
-        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.subject || '', body: item.message || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })), 
+        feedback: feedback.map((item: any) => ({ id: item.id, type: ({ feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' } as Record<string, string>)[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: ({ open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' } as Record<string, string>)[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null })), 
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
     };
@@ -211,7 +211,8 @@ export default async function(req: Request): Promise<Response> {
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
-      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'in_app', type: String(input.type || 'Feedback').trim(), subject: input.title.trim(), message: input.body.trim(), status: 'Pending', priority: 'normal' });
+      const typeMap: Record<string, string> = { Feedback: 'feedback', Complaint: 'complaint', 'Feature Request': 'feature_request', 'Machine Request': 'machine_request', 'Coach Request': 'coach_request' };
+      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: typeMap[String(input.type || 'Feedback').trim()] || 'feedback', subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' });
       return Response.json({ member: await loadMemberData() });
     }
 
@@ -224,8 +225,9 @@ export default async function(req: Request): Promise<Response> {
       const memberMap = new Map(members.map((member: any) => [member.id, member]));
       return Response.json({ feedback: rows.map((item: any) => {
         const member = memberMap.get(item.member_id) || {};
-        const statusMap: Record<string, string> = { Pending: 'Pending', 'Under Review': 'Under Review', Approved: 'Approved', Rejected: 'Rejected', Completed: 'Completed' };
-        return { id: item.id, type: item.type, title: item.title || '', body: item.body || '', status: statusMap[item.status] || item.status, date: String(item.created_at).slice(0, 10), response: item.response || null, member: { id: item.member_id, name: member.full_name || 'Member', phone: member.phone || '', email: member.email || '' } };
+        const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' };
+        const typeMap: Record<string, string> = { feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' };
+        return { id: item.id, type: typeMap[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: statusMap[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null, member: { id: item.member_id, name: member.full_name || 'Member', phone: member.phone || '', email: member.email || '' } };
       }) });
     }
 
@@ -235,7 +237,7 @@ export default async function(req: Request): Promise<Response> {
       const responseText = String(body.response || '').trim();
       const statusInput = String(body.status || '').trim();
       if (!id) return Response.json({ error: 'Feedback item is required' }, { status: 400 });
-      const statusMap: Record<string, string> = { Pending: 'Pending', 'Under Review': 'Under Review', Approved: 'Approved', Rejected: 'Rejected', Completed: 'Completed' };
+      const statusMap: Record<string, string> = { Pending: 'open', 'Under Review': 'in_progress', Approved: 'resolved', Rejected: 'closed', Completed: 'closed' };
       const values: Record<string, any> = { updated_at: new Date().toISOString() };
       if (statusInput && statusMap[statusInput]) values.status = statusMap[statusInput];
       if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; }
