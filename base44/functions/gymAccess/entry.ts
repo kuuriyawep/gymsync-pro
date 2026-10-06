@@ -90,7 +90,7 @@ export default async function(req: Request): Promise<Response> {
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
-        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.title || '', body: item.body || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })),
+        feedback: feedback.map((item: any) => ({ id: item.id, type: item.type, title: item.subject || '', body: item.message || '', status: item.status, date: String(item.created_at).slice(0, 10), response: item.response || null })), 
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
     };
@@ -211,7 +211,7 @@ export default async function(req: Request): Promise<Response> {
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
-      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, type: String(input.type || 'Feedback').trim(), title: input.title.trim(), body: input.body.trim(), status: 'Pending' });
+      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'in_app', type: String(input.type || 'Feedback').trim(), subject: input.title.trim(), message: input.body.trim(), status: 'Pending', priority: 'normal' });
       return Response.json({ member: await loadMemberData() });
     }
 
@@ -239,7 +239,7 @@ export default async function(req: Request): Promise<Response> {
       const values: Record<string, any> = { updated_at: new Date().toISOString() };
       if (statusInput && statusMap[statusInput]) values.status = statusMap[statusInput];
       if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; }
-      const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,title,body,status,response&limit=1`);
+      const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,subject,message,status,response&limit=1`);
       if (!rows[0]) return Response.json({ error: 'Feedback not found' }, { status: 404 });
       const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, values))[0];
       if (responseText && updated?.member_id) {
