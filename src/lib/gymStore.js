@@ -7,6 +7,7 @@ const emptyGym = {
   phone: "",
   email: "",
   address: "",
+  notifications: { expiry: false, payments: false, newMembers: false },
   isLoading: true,
   loadError: "",
 };
