@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -308,6 +308,51 @@ export default async function(req: Request): Promise<Response> {
     });
 
     if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
+
+    if (operation === 'listWorkspaceNotifications') {
+      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
+      if (!targetUserId) return Response.json({ notifications: [] });
+      const rows = await select(
+        'notifications',
+        `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&select=*&order=created_at.desc&limit=50`
+      );
+      return Response.json({
+        notifications: rows.map((item: any) => ({
+          id: item.id,
+          type: item.type || 'general',
+          title: item.title || 'Notification',
+          description: item.message || '',
+          read: Boolean(item.read_at),
+          occurredAt: item.created_at,
+        })),
+      });
+    }
+
+    if (operation === 'markNotificationRead') {
+      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
+      const id = String(body.id || '').trim();
+      if (!id || !targetUserId) return Response.json({ error: 'Notification is required' }, { status: 400 });
+      await update(
+        'notifications',
+        `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}`,
+        { read_at: new Date().toISOString() }
+      );
+      return Response.json({ success: true });
+    }
+
+    if (operation === 'markAllNotificationsRead') {
+      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
+      if (!targetUserId) return Response.json({ success: true });
+      await update(
+        'notifications',
+        `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&read_at=is.null`,
+        { read_at: new Date().toISOString() }
+      );
+      return Response.json({ success: true });
+    }
 
     if (operation === 'updateNotificationSettings') {
       if (access.role !== 'owner') return deny();
