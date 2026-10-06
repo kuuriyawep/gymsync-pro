@@ -14,7 +14,7 @@ export default function About() {
         </Link>
       </header>
       <main className="max-w-3xl mx-auto px-4 md:px-6 py-10 md:py-16">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm hover:text-foreground mb-6 text-[#b0dcd7]">
           <ArrowLeft className="w-4 h-4" /> Back to app
         </Link>
         <h1 className="font-heading text-3xl md:text-4xl font-bold mb-6">About GymSync Pro</h1>
@@ -52,6 +52,6 @@ export default function About() {
           </Link>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }
