@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Bell, UserX, Clock, UserPlus, DollarSign, X } from "lucide-react";
+import { Inbox, UserX, Clock, UserPlus, DollarSign, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNowStrict, format } from "date-fns";
 import { useMembers, useGymAnalytics, useMembersLoaded } from "@/lib/memberStore";
@@ -54,7 +54,7 @@ export default function NotificationsMenu() {
   };
 
   const Row = ({ notification, onClick }) => {
-    const Icon = iconFor[notification.type] || Bell;
+    const Icon = iconFor[notification.type] || Inbox;
     return (
       <button onClick={onClick} className="group flex w-full items-start gap-3 px-4 py-3.5 text-left hover:bg-black/[0.025]">
         <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/[0.055]">
@@ -76,8 +76,8 @@ export default function NotificationsMenu() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen((value) => !value)} className={`relative rounded-xl p-2 transition-colors ${unread > 0 ? "bg-red-50 text-red-600 hover:bg-red-100" : "hover:bg-black/5"}`} aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}>
-        <Bell className="h-5 w-5" />
+      <button onClick={() => setOpen((value) => !value)} className={`relative rounded-xl p-2 transition-colors ${unread > 0 ? "bg-black text-white" : "hover:bg-black/5"}`} aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}>
+        <Inbox className="h-5 w-5" />
         {unread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />}
       </button>
 
@@ -85,9 +85,9 @@ export default function NotificationsMenu() {
         {open && (
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <motion.div initial={{ y: -6 }} animate={{ y: 0 }} exit={{ y: -6 }} className="fixed left-2 right-2 top-[4.5rem] z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[28rem]">
+            <motion.div initial={{ y: -6 }} animate={{ y: 0 }} exit={{ y: -6 }} className="fixed left-2 right-2 top-[4.5rem] z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[28rem]">
               <div className="flex h-16 items-center justify-between border-b border-black/10 px-5">
-                <h3 className="text-xl font-bold tracking-tight">Notifications</h3>
+                <div className="flex items-center gap-2"><Inbox className="h-5 w-5" /><h3 className="text-xl font-bold tracking-tight">Notifications</h3></div>
                 <button onClick={markAll} disabled={unread === 0} className="text-sm font-semibold text-black/75 hover:text-black disabled:cursor-default disabled:text-black/35">Mark all read</button>
               </div>
               <div className="max-h-[22rem] overflow-y-auto py-1">
