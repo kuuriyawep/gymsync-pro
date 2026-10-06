@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SaveButton from "@/components/SaveButton";
 import PhotoPicker from "@/components/PhotoPicker";
-import { useGym, setGym } from "@/lib/gymStore";
+import { useGym, setGym, setNotificationSettings } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
@@ -55,6 +55,7 @@ export default function Settings() {
   const [revoke, setRevoke] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -168,10 +169,26 @@ export default function Settings() {
                     ].map((n) => (
                       <div key={n.key} className="flex items-center justify-between py-3 border-b border-black/5 last:border-0">
                         <div className="pr-4"><p className="text-sm font-medium">{n.label}</p><p className="text-xs text-black/50">{n.desc}</p></div>
-                        <Toggle on={false} disabled />
+                        <Toggle
+                          on={Boolean(gym.notifications?.[n.key])}
+                          disabled={notificationSaving}
+                          onClick={async () => {
+                            const next = { ...(gym.notifications || {}), [n.key]: !Boolean(gym.notifications?.[n.key]) };
+                            setNotificationSaving(true);
+                            try {
+                              const saved = await setNotificationSettings(next);
+                              setGymLocal((current) => ({ ...current, notifications: saved.notifications }));
+                              toast({ title: "Notification settings saved" });
+                            } catch (error) {
+                              toast({ title: "Could not save notification settings", description: error.message || "Please try again." });
+                            } finally {
+                              setNotificationSaving(false);
+                            }
+                          }}
+                        />
                       </div>
                     ))}
-                    <p className="pt-3 text-sm text-black/50">Notification preferences are not supported by the current gym settings storage, so these controls are unavailable.</p>
+                    <p className="pt-3 text-sm text-black/50">These preferences are saved to your gym and control which workspace alerts are shown.</p>
                   </div>
                 )}
 
