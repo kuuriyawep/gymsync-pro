@@ -212,10 +212,11 @@ export default async function(req: Request): Promise<Response> {
       const input = body.feedback || {};
       if (!input.title?.trim() || !input.body?.trim()) return Response.json({ error: 'Title and details are required' }, { status: 400 });
       const typeMap: Record<string, string> = { Feedback: 'feedback', Complaint: 'complaint', 'Feature Request': 'feature_request', 'Machine Request': 'machine_request', 'Coach Request': 'coach_request' };
-      const created = (await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: typeMap[String(input.type || 'Feedback').trim()] || 'feedback', subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' }))[0];
-      // Do not reload the entire member portal here. A successful INSERT must
-      // not become a false 500 just because an unrelated portal query fails.
-      return Response.json({ success: true, feedback: created || null });
+      await insert('feedback_requests', { gym_id: access.member.gym_id, member_id: access.member.id, user_id: access.userId, channel: 'gym', type: typeMap[String(input.type || 'Feedback').trim()] || 'feedback', subject: input.title.trim(), message: input.body.trim(), status: 'open', priority: 'normal' }, 'return=minimal');
+      // The submission is complete once PostgREST accepts the INSERT. Do not
+      // request/parse a returned row or reload the portal here; either can turn
+      // a successful write into a misleading 500 response.
+      return Response.json({ success: true });
     }
 
     if (operation === 'listFeedback') {
