@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
+    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -89,7 +89,7 @@ export default async function(req: Request): Promise<Response> {
         balance: { price: amountDue, paid: amountPaid, balance: metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid), status: amountDue <= amountPaid ? 'Paid' : amountPaid > 0 ? 'Partially Paid' : 'Outstanding', renewalDate: membership?.end_date || '' },
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
-        notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.body || '', read: Boolean(item.read), createdAt: item.created_at })),
+        notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.message || '', read: Boolean(item.read_at), createdAt: item.created_at })),
         feedback: feedback.map((item: any) => ({ id: item.id, type: ({ feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' } as Record<string, string>)[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: ({ open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' } as Record<string, string>)[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null })), 
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
@@ -245,7 +245,16 @@ export default async function(req: Request): Promise<Response> {
       if (!rows[0]) return Response.json({ error: 'Feedback not found' }, { status: 404 });
       const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, values))[0];
       if (responseText && updated?.member_id) {
-        await insert('notifications', { member_id: updated.member_id, gym_id: gym.id, title: 'Gym responded to your feedback', body: responseText.slice(0, 500), read: false });
+        const memberRows = await select('members', `id=eq.${encodeURIComponent(updated.member_id)}&select=user_id&limit=1`);
+        const memberUserId = memberRows[0]?.user_id || null;
+        await insert('notifications', {
+          member_id: updated.member_id,
+          user_id: memberUserId,
+          gym_id: gym.id,
+          type: 'feedback_response',
+          title: 'Gym responded to your feedback',
+          message: responseText.slice(0, 500),
+        });
       }
       return Response.json({ success: true });
     }
@@ -290,10 +299,34 @@ export default async function(req: Request): Promise<Response> {
       phone: row.phone || '',
       email: row.email || '',
       address: row.address || '',
-      logoUrl: row.logo_url || null
+      logoUrl: row.logo_url || null,
+      notifications: {
+        expiry: Boolean(row.settings?.notifications?.expiry ?? true),
+        payments: Boolean(row.settings?.notifications?.payments ?? true),
+        newMembers: Boolean(row.settings?.notifications?.newMembers ?? true),
+      },
     });
 
     if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
+
+    if (operation === 'updateNotificationSettings') {
+      if (access.role !== 'owner') return deny();
+      const input = body.notifications || {};
+      const notifications = {
+        expiry: Boolean(input.expiry),
+        payments: Boolean(input.payments),
+        newMembers: Boolean(input.newMembers),
+      };
+      const settings = {
+        ...(gym.settings || {}),
+        notifications: {
+          ...(gym.settings?.notifications || {}),
+          ...notifications,
+        },
+      };
+      gym = (await update('gyms', `id=eq.${encodeURIComponent(gym.id)}`, { settings }))[0] || gym;
+      return Response.json({ notifications: gymProfile(gym).notifications });
+    }
 
     if (operation === 'sendMessage') {
       const memberId = String(body.memberId || '').trim();
