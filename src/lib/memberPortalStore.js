@@ -80,13 +80,20 @@ export async function createMemberFeedback(feedback) {
     feedback: { type, title, body },
   });
 
-  if (!result?.member) {
-    throw new Error("Request was submitted but the member portal could not be refreshed.");
+  if (!result?.success) {
+    throw new Error("Your request could not be submitted.");
   }
 
-  state = { data: result.member, loaded: true, loading: false, error: "" };
-  emit();
-  return result.member;
+  // The backend confirms the INSERT before returning. Refreshing the whole
+  // portal is best-effort so a secondary read failure never turns a successful
+  // submission into a false "Request failed" message.
+  try {
+    await loadMemberPortal(true);
+  } catch {
+    // The request itself already succeeded; keep the current portal state.
+  }
+
+  return result.feedback || null;
 }
 export function resetMemberPortalStore() {
   state = { data: null, loaded: false, loading: false, error: "" };
