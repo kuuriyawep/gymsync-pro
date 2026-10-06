@@ -65,63 +65,28 @@ export async function joinGym(phone, fullName) {
   return { ...data, member };
 }
 export async function createMemberFeedback(feedback) {
-  const typeMap = {
-    Feedback: "feedback",
-    Complaint: "complaint",
-    "Feature Request": "feature_request",
-    "Machine Request": "machine_request",
-    "Coach Request": "coach_request",
-  };
-
   const title = String(feedback?.title || "").trim();
   const body = String(feedback?.body || "").trim();
-  const type = typeMap[String(feedback?.type || "Feedback").trim()] || "feedback";
+  const type = String(feedback?.type || "Feedback").trim();
 
   if (!title || !body) {
     throw new Error("Title and details are required");
   }
 
-  // Member self-submissions go directly through Supabase Auth + RLS.
-  // This avoids routing a simple member write through the privileged
-  // gymAccess function and makes the database policy the final authority.
-  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-  if (sessionError) throw sessionError;
-  const userId = sessionData?.session?.user?.id;
-  if (!userId) throw new Error("Your sign-in session expired. Please sign in again.");
+  // Use the same authenticated backend path as the rest of the member portal.
+  // This keeps membership lookup, authorization and the database write in one
+  // place and avoids client-side RLS/session edge cases after OAuth redirects.
+  const result = await invoke("createFeedback", {
+    feedback: { type, title, body },
+  });
 
-  const { data: member, error: memberError } = await supabase
-    .from("members")
-    .select("id, gym_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (memberError) throw memberError;
-  if (!member?.id || !member?.gym_id) {
-    throw new Error("Your gym membership is not linked to this account yet.");
+  if (!result?.member) {
+    throw new Error("Request was submitted but the member portal could not be refreshed.");
   }
 
-  const { error: insertError } = await supabase
-    .from("feedback_requests")
-    .insert({
-      gym_id: member.gym_id,
-      member_id: member.id,
-      user_id: userId,
-      channel: "gym",
-      type,
-      subject: title,
-      message: body,
-      status: "open",
-      priority: "normal",
-    });
-
-  if (insertError) throw insertError;
-
-  // Refresh the member portal so the new request appears immediately.
-  state = { ...state, loaded: false, loading: false, error: "" };
+  state = { data: result.member, loaded: true, loading: false, error: "" };
   emit();
-  const refreshedMember = await loadMemberPortal(true);
-  if (!refreshedMember) throw new Error(state.error || "Request was submitted but could not be refreshed.");
-  return refreshedMember;
+  return result.member;
 }
 export function resetMemberPortalStore() {
   state = { data: null, loaded: false, loading: false, error: "" };
