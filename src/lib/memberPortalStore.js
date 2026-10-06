@@ -73,27 +73,72 @@ export async function createMemberFeedback(feedback) {
     throw new Error("Title and details are required");
   }
 
-  // Use the same authenticated backend path as the rest of the member portal.
-  // This keeps membership lookup, authorization and the database write in one
-  // place and avoids client-side RLS/session edge cases after OAuth redirects.
-  const result = await invoke("createFeedback", {
-    feedback: { type, title, body },
-  });
+  // Feedback is a normal member-owned Supabase row, so write it directly with
+  // the current Supabase Auth session. The previous Base44 function path could
+  // return a generic 500 even when the database insert had already succeeded.
+  const memberId = state.data?.profile?.id;
+  if (!memberId) throw new Error("Your membership session is not ready. Please refresh and try again.");
 
-  if (!result?.success) {
-    throw new Error("Your request could not be submitted.");
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user?.id) {
+    throw new Error("Your sign-in session has expired. Please sign in again.");
   }
 
-  // The backend confirms the INSERT before returning. Refreshing the whole
-  // portal is best-effort so a secondary read failure never turns a successful
-  // submission into a false "Request failed" message.
-  try {
-    await loadMemberPortal(true);
-  } catch {
-    // The request itself already succeeded; keep the current portal state.
+  const { data: memberRow, error: memberError } = await supabase
+    .from("members")
+    .select("id,gym_id")
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (memberError) throw new Error(memberError.message || "Could not verify your membership.");
+  if (!memberRow?.gym_id) throw new Error("Your gym membership is not linked correctly.");
+
+  const typeMap = {
+    Feedback: "feedback",
+    Complaint: "complaint",
+    "Feature Request": "feature_request",
+    "Machine Request": "machine_request",
+    "Coach Request": "coach_request",
+  };
+
+  const { data: created, error: insertError } = await supabase
+    .from("feedback_requests")
+    .insert({
+      gym_id: memberRow.gym_id,
+      member_id: memberId,
+      user_id: userData.user.id,
+      channel: "gym",
+      type: typeMap[type] || "feedback",
+      subject: title,
+      message: body,
+      status: "open",
+      priority: "normal",
+    })
+    .select("id,gym_id,member_id,user_id,channel,type,subject,message,status,priority,response,created_at,updated_at")
+    .single();
+
+  if (insertError) {
+    throw new Error(insertError.message || "Your request could not be submitted.");
   }
 
-  return result.feedback || null;
+  // Update the local portal immediately. Do not reload unrelated portal data
+  // after a successful insert; a secondary read failure must never show a
+  // false submission error.
+  const createdFeedback = {
+    id: created.id,
+    type,
+    title: created.subject || title,
+    body: created.message || body,
+    status: "Pending",
+    date: String(created.created_at || new Date().toISOString()).slice(0, 10),
+    response: null,
+  };
+  if (state.data) {
+    state = { ...state, data: { ...state.data, feedback: [createdFeedback, ...(state.data.feedback || [])] } };
+    emit();
+  }
+
+  return createdFeedback;
 }
 export function resetMemberPortalStore() {
   state = { data: null, loaded: false, loading: false, error: "" };
