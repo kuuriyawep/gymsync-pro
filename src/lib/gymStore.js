@@ -49,6 +49,17 @@ export async function setGym(gym) {
   return state;
 }
 
+export async function setNotificationSettings(notifications) {
+  const response = await invokeWithAuth("gymAccess", {
+    operation: "updateNotificationSettings",
+    notifications,
+  });
+  state = { ...state, notifications: response.data.notifications, isLoading: false };
+  loaded = true;
+  emit();
+  return state;
+}
+
 export function resetGymStore() {
   state = { ...emptyGym };
   loaded = false;
