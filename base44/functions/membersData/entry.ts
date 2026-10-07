@@ -73,7 +73,9 @@ export default async function(req: Request): Promise<Response> {
       let memberMetadata: any = {};
       try { memberMetadata = JSON.parse(owned[0].notes || '{}'); } catch { memberMetadata = {}; }
       const [payments, attendance, memberships, plans] = await Promise.all([
-        select('payments', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`),
+        readPayments
+          ? select('payments', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`)
+          : Promise.resolve([]),
         select('attendance', `member_id=eq.${memberId}&select=*&order=check_in_at.desc`),
         select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`)
@@ -93,26 +95,28 @@ export default async function(req: Request): Promise<Response> {
           id: `attendance-${a.id}`, type: 'Check-in', text: 'Checked in at the gym',
           time: a.check_in_at ? new Date(a.check_in_at).toLocaleDateString() : '', _ts: a.check_in_at || ''
         })),
-        ...payments.map((p: any) => ({
+        ...(readPayments ? payments.map((p: any) => ({
           id: `payment-${p.id}`, type: 'Payment',
-          text: `Payment recorded · $${Number(p.amount || 0)} · ${String(p.method || '').replace(/_/g, ' ')}`,
+          text: `Payment recorded · ${Number(p.amount || 0)} · ${String(p.method || '').replace(/_/g, ' ')}`,
           time: p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '', _ts: p.paid_at || ''
-        }))
+        })) : [])
       ].filter((a: any) => a._ts).sort((a: any, b: any) => new Date(b._ts).getTime() - new Date(a._ts).getTime()).map(({ _ts, ...rest }: any) => rest);
       const mAmountDue = Number(membership?.amount_due || 0);
       const mAmountPaid = Number(membership?.amount_paid || 0);
       const mBalance = memberMetadata.balance_override !== undefined && memberMetadata.balance_override >= 0 ? memberMetadata.balance_override : Math.max(0, mAmountDue - mAmountPaid);
       return Response.json({
-        payments: paymentHistory,
+        payments: readPayments ? paymentHistory : [],
         activities,
         gender: memberMetadata.gender || '',
-        balance: mBalance,
+        canViewPayments: readPayments,
+        canRecordPayments: writePayments,
+        balance: readPayments ? mBalance : null,
         membership: membership ? {
           plan: plan?.name || 'No plan',
           startDate: membership.start_date || '',
           endDate: membership.end_date || '',
-          amountDue: mAmountDue,
-          amountPaid: mAmountPaid,
+          amountDue: readPayments ? mAmountDue : null,
+          amountPaid: readPayments ? mAmountPaid : null,
           status: membership.status || ''
         } : null
       });
