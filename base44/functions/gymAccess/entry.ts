@@ -67,13 +67,13 @@ export default async function(req: Request): Promise<Response> {
       const memberFilter = encodeURIComponent(member.id);
       const [gyms, memberships, plans, payments, attendance, notifications, feedback, messages] = await Promise.all([
         select('gyms', `id=eq.${gymFilter}&select=*&limit=1`),
-        select('memberships', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
+        select('memberships', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`),
-        select('payments', `member_id=eq.${memberFilter}&select=*&order=paid_at.desc`),
-        select('attendance', `member_id=eq.${memberFilter}&select=*&order=check_in_at.desc`),
-        select('notifications', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
-        select('feedback_requests', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
-        select('member_messages', `member_id=eq.${memberFilter}&select=*&order=sent_at.desc&limit=20`)
+        select('payments', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`),
+        select('attendance', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=check_in_at.desc`),
+        select('notifications', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
+        select('feedback_requests', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
+        select('member_messages', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=sent_at.desc&limit=20`)
       ]);
       const today = new Date().toISOString().slice(0, 10);
       const currentMembership = memberships.find((item: any) => String(item.start_date || '') <= today && (!item.end_date || String(item.end_date) >= today)) || memberships[0] || null;
