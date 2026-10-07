@@ -177,8 +177,15 @@ export default async function(req: Request): Promise<Response> {
       const plan = await ensurePlan(input.plan || 'Monthly', 0);
       const amountDue = Number(plan.price) || 0;
       const existingMemberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id,amount_paid&order=created_at.desc&limit=1`);
-      const existingPaid = Number(existingMemberships[0]?.amount_paid || 0);
-      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+      const latestMembership = existingMemberships[0];
+      const existingPaid = Number(latestMembership?.amount_paid || 0);
+      if (latestMembership) {
+        // Update only the current/latest membership. Historical memberships must
+        // remain immutable so past plan, dates and financial records stay intact.
+        await update('memberships', `id=eq.${encodeURIComponent(latestMembership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+      } else {
+        await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: 0, status: input.status === 'Expired' ? 'expired' : 'active' });
+      }
     }
 
     if (operation === 'renew') {
