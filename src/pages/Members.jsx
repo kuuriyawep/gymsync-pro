@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
 import { Search, Plus, Pencil, Trash2, Eye, ChevronDown, Users, UserCheck, Clock, UserX, RotateCcw, Loader2 } from "lucide-react";
-import { useMembers, useGymAnalytics, addMember, updateMember, deleteMember } from "@/lib/memberStore";
+import { useMembers, useGymAnalytics, addMember, updateMember, renewMember, deleteMember } from "@/lib/memberStore";
 import PhotoPicker from "@/components/PhotoPicker";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ProfileImage from "@/components/ProfileImage";
@@ -138,8 +138,13 @@ export default function Members() {
     setSaving(true);
     try {
       if (editingId) {
-        await updateMember(editingId, form);
-        toast({ title: "Member updated", description: form.name });
+        if (actionMode === "renew") {
+          await renewMember(editingId, form);
+          toast({ title: "Membership renewed", description: `${form.name}${Number(form.amountPaid) > 0 ? ` · $${Number(form.amountPaid).toLocaleString()} payment recorded` : ""}` });
+        } else {
+          await updateMember(editingId, form);
+          toast({ title: "Member updated", description: form.name });
+        }
       } else {
         await addMember(form);
         toast({ title: "Member added successfully", description: form.name });
