@@ -64,6 +64,30 @@ export default async function(req: Request): Promise<Response> {
     };
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');
     const memberStatus = (value: string) => value === 'Suspended' ? 'suspended' : 'active';
+
+    // The membership balance is a derived value: it must always equal the
+    // sum of its payment ledger, capped at the membership amount due.
+    // Recomputing from the ledger avoids drift after edits, deletes and
+    // backdated payment moves.
+    const recalculateMembershipPaid = async (membershipId: string) => {
+      const membershipRows = await select('memberships', 'id=eq.' + encodeURIComponent(membershipId) + '&gym_id=eq.' + gymFilter + '&select=id,amount_due&limit=1');
+      const membership = membershipRows[0];
+      if (!membership) return;
+      const payments = await select('payments', 'membership_id=eq.' + encodeURIComponent(membershipId) + '&gym_id=eq.' + gymFilter + '&select=amount');
+      const totalPaid = payments.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
+      await update('memberships', 'id=eq.' + encodeURIComponent(membershipId) + '&gym_id=eq.' + gymFilter, {
+        amount_paid: Math.min(Number(membership.amount_due || 0), totalPaid)
+      });
+    };
+
+    const findMembershipForPaymentDate = async (memberId: string, paymentDate: string) => {
+      const memberships = await select('memberships', 'member_id=eq.' + encodeURIComponent(memberId) + '&gym_id=eq.' + gymFilter + '&select=id,start_date,end_date,created_at&order=created_at.desc');
+      return memberships.find((item: any) => {
+        const start = String(item.start_date || '');
+        const end = String(item.end_date || '');
+        return start && end && paymentDate >= start && paymentDate <= end;
+      }) || null;
+    };
     const ensurePlan = async (name: string, price: number) => {
       const found = await select('membership_plans', `gym_id=eq.${gymFilter}&name=eq.${encodeURIComponent(name)}&select=*&limit=1`);
       if (found[0]) return found[0];
