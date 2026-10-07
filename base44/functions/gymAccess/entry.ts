@@ -221,11 +221,20 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'listFeedback') {
       if (access.role !== 'owner' && access.role !== 'staff') return deny();
-      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(access.gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at,members(id,full_name,phone,email)&order=created_at.desc`);
+      if (!access.gym?.id) return Response.json({ error: 'No gym is linked to this owner/staff account' }, { status: 403 });
+      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(access.gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at&order=created_at.desc`);
+      const memberIds = [...new Set(rows.map((item: any) => item.member_id).filter(Boolean))];
+      const memberRows = await Promise.all(memberIds.map((memberId: string) =>
+        select('members', `id=eq.${encodeURIComponent(memberId)}&select=id,full_name,phone,email&limit=1`)
+      ));
+      const memberMap = new Map(memberRows.map((result: any[]) => {
+        const member = result[0] || {};
+        return [member.id, member];
+      }));
+      const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' };
+      const typeMap: Record<string, string> = { feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' };
       return Response.json({ feedback: rows.map((item: any) => {
-        const member = item.members || {};
-        const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' };
-        const typeMap: Record<string, string> = { feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' };
+        const member = memberMap.get(item.member_id) || {};
         return { id: item.id, type: typeMap[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: statusMap[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null, member: { id: item.member_id, name: member.full_name || 'Member', phone: member.phone || '', email: member.email || '' } };
       }) });
     }
