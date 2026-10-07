@@ -68,8 +68,17 @@ export async function resolveAccess(base44: any, rest: ReturnType<typeof createS
     const gym = gyms[0] || null;
     if (gym) return { userId, email, role: 'owner', gym, staff: null, member: null, permissions: ['*'] };
 
-    const staffRows = await select('staff', `user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*&limit=1`);
-    const staff = staffRows[0] || null;
+    let staffRows = await select('staff', `user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*&limit=1`);
+    let staff = staffRows[0] || null;
+    // Complete an owner-created invitation on the first authenticated login.
+    // The authenticated Supabase email is the invitation binding; once claimed,
+    // the staff row is tied permanently to the Supabase user id and activated.
+    if (!staff && email) {
+      staffRows = await select('staff', `email=eq.${encodeURIComponent(email)}&status=eq.invited&user_id=is.null&select=*&limit=1`);
+      if (staffRows[0]) {
+        staff = (await update('staff', `id=eq.${encodeURIComponent(staffRows[0].id)}&status=eq.invited&user_id=is.null`, { user_id: userId, status: 'active', joined_at: new Date().toISOString() }))[0] || staffRows[0];
+      }
+    }
     if (staff) {
       const gymRows = await select('gyms', `id=eq.${encodeURIComponent(staff.gym_id)}&select=*&limit=1`);
       return { userId, email, role: 'staff', gym: gymRows[0] || null, staff, member: null, permissions: permissionList(staff) };
@@ -106,9 +115,9 @@ export async function resolveAccess(base44: any, rest: ReturnType<typeof createS
   let staffRows = await select('staff', `base44_user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*&limit=1`);
   let staff = staffRows[0] || null;
   if (!staff && email) {
-    staffRows = await select('staff', `base44_user_id=is.null&email=eq.${encodeURIComponent(email)}&status=eq.active&select=*&limit=1`);
+    staffRows = await select('staff', `base44_user_id=is.null&email=eq.${encodeURIComponent(email)}&status=eq.invited&select=*&limit=1`);
     if (staffRows[0]) {
-      staff = (await update('staff', `id=eq.${encodeURIComponent(staffRows[0].id)}&base44_user_id=is.null`, { base44_user_id: userId }))[0] || staffRows[0];
+      staff = (await update('staff', `id=eq.${encodeURIComponent(staffRows[0].id)}&base44_user_id=is.null&status=eq.invited`, { base44_user_id: userId, status: 'active', joined_at: new Date().toISOString() }))[0] || staffRows[0];
     }
   }
   if (staff) {
