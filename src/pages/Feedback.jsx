@@ -30,7 +30,12 @@ export default function Feedback() {
     setLoading(true);
     try {
       const result = await invokeWithAuth("gymAccess", { operation: "listFeedback" });
-      setItems(result?.data?.feedback || []);
+      // Base44 function responses are normally { data: ... }, but keep the
+      // page tolerant of a direct payload so a deployment/proxy wrapper
+      // cannot make valid feedback appear empty.
+      const payload = result?.data ?? result ?? {};
+      const feedback = Array.isArray(payload.feedback) ? payload.feedback : [];
+      setItems(feedback.sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))));
     } catch (error) {
       toast({ title: "Could not load feedback", description: error?.response?.data?.error || error?.message || "Please try again." });
     } finally {
