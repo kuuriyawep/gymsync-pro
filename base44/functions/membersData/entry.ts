@@ -282,19 +282,8 @@ export default async function(req: Request): Promise<Response> {
       if (!memberId || !Number.isFinite(amount) || amount <= 0 || !input.date) return Response.json({ error: 'Member, positive amount and payment date are required' }, { status: 400 });
       const owned = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=id&limit=1`);
       if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
-      const memberships = await select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=id,start_date,end_date,amount_due,amount_paid,status,created_at&order=created_at.desc`);
-      // Match a manually entered payment to the membership period that the
-      // payment date actually belongs to. Never attach a backdated payment to
-      // the newest membership just because it is the latest row.
       const paymentDate = String(input.date);
-      const matchingMemberships = memberships.filter((item: any) => {
-        const start = String(item.start_date || '');
-        const end = String(item.end_date || '');
-        return start && end && paymentDate >= start && paymentDate <= end;
-      });
-      // Overlapping periods should be resolved deterministically: prefer the
-      // most recently created membership among periods containing the payment date.
-      const membership = matchingMemberships[0] || null;
+      const membership = await findMembershipForPaymentDate(String(input.memberId), paymentDate);
       const reference = `TXN-${Date.now()}`;
       const payment = (await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: resolvePaidAt(paymentDate) }))[0];
       await audit('payment.recorded', payment?.id || null, {
