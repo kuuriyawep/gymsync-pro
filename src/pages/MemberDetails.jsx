@@ -35,7 +35,9 @@ export default function MemberDetails() {
   const daysRemaining = expiry && isValid(expiry) ? differenceInCalendarDays(expiry, new Date()) : null;
   const fmt = (d) => (d && isValid(d) ? format(d, "MMM d, yyyy") : "—");
 
-  const payments = details?.payments || [];
+  const canViewPayments = details?.canViewPayments === true;
+  const canRecordPayments = details?.canRecordPayments === true;
+  const payments = canViewPayments ? (details?.payments || []) : [];
   const activities = details?.activities || [];
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const lastPayment = payments[0] || null;
@@ -54,9 +56,9 @@ export default function MemberDetails() {
     { label: "Start Date", value: fmt(start) },
     { label: "Expiry Date", value: fmt(expiry) },
     { label: "Days Remaining", value: daysRemaining != null ? `${daysRemaining} days` : "—" },
-    { label: "Payment Status", value: member.paymentStatus, badge: true },
+    ...(canViewPayments ? [{ label: "Payment Status", value: member.paymentStatus, badge: true }] : []),
   ];
-  const outstandingBalance = details?.balance ?? Math.max(0, (member.fee || 0) - (member.amountPaid || 0));
+  const outstandingBalance = details?.balance ?? 0;
   const paySummary = [
     { icon: Wallet, label: "Total Paid", value: `$${totalPaid.toLocaleString()}` },
     { icon: DollarSign, label: "Last Payment", value: lastPayment ? `$${lastPayment.amount}` : "—" },
@@ -81,14 +83,14 @@ export default function MemberDetails() {
               <p className="text-sm text-black/50 mt-0.5">{member.memberId} · {member.gym}</p>
               <div className="flex items-center gap-2 mt-2">
                 <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${statusBadge(member.status)}`}>{member.status}</span>
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(member.paymentStatus)}`}>{member.paymentStatus}</span>
+                {canViewPayments && <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(member.paymentStatus)}`}>{member.paymentStatus}</span>}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setQuickMsg(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Quick Message</button>
               <button onClick={() => navigate(`/members?edit=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
               <button onClick={() => navigate(`/members?renew=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew Membership</button>
-              <button onClick={() => navigate(`/payments?record=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
+              {canRecordPayments && <button onClick={() => navigate(`/payments?record=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-black/5">
@@ -105,7 +107,7 @@ export default function MemberDetails() {
         </div>
 
         {/* Membership + Payment Summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className={`grid grid-cols-1 ${canViewPayments ? "lg:grid-cols-3" : ""} gap-4`}>
           <div className="bg-white border border-black/10 rounded-xl p-5">
             <h3 className="font-semibold mb-4">Membership</h3>
             <div className="space-y-0">
@@ -118,7 +120,7 @@ export default function MemberDetails() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-5">
+          {canViewPayments && <div className="lg:col-span-2 bg-white border border-black/10 rounded-xl p-5">
             <h3 className="font-semibold mb-4">Payment Summary</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {paySummary.map((c) => (
@@ -129,11 +131,11 @@ export default function MemberDetails() {
                 </div>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* Payment history */}
-        <div className="bg-white border border-black/10 rounded-xl p-5">
+        {canViewPayments && <div className="bg-white border border-black/10 rounded-xl p-5">
           <h3 className="font-semibold mb-4">Payment History</h3>
           {loading ? (
             <div className="py-8 text-center text-sm text-black/40">Loading payment history…</div>
@@ -162,7 +164,7 @@ export default function MemberDetails() {
             </table>
           </div>
           )}
-        </div>
+        </div>}
 
         {/* Internal note */}
         <div className="bg-white border border-black/10 rounded-xl p-5">
