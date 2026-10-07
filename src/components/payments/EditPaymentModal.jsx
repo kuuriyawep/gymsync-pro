@@ -24,7 +24,7 @@ export default function EditPaymentModal({ open, onClose, payment, onSave, savin
 
   const submit = () => {
     const amount = Number(form.amount);
-    if (!Number.isFinite(amount) || amount < 0) { setError("Enter a valid non-negative amount."); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { setError("Enter a payment amount greater than 0."); return; }
     if (!form.date || !isValid(parseISO(form.date))) { setError("Enter a valid payment date."); return; }
     setError("");
     onSave({
@@ -52,7 +52,7 @@ export default function EditPaymentModal({ open, onClose, payment, onSave, savin
         )}
         <div className="grid grid-cols-2 gap-3">
           <div><label className={labelCls}>Amount ($)</label>
-            <input type="number" min="0" step="0.01" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
+            <input type="number" min="0.01" step="0.01" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
           <div><label className={labelCls}>Payment Method</label>
             <select className={inputCls} value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
               {methodOptions.map((o) => <option key={o}>{o}</option>)}
