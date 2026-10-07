@@ -137,7 +137,8 @@ export default async function(req: Request): Promise<Response> {
         select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`)
       ]);
-      const membership = memberships[0] || null;
+      const today = new Date().toISOString().slice(0, 10);
+      const membership = memberships.find((item: any) => String(item.start_date || '') <= today && (!item.end_date || String(item.end_date) >= today)) || memberships[0] || null;
       const plan = plans.find((p: any) => p.id === membership?.plan_id) || null;
       const paymentHistory = payments.map((p: any) => ({
         id: p.id,
@@ -160,6 +161,15 @@ export default async function(req: Request): Promise<Response> {
       ].filter((a: any) => a._ts).sort((a: any, b: any) => new Date(b._ts).getTime() - new Date(a._ts).getTime()).map(({ _ts, ...rest }: any) => rest);
       const mAmountDue = Number(membership?.amount_due || 0);
       const mAmountPaid = Number(membership?.amount_paid || 0);
+      const membershipExpiry = String(membership?.end_date || '');
+      const membershipDays = membershipExpiry ? Math.floor((new Date(`${membershipExpiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000) : null;
+      const membershipStatus = String(owned[0].status || '').toLowerCase() === 'suspended'
+        ? 'suspended'
+        : String(membership?.status || '').toLowerCase() === 'expired' || (membershipExpiry && membershipExpiry < today)
+          ? 'expired'
+          : membershipDays !== null && membershipDays >= 0 && membershipDays <= 7
+            ? 'expiring'
+            : (membership?.status || 'active');
       const mBalance = memberMetadata.balance_override !== undefined && memberMetadata.balance_override >= 0 ? memberMetadata.balance_override : Math.max(0, mAmountDue - mAmountPaid);
       return Response.json({
         payments: readPayments ? paymentHistory : [],
@@ -174,7 +184,7 @@ export default async function(req: Request): Promise<Response> {
           endDate: membership.end_date || '',
           amountDue: readPayments ? mAmountDue : null,
           amountPaid: readPayments ? mAmountPaid : null,
-          status: membership.status || ''
+          status: membershipStatus
         } : null
       });
     }
