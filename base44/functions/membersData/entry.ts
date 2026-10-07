@@ -8,7 +8,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = body.operation;
-    if (!['bootstrap', 'create', 'update', 'delete', 'recordPayment', 'updatePayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
+    if (!['bootstrap', 'create', 'update', 'renew', 'delete', 'recordPayment', 'updatePayment', 'deletePayment', 'createPlan', 'updatePlan', 'togglePlan', 'deletePlan', 'memberDetails'].includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
     const rest = createSupabaseRestClient(restUrl, serviceKey);
@@ -36,7 +36,7 @@ export default async function(req: Request): Promise<Response> {
     };
     if (operation === 'bootstrap' && !readMembers && !readPayments) return deny();
     if (operation === 'memberDetails' && !readMembers) return deny();
-    if (['create', 'update', 'delete'].includes(operation) && !writeMembers) return deny();
+    if (['create', 'update', 'renew', 'delete'].includes(operation) && !writeMembers) return deny();
     if (['recordPayment', 'updatePayment', 'deletePayment'].includes(operation) && !writePayments) return deny();
     if (['createPlan', 'updatePlan', 'togglePlan', 'deletePlan'].includes(operation) && !writePlans) return deny();
 
@@ -168,13 +168,43 @@ export default async function(req: Request): Promise<Response> {
       if (balanceOverride !== null && Number.isFinite(balanceOverride) && balanceOverride >= 0) metadataFields.balance_override = balanceOverride;
       const metadata = JSON.stringify(metadataFields);
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status)) });
-      // Same rule as create: plan price is the source of truth, not a
-      // client-supplied amount, and a recorded balance is never allowed to
-      // exceed what's actually owed.
+      // Editing a member must never silently rewrite the financial ledger.
+      // Amount paid changes belong to a payment transaction (or renewal).
       const plan = await ensurePlan(input.plan || 'Monthly', 0);
       const amountDue = Number(plan.price) || 0;
-      const cappedPaid = Math.min(amountDue, amountPaid);
-      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+      const existingMemberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id,amount_paid&order=created_at.desc&limit=1`);
+      const existingPaid = Number(existingMemberships[0]?.amount_paid || 0);
+      await update('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+    }
+
+    if (operation === 'renew') {
+      const input = body.member || {};
+      const memberIdRaw = String(body.id || '');
+      const id = encodeURIComponent(memberIdRaw);
+      if (!memberIdRaw) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const owned = await select('members', `id=eq.${id}&gym_id=eq.${gymFilter}&select=id,full_name,notes&limit=1`);
+      if (!owned[0]) return Response.json({ error: 'Member not found' }, { status: 404 });
+      const plan = await ensurePlan(input.plan || 'Monthly', 0);
+      const amountDue = Number(plan.price) || 0;
+      const renewalPayment = Number(input.amountPaid) || 0;
+      if (!Number.isFinite(renewalPayment) || renewalPayment < 0) return Response.json({ error: 'Invalid renewal payment amount' }, { status: 400 });
+      if (!input.startDate || !input.expiryDate) return Response.json({ error: 'Renewal start and expiry dates are required' }, { status: 400 });
+      const cappedPaid = Math.min(amountDue, renewalPayment);
+      let existingMetadata: any = {};
+      try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
+      const metadata = JSON.stringify({ ...existingMetadata, note: input.note || '', preferredTime: input.preferredTime || existingMetadata.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender || existingMetadata.gender || '' });
+      await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')) });
+      const memberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id&order=created_at.desc&limit=1`);
+      let membership = memberships[0];
+      if (membership) {
+        await update('memberships', `id=eq.${encodeURIComponent(membership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: 'active' });
+      } else {
+        membership = (await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: 'active' }))[0];
+      }
+      if (renewalPayment > 0) {
+        await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership.id, amount: renewalPayment, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${Date.now()}`, note: 'Membership renewal payment', paid_at: resolvePaidAt(input.startDate) });
+        await notifyOwner('payments', 'Payment received', `${owned[0].full_name} paid $${Number(renewalPayment).toLocaleString()} for renewal`);
+      }
     }
 
     if (operation === 'delete') {
