@@ -221,7 +221,7 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'listFeedback') {
       if (access.role !== 'owner' && access.role !== 'staff') return deny();
-      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at,members(id,full_name,phone,email)&order=created_at.desc`);
+      const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(access.gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at,members(id,full_name,phone,email)&order=created_at.desc`);
       return Response.json({ feedback: rows.map((item: any) => {
         const member = item.members || {};
         const statusMap: Record<string, string> = { open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' };
@@ -240,16 +240,16 @@ export default async function(req: Request): Promise<Response> {
       const values: Record<string, any> = { updated_at: new Date().toISOString() };
       if (statusInput && statusMap[statusInput]) values.status = statusMap[statusInput];
       if (responseText) { values.response = responseText.slice(0, 2000); values.responded_by = access.userId; values.responded_at = new Date().toISOString(); }
-      const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,member_id,subject,message,status,response&limit=1`);
+      const rows = await select('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(access.gym.id)}&select=id,member_id,subject,message,status,response&limit=1`);
       if (!rows[0]) return Response.json({ error: 'Feedback not found' }, { status: 404 });
-      const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, values))[0];
+      const updated = (await update('feedback_requests', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(access.gym.id)}`, values))[0];
       if (responseText && updated?.member_id) {
         const memberRows = await select('members', `id=eq.${encodeURIComponent(updated.member_id)}&select=user_id&limit=1`);
         const memberUserId = memberRows[0]?.user_id || null;
         await insert('notifications', {
           member_id: updated.member_id,
           user_id: memberUserId,
-          gym_id: gym.id,
+          gym_id: access.gym.id,
           type: 'feedback_response',
           title: 'Gym responded to your feedback',
           message: responseText.slice(0, 500),
