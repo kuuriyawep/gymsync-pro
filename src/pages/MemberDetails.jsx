@@ -90,7 +90,7 @@ export default function MemberDetails() {
               <button onClick={() => setQuickMsg(true)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><MessageSquare className="w-4 h-4" /> Quick Message</button>
               <button onClick={() => navigate(`/members?edit=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-4 h-4" /> Edit Member</button>
               <button onClick={() => navigate(`/members?renew=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5"><RefreshCw className="w-4 h-4" /> Renew Membership</button>
-              {canRecordPayments && <button onClick={() => navigate(`/payments?record=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>
+              {canRecordPayments && <button onClick={() => navigate(`/payments?record=${encodeURIComponent(member.id)}`)} className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><DollarSign className="w-4 h-4" /> Record Payment</button>}
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-black/5">
