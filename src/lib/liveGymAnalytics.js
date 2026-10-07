@@ -10,8 +10,12 @@ function bucketsFor(range) {
     const first = atStartOfDay(new Date(now.getTime() - 6 * DAY));
     for (let i = 0; i < 7; i++) { const start = new Date(first.getTime() + i * DAY); buckets.push({ start, end: new Date(start.getTime() + DAY), label: start.toLocaleDateString("en", { weekday: "short" }) }); }
   } else if (range === "30d") {
-    const first = atStartOfDay(new Date(now.getTime() - 27 * DAY));
-    for (let i = 0; i < 4; i++) { const start = new Date(first.getTime() + i * 7 * DAY); buckets.push({ start, end: new Date(start.getTime() + 7 * DAY), label: `Week ${i + 1}` }); }
+    const first = atStartOfDay(new Date(now.getTime() - 29 * DAY));
+    for (let i = 0; i < 4; i++) {
+      const start = new Date(first.getTime() + i * 7 * DAY);
+      const end = i === 3 ? new Date(todayOrNow(now).getTime() + DAY) : new Date(start.getTime() + 7 * DAY);
+      buckets.push({ start, end, label: `Week ${i + 1}` });
+    }
   } else {
     const count = range === "year" ? now.getMonth() + 1 : 6;
     const first = range === "year" ? new Date(now.getFullYear(), 0, 1) : new Date(now.getFullYear(), now.getMonth() - 5, 1);
@@ -20,6 +24,7 @@ function bucketsFor(range) {
   return buckets;
 }
 
+function todayOrNow(date) { return atStartOfDay(date); }
 function revenueSince(payments, start) { return payments.filter((p) => validDate(p.paidAt) >= start).reduce((sum, p) => sum + Number(p.amount || 0), 0); }
 
 export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
@@ -32,20 +37,29 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
   const active = members.filter((m) => m.status === "Active" && (!m.expiryDate || validDate(m.expiryDate) >= today));
   const expired = members.filter((m) => m.status === "Expired" || (m.expiryDate && validDate(m.expiryDate) < today));
   const expiring = members.filter((m) => { const d = validDate(m.expiryDate); return d && d >= today && d < new Date(today.getTime() + 8 * DAY); });
-  const memberMemberships = new Map();
-  memberships.forEach((m) => memberMemberships.set(m.memberId, (memberMemberships.get(m.memberId) || 0) + 1));
-  const renewedIds = new Set([...memberMemberships].filter(([, count]) => count > 1).map(([id]) => id));
+  const membershipHistory = new Map();
+  memberships.forEach((m) => {
+    const list = membershipHistory.get(m.memberId) || [];
+    list.push(m);
+    membershipHistory.set(m.memberId, list);
+  });
+  const renewedIds = new Set([...membershipHistory].filter(([, list]) => list.length > 1).map(([id]) => id));
+  const renewalMembershipIds = new Set();
+  membershipHistory.forEach((list) => {
+    list.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    list.slice(1).forEach((m) => renewalMembershipIds.add(m.id));
+  });
   const buckets = bucketsFor(range);
   const series = buckets.map((bucket) => ({
     label: bucket.label,
     revenue: payments.filter((p) => within(validDate(p.paidAt), bucket.start, bucket.end)).reduce((sum, p) => sum + Number(p.amount || 0), 0),
     newMembers: members.filter((m) => within(validDate(m.createdAt || m.registeredDate), bucket.start, bucket.end)).length,
-    renewals: memberships.filter((m) => renewedIds.has(m.memberId) && within(validDate(m.createdAt), bucket.start, bucket.end)).length,
+    renewals: memberships.filter((m) => renewalMembershipIds.has(m.id) && within(validDate(m.createdAt), bucket.start, bucket.end)).length,
     expired: memberships.filter((m) => within(validDate(m.endDate), bucket.start, bucket.end) && validDate(m.endDate) < today).length,
   }));
   const planNames = new Map(plans.map((p) => [p.id, p.name]));
   const planCounts = {};
-  memberships.filter((m) => m.status === "active").forEach((m) => { const name = planNames.get(m.planId) || "Unknown"; planCounts[name] = (planCounts[name] || 0) + 1; });
+  memberships.filter((m) => m.status === "active" && (!m.endDate || validDate(m.endDate) >= today)).forEach((m) => { const name = planNames.get(m.planId) || "Unknown"; planCounts[name] = (planCounts[name] || 0) + 1; });
   const planPerformance = Object.entries(planCounts).map(([plan, count]) => ({ plan, count })).sort((a, b) => b.count - a.count);
   const paid = members.filter((m) => m.paymentStatus === "Paid").length;
   const pending = members.filter((m) => m.paymentStatus === "Pending").length;
