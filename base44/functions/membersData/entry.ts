@@ -201,6 +201,14 @@ export default async function(req: Request): Promise<Response> {
       if (!Number.isFinite(renewalPayment) || renewalPayment < 0) return Response.json({ error: 'Invalid renewal payment amount' }, { status: 400 });
       if (!input.startDate || !input.expiryDate) return Response.json({ error: 'Renewal start and expiry dates are required' }, { status: 400 });
       const cappedPaid = Math.min(amountDue, renewalPayment);
+      // Close the previous current period before creating the new renewal.
+      // Its dates, plan and payment history remain unchanged; only its lifecycle
+      // status moves out of active so there is never more than one active period.
+      const previousMemberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id,status&order=created_at.desc&limit=1`);
+      const previousMembership = previousMemberships[0];
+      if (previousMembership?.status === 'active') {
+        await update('memberships', `id=eq.${encodeURIComponent(previousMembership.id)}&gym_id=eq.${gymFilter}`, { status: 'expired' });
+      }
       let existingMetadata: any = {};
       try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
       const metadata = JSON.stringify({ ...existingMetadata, note: input.note || '', preferredTime: input.preferredTime || existingMetadata.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender || existingMetadata.gender || '' });
@@ -253,7 +261,7 @@ export default async function(req: Request): Promise<Response> {
       const id = encodeURIComponent(String(body.id || ''));
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.id || ''))) return Response.json({ error: 'Payment not found' }, { status: 404 });
       const amount = Number(body.amount);
-      if (!Number.isFinite(amount) || amount < 0) return Response.json({ error: 'A valid non-negative amount is required' }, { status: 400 });
+      if (!Number.isFinite(amount) || amount <= 0) return Response.json({ error: 'Payment amount must be greater than 0' }, { status: 400 });
       const dateRaw = String(body.date || '');
       if (!dateRaw || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return Response.json({ error: 'A valid payment date is required' }, { status: 400 });
       const rows = await select('payments', `id=eq.${id}&gym_id=eq.${gymFilter}&select=*&limit=1`);
@@ -301,8 +309,15 @@ export default async function(req: Request): Promise<Response> {
       if (operation === 'createPlan') await insert('membership_plans', { gym_id: gym.id, ...values });
       else {
         const id = encodeURIComponent(String(body.id || ''));
-        const owned = await select('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}&select=id&limit=1`);
+        const owned = await select('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}&select=id,name,price,duration_months&limit=1`);
         if (!owned[0]) return Response.json({ error: 'Membership plan not found' }, { status: 404 });
+        // Membership history references plan_id. Changing a used plan would
+        // silently rewrite the meaning of historical memberships, so used
+        // plans are immutable. Create a new plan for a new price/name instead.
+        const used = await select('memberships', `plan_id=eq.${id}&gym_id=eq.${gymFilter}&select=id&limit=1`);
+        if (used[0] && (String(owned[0].name) !== name || Number(owned[0].price) !== price || Number(owned[0].duration_months) !== durationMonths)) {
+          return Response.json({ error: 'This plan is already used by membership history. Create a new plan instead of changing its name, price or duration.' }, { status: 409 });
+        }
         await update('membership_plans', `id=eq.${id}&gym_id=eq.${gymFilter}`, values);
       }
     }
