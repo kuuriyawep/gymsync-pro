@@ -366,6 +366,17 @@ export default async function(req: Request): Promise<Response> {
 
     if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
 
+    // Staff share workspace alerts, but only within their read permissions.
+    // Front Desk can record payments (payments.write) without seeing payment
+    // amounts (payments.read), so payment notifications are filtered out.
+    const canReadWorkspaceNotification = (item: any) => {
+      if (access.role === 'owner') return true;
+      const type = String(item?.type || 'general');
+      if (type === 'payments') return hasPermission(access, 'payments.read');
+      if (type === 'expiry' || type === 'expired' || type === 'newMembers') return hasPermission(access, 'members.read');
+      return hasPermission(access, 'members.read');
+    };
+
     if (operation === 'listWorkspaceNotifications') {
       if (access.role !== 'owner' && access.role !== 'staff') return deny();
       const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
@@ -375,7 +386,7 @@ export default async function(req: Request): Promise<Response> {
         `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&select=*&order=created_at.desc&limit=50`
       );
       return Response.json({
-        notifications: rows.map((item: any) => ({
+        notifications: rows.filter(canReadWorkspaceNotification).map((item: any) => ({
           id: item.id,
           type: item.type || 'general',
           title: item.title || 'Notification',
@@ -391,6 +402,11 @@ export default async function(req: Request): Promise<Response> {
       const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
       const id = String(body.id || '').trim();
       if (!id || !targetUserId) return Response.json({ error: 'Notification is required' }, { status: 400 });
+      const rows = await select(
+        'notifications',
+        `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&select=id,type&limit=1`
+      );
+      if (!rows[0] || !canReadWorkspaceNotification(rows[0])) return deny();
       await update(
         'notifications',
         `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}`,
@@ -403,11 +419,19 @@ export default async function(req: Request): Promise<Response> {
       if (access.role !== 'owner' && access.role !== 'staff') return deny();
       const targetUserId = access.role === 'owner' ? access.userId : gym.owner_id;
       if (!targetUserId) return Response.json({ success: true });
-      await update(
+      const rows = await select(
         'notifications',
-        `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&read_at=is.null`,
-        { read_at: new Date().toISOString() }
+        `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&read_at=is.null&select=id,type&limit=200`
       );
+      const visibleIds = rows.filter(canReadWorkspaceNotification).map((item: any) => item.id);
+      if (visibleIds.length) {
+        const idFilter = visibleIds.map((id: string) => encodeURIComponent(id)).join(',');
+        await update(
+          'notifications',
+          'id=in.(' + idFilter + ')&gym_id=eq.' + encodeURIComponent(gym.id) + '&user_id=eq.' + encodeURIComponent(targetUserId),
+          { read_at: new Date().toISOString() }
+        );
+      }
       return Response.json({ success: true });
     }
 
