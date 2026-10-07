@@ -220,7 +220,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (operation === 'listFeedback') {
-      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      if (!hasPermission(access, 'members.read')) return deny();
       if (!access.gym?.id) return Response.json({ error: 'No gym is linked to this owner/staff account' }, { status: 403 });
       const rows = await select('feedback_requests', `gym_id=eq.${encodeURIComponent(access.gym.id)}&select=id,member_id,type,subject,message,status,response,created_at,updated_at&order=created_at.desc`);
       const memberIds = [...new Set(rows.map((item: any) => item.member_id).filter(Boolean))];
@@ -240,7 +240,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     if (operation === 'updateFeedback') {
-      if (access.role !== 'owner' && access.role !== 'staff') return deny();
+      if (!hasPermission(access, 'members.write')) return deny();
       const id = String(body.id || '').trim();
       const responseText = String(body.response || '').trim();
       const statusInput = String(body.status || '').trim();
@@ -277,18 +277,29 @@ export default async function(req: Request): Promise<Response> {
       if (existing) return Response.json({ gymId: existing.id, gym: { id: existing.id, name: existing.name || '', phone: existing.phone || '', email: existing.email || '', address: existing.address || '', logoUrl: existing.logo_url || null }, existed: true });
       // Block users who already have a business association (staff or member) from
       // creating a second owner gym. Only users with NO association may onboard.
-      const [staffRows, memberRows] = await Promise.all([
-        select('staff', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`),
-        select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`)
-      ]);
+      let staffRows: any[] = [];
+      let memberRows: any[] = [];
+      if (usingSupabaseIdentity) {
+        [staffRows, memberRows] = await Promise.all([
+          select('staff', `user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`),
+          select('members', `user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`)
+        ]);
+      } else {
+        [staffRows, memberRows] = await Promise.all([
+          select('staff', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`),
+          select('members', `base44_user_id=eq.${encodeURIComponent(access.userId)}&select=id&limit=1`)
+        ]);
+      }
       if (staffRows[0] || memberRows[0]) return Response.json({ error: 'You already have an account associated with a gym and cannot create a second one' }, { status: 403 });
-      const created = (await insert('gyms?return=representation', {
+      const gymPayload: Record<string, any> = {
         name: name.slice(0, 120),
         address: location ? location.slice(0, 240) : null,
         logo_url: input.logoUrl ? String(input.logoUrl).slice(0, 1000) : null,
-        email: ownerEmail.slice(0, 160),
-        owner_base44_user_id: access.userId
-      }))[0];
+        email: ownerEmail.slice(0, 160)
+      };
+      if (usingSupabaseIdentity) gymPayload.owner_id = access.userId;
+      else gymPayload.owner_base44_user_id = access.userId;
+      const created = (await insert('gyms?return=representation', gymPayload))[0];
       const defaultPrice = Number(created.membership_default_price ?? 15);
       await insert('membership_plans?return=representation', { gym_id: created.id, name: 'Monthly', duration_months: 1, price: Number.isFinite(defaultPrice) && defaultPrice >= 0 ? defaultPrice : 15, is_active: true });
       return Response.json({ gymId: created.id, gym: { id: created.id, name: created.name || '', phone: created.phone || '', email: created.email || '', address: created.address || '', logoUrl: created.logo_url || null }, existed: false });
