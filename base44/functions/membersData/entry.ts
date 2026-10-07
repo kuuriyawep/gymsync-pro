@@ -76,7 +76,7 @@ export default async function(req: Request): Promise<Response> {
         readPayments
           ? select('payments', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`)
           : Promise.resolve([]),
-        select('attendance', `member_id=eq.${memberId}&select=*&order=check_in_at.desc`),
+        select('attendance', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=check_in_at.desc`),
         select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`)
       ]);
