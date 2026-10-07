@@ -355,15 +355,7 @@ export default async function(req: Request): Promise<Response> {
         paid_at: payment.paid_at || null,
         reference: payment.reference || null
       });
-      if (payment.membership_id) {
-        const membershipId = encodeURIComponent(payment.membership_id);
-        const memberships = await select('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=*&limit=1`);
-        if (memberships[0]) {
-          const remaining = await select('payments', `membership_id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount`);
-          const totalPaid = remaining.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-          await update('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}`, { amount_paid: Math.min(Number(memberships[0].amount_due || 0), totalPaid) });
-        }
-      }
+      if (payment.membership_id) await recalculateMembershipPaid(payment.membership_id);
     }
 
     if (operation === 'createPlan' || operation === 'updatePlan') {
