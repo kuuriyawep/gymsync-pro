@@ -312,11 +312,14 @@ export default async function(req: Request): Promise<Response> {
       const rows = await select('payments', `id=eq.${id}&gym_id=eq.${gymFilter}&select=*&limit=1`);
       if (!rows[0]) return Response.json({ error: 'Payment not found' }, { status: 404 });
       const payment = rows[0];
+      const oldMembershipId = payment.membership_id || null;
+      const newMembership = await findMembershipForPaymentDate(payment.member_id, dateRaw);
       await update('payments', `id=eq.${id}&gym_id=eq.${gymFilter}`, {
         amount,
         method: normalizeMethod(String(body.method || 'Cash')),
         note: String(body.notes || '').slice(0, 500),
-        paid_at: resolvePaidAt(dateRaw)
+        paid_at: resolvePaidAt(dateRaw),
+        membership_id: newMembership?.id || null
       });
       await audit('payment.updated', payment.id, {
         member_id: payment.member_id,
