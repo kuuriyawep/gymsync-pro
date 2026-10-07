@@ -337,13 +337,8 @@ export default async function(req: Request): Promise<Response> {
           note: String(body.notes || '').slice(0, 500)
         }
       });
-      // Recalculate the linked membership's amount_paid
-      if (payment.membership_id) {
-        const membershipId = encodeURIComponent(payment.membership_id);
-        const remaining = await select('payments', `membership_id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount`);
-        const totalPaid = remaining.reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0);
-        await update('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}`, { amount_paid: Math.min(Number((await select('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=amount_due&limit=1`))[0]?.amount_due || 0), totalPaid) });
-      }
+      if (oldMembershipId && oldMembershipId !== newMembership?.id) await recalculateMembershipPaid(oldMembershipId);
+      if (newMembership?.id) await recalculateMembershipPaid(newMembership.id);
     }
 
     if (operation === 'deletePayment') {
