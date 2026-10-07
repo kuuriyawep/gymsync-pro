@@ -81,6 +81,11 @@ export default async function(req: Request): Promise<Response> {
       const plan = plans.find((item: any) => item.id === membership?.plan_id);
       let metadata: any = {};
       try { metadata = JSON.parse(member.notes || '{}'); } catch { metadata = {}; }
+      const attendanceStartDate = String(metadata.portalJoinedAt || member.joined_at || member.created_at || '').slice(0, 10);
+      const trackedAttendance = attendance.filter((item: any) => {
+        const checkInDate = String(item.check_in_at || '').slice(0, 10);
+        return !attendanceStartDate || checkInDate >= attendanceStartDate;
+      });
       const expiryDate = String(membership?.end_date || '');
       const expiryDays = expiryDate ? Math.floor((new Date(`${expiryDate}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000) : null;
       const status = String(member.status || '').toLowerCase() === 'suspended'
@@ -126,7 +131,8 @@ export default async function(req: Request): Promise<Response> {
         membership: { plan: plan?.name || 'No plan', price: amountDue, startDate: membership?.start_date || '', expiryDate: membership?.end_date || '', status, autoRenew: Boolean(membership?.auto_renew) },
         balance: { price: amountDue, paid: amountPaid, balance: metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid), status: amountDue <= amountPaid ? 'Paid' : amountPaid > 0 ? 'Partially Paid' : 'Outstanding', renewalDate: membership?.end_date || '' },
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
-        attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
+        attendanceStartDate,
+        attendance: trackedAttendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
         notifications: allNotifications.map((item: any) => ({ id: item.id, title: item.title, description: item.message || '', read: Boolean(item.read_at), createdAt: item.created_at })),
         feedback: feedback.map((item: any) => ({ id: item.id, type: ({ feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' } as Record<string, string>)[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: ({ open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' } as Record<string, string>)[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null })), 
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
@@ -203,21 +209,31 @@ export default async function(req: Request): Promise<Response> {
           return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
         }
 
+        let memberNotes: any = {};
+        try { memberNotes = JSON.parse(member.notes || '{}'); } catch { memberNotes = {}; }
+        if (!memberNotes.portalJoinedAt) memberNotes.portalJoinedAt = new Date().toISOString();
+        const updatedNotes = JSON.stringify(memberNotes);
         await update(
           'members',
           `id=eq.${encodeURIComponent(member.id)}&user_id=is.null`,
-          { user_id: access.userId, email: ownerEmail }
+          { user_id: access.userId, email: ownerEmail, notes: updatedNotes }
         );
+        member.notes = updatedNotes;
       } else {
         if (member.base44_user_id && member.base44_user_id !== access.userId) {
           return Response.json({ error: 'This member is already linked to another account' }, { status: 409 });
         }
 
+        let memberNotes: any = {};
+        try { memberNotes = JSON.parse(member.notes || '{}'); } catch { memberNotes = {}; }
+        if (!memberNotes.portalJoinedAt) memberNotes.portalJoinedAt = new Date().toISOString();
+        const updatedNotes = JSON.stringify(memberNotes);
         await update(
           'members',
           `id=eq.${encodeURIComponent(member.id)}&base44_user_id=is.null`,
-          { base44_user_id: access.userId, email: ownerEmail }
+          { base44_user_id: access.userId, email: ownerEmail, notes: updatedNotes }
         );
+        member.notes = updatedNotes;
       }
 
       // Keep the profile/gym relationship in sync for the member portal.
