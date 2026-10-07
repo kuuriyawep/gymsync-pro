@@ -75,21 +75,59 @@ export default async function(req: Request): Promise<Response> {
         select('feedback_requests', `member_id=eq.${memberFilter}&select=*&order=created_at.desc`),
         select('member_messages', `member_id=eq.${memberFilter}&select=*&order=sent_at.desc&limit=20`)
       ]);
-      const membership = memberships[0] || null;
+      const today = new Date().toISOString().slice(0, 10);
+      const currentMembership = memberships.find((item: any) => String(item.start_date || '') <= today && (!item.end_date || String(item.end_date) >= today)) || memberships[0] || null;
+      const membership = currentMembership;
       const plan = plans.find((item: any) => item.id === membership?.plan_id);
       let metadata: any = {};
       try { metadata = JSON.parse(member.notes || '{}'); } catch { metadata = {}; }
+      const expiryDate = String(membership?.end_date || '');
+      const expiryDays = expiryDate ? Math.floor((new Date(`${expiryDate}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000) : null;
+      const status = String(member.status || '').toLowerCase() === 'suspended'
+        ? 'Suspended'
+        : String(membership?.status || '').toLowerCase() === 'expired' || (expiryDate && expiryDate < today)
+          ? 'Expired'
+          : expiryDays !== null && expiryDays >= 0 && expiryDays <= 7
+            ? 'Expiring Soon'
+            : (metadata.status || 'Active');
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
-      const status = metadata.status || (member.status === 'active' ? 'Active' : member.status === 'suspended' ? 'Suspended' : 'Expired');
       const initials = String(member.full_name || '').split(' ').filter(Boolean).map((part: string) => part[0]).join('').slice(0, 2).toUpperCase();
+      const lifecycleNotifications: any[] = [];
+      if (membership?.end_date && access.userId) {
+        const expiry = String(membership.end_date);
+        if (expiryDays === 5) lifecycleNotifications.push({ type: 'expiry', title: 'Membership expires in 5 days', message: `Your membership expires on ${expiry}` });
+        if (expiryDays === 1) lifecycleNotifications.push({ type: 'expiry', title: 'Membership expires tomorrow', message: `Your membership expires on ${expiry}` });
+        if (expiryDays === 0) lifecycleNotifications.push({ type: 'expiry', title: 'Membership expires today', message: 'Your membership expires today. Renew to keep your access active.' });
+        if (expiryDays !== null && expiryDays < 0) lifecycleNotifications.push({ type: 'expired', title: 'Membership expired', message: `Your membership expired on ${expiry}. Please renew to continue using the gym.` });
+      }
+      const freshNotifications: any[] = [];
+      for (const item of lifecycleNotifications) {
+        const exists = notifications.some((row: any) => row.type === item.type && row.title === item.title && row.message === item.message);
+        if (!exists) {
+          try {
+            const created = (await insert('notifications', {
+              member_id: member.id,
+              user_id: access.userId,
+              gym_id: member.gym_id,
+              type: item.type,
+              title: item.title,
+              message: item.message,
+            }))[0];
+            if (created) freshNotifications.push(created);
+          } catch {
+            // Notification creation must never block the member portal.
+          }
+        }
+      }
+      const allNotifications = [...freshNotifications, ...notifications];
       return {
         profile: { id: member.id, name: member.full_name, memberId: metadata.memberId || member.id.slice(0, 8).toUpperCase(), phone: member.phone, email: member.email || access.email || '', gym: gyms[0]?.name || '', joinDate: String(member.joined_at || member.created_at).slice(0, 10), avatar: initials, photoUrl: member.avatar_url || null, gender: metadata.gender || '' },
         membership: { plan: plan?.name || 'No plan', price: amountDue, startDate: membership?.start_date || '', expiryDate: membership?.end_date || '', status, autoRenew: Boolean(membership?.auto_renew) },
         balance: { price: amountDue, paid: amountPaid, balance: metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid), status: amountDue <= amountPaid ? 'Paid' : amountPaid > 0 ? 'Partially Paid' : 'Outstanding', renewalDate: membership?.end_date || '' },
         payments: payments.map((payment: any) => ({ id: payment.id, amount: Number(payment.amount || 0), date: String(payment.paid_at || payment.created_at).slice(0, 10), method: String(payment.method || '').replace(/_/g, ' '), status: 'Paid', reference: payment.reference || '' })),
         attendance: attendance.map((item: any) => ({ id: item.id, checkedInAt: item.check_in_at, date: String(item.check_in_at).slice(0, 10) })),
-        notifications: notifications.map((item: any) => ({ id: item.id, title: item.title, description: item.message || '', read: Boolean(item.read_at), createdAt: item.created_at })),
+        notifications: allNotifications.map((item: any) => ({ id: item.id, title: item.title, description: item.message || '', read: Boolean(item.read_at), createdAt: item.created_at })),
         feedback: feedback.map((item: any) => ({ id: item.id, type: ({ feedback: 'Feedback', complaint: 'Complaint', feature_request: 'Feature Request', bug: 'Feature Request', coach_request: 'Coach Request', machine_request: 'Machine Request', other: 'Feedback' } as Record<string, string>)[item.type] || 'Feedback', title: item.subject || '', body: item.message || '', status: ({ open: 'Pending', in_progress: 'Under Review', resolved: 'Approved', closed: 'Completed' } as Record<string, string>)[item.status] || 'Pending', date: String(item.created_at).slice(0, 10), response: item.response || null })), 
         messages: messages.map((item: any) => ({ id: item.id, message: item.message, channel: item.channel || 'in_app', sentAt: item.sent_at || item.created_at }))
       };
