@@ -49,6 +49,7 @@ export function loadMembers(force = false) {
 
 export function addMember(member) { return run("create", { member }); }
 export function updateMember(id, member) { return run("update", { id, member }); }
+export function renewMember(id, member) { return run("renew", { id, member }); }
 export function deleteMember(id) { return run("delete", { id }); }
 export function recordPayment(payment) { return run("recordPayment", { payment }); }
 export function updatePayment(payment) { return run("updatePayment", { id: payment.id, amount: payment.amount, method: payment.method, date: payment.date, notes: payment.notes }); }
