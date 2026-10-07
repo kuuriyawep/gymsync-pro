@@ -34,6 +34,20 @@ export default async function(req: Request): Promise<Response> {
         message: message.slice(0, 500),
       });
     };
+    // audit_logs.actor_id is a Supabase Auth UUID. Legacy Base44 identities are
+    // not UUIDs, so only attach actor_id when the canonical Supabase identity
+    // is available; the gym/action/entity still make the event auditable.
+    const audit = async (action: string, entityId: string | null, metadata: Record<string, any> = {}) => {
+      const actorId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(access.userId) ? access.userId : null;
+      await insert('audit_logs', {
+        gym_id: gym.id,
+        actor_id: actorId,
+        action,
+        entity_type: 'payment',
+        entity_id: entityId,
+        metadata
+      });
+    };
     if (operation === 'bootstrap' && !readMembers && !readPayments) return deny();
     if (operation === 'memberDetails' && !readMembers) return deny();
     if (['create', 'update', 'renew', 'delete'].includes(operation) && !writeMembers) return deny();
@@ -258,7 +272,14 @@ export default async function(req: Request): Promise<Response> {
       // most recently created membership among periods containing the payment date.
       const membership = matchingMemberships[0] || null;
       const reference = `TXN-${Date.now()}`;
-      await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: resolvePaidAt(paymentDate) });
+      const payment = (await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership?.id || null, amount, method: normalizeMethod(String(input.method || 'Cash')), reference, note: String(input.notes || ''), paid_at: resolvePaidAt(paymentDate) }))[0];
+      await audit('payment.recorded', payment?.id || null, {
+        member_id: owned[0].id,
+        membership_id: membership?.id || null,
+        amount,
+        payment_date: paymentDate,
+        method: normalizeMethod(String(input.method || 'Cash'))
+      });
       const memberRows = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=full_name&limit=1`);
       await notifyOwner('payments', 'Payment received', `${memberRows[0]?.full_name || 'A member'} paid ${Number(amount).toLocaleString()}`);
       if (membership) {
@@ -284,6 +305,22 @@ export default async function(req: Request): Promise<Response> {
         note: String(body.notes || '').slice(0, 500),
         paid_at: resolvePaidAt(dateRaw)
       });
+      await audit('payment.updated', payment.id, {
+        member_id: payment.member_id,
+        membership_id: payment.membership_id || null,
+        before: {
+          amount: Number(payment.amount || 0),
+          method: payment.method || '',
+          paid_at: payment.paid_at || null,
+          note: payment.note || ''
+        },
+        after: {
+          amount,
+          method: normalizeMethod(String(body.method || 'Cash')),
+          paid_at: resolvePaidAt(dateRaw),
+          note: String(body.notes || '').slice(0, 500)
+        }
+      });
       // Recalculate the linked membership's amount_paid
       if (payment.membership_id) {
         const membershipId = encodeURIComponent(payment.membership_id);
@@ -299,6 +336,14 @@ export default async function(req: Request): Promise<Response> {
       if (!rows[0]) return Response.json({ error: 'Payment not found' }, { status: 404 });
       const payment = rows[0];
       await request(`payments?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
+      await audit('payment.deleted', payment.id, {
+        member_id: payment.member_id,
+        membership_id: payment.membership_id || null,
+        amount: Number(payment.amount || 0),
+        method: payment.method || '',
+        paid_at: payment.paid_at || null,
+        reference: payment.reference || null
+      });
       if (payment.membership_id) {
         const membershipId = encodeURIComponent(payment.membership_id);
         const memberships = await select('memberships', `id=eq.${membershipId}&gym_id=eq.${gymFilter}&select=*&limit=1`);
