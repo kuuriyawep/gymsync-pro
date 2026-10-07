@@ -34,6 +34,25 @@ export default async function(req: Request): Promise<Response> {
         message: message.slice(0, 500),
       });
     };
+    const notifyOwnerOnce = async (key: string, title: string, message: string) => {
+      if (!notificationEnabled(key) || !gym.owner_id) return;
+      const existing = await select(
+        'notifications',
+        `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(gym.owner_id)}&type=eq.${encodeURIComponent(key)}&title=eq.${encodeURIComponent(title)}&message=eq.${encodeURIComponent(message.slice(0, 500))}&select=id&limit=1`
+      );
+      if (!existing[0]) await notifyOwner(key, title, message);
+    };
+    const lifecycleStatus = (membership: any, member: any, fallback = 'Active') => {
+      if (String(member?.status || '').toLowerCase() === 'suspended') return 'Suspended';
+      const expiry = String(membership?.end_date || '');
+      const today = new Date().toISOString().slice(0, 10);
+      if (String(membership?.status || '').toLowerCase() === 'expired' || (expiry && expiry < today)) return 'Expired';
+      if (expiry) {
+        const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
+        if (days >= 0 && days <= 7) return 'Expiring Soon';
+      }
+      return fallback;
+    };
     // audit_logs.actor_id is a Supabase Auth UUID. Legacy Base44 identities are
     // not UUIDs, so only attach actor_id when the canonical Supabase identity
     // is available; the gym/action/entity still make the event auditable.
@@ -408,7 +427,7 @@ export default async function(req: Request): Promise<Response> {
       const payment = payments.find((item: any) => item.member_id === member.id);
       let metadata: any = {};
       try { metadata = JSON.parse(member.notes || '{}'); } catch { metadata = { note: member.notes || '' }; }
-      const status = metadata.status || titleCase(member.status || 'active');
+      const status = lifecycleStatus(membership, member, metadata.status || titleCase(member.status || 'active'));
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
       const balance = metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid);
@@ -422,6 +441,23 @@ export default async function(req: Request): Promise<Response> {
     const paymentActivities = payments.map((payment: any) => ({ id: `payment-${payment.id}`, type: 'payment', text: `$${Number(payment.amount || 0).toLocaleString()} payment received from ${names.get(payment.member_id) || 'a member'}`, occurredAt: payment.paid_at || payment.created_at }));
     const updateActivities = members.filter((member: any) => member.updated_at && new Date(member.updated_at).getTime() - new Date(member.created_at).getTime() > 1000).map((member: any) => ({ id: `update-${member.id}`, type: 'update', text: `${member.full_name}'s profile was updated`, occurredAt: member.updated_at }));
     const recentActivities = [...memberActivities, ...paymentActivities, ...updateActivities].filter((item: any) => item.occurredAt).sort((a: any, b: any) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()).slice(0, 10);
+    const lifecycleNotifications = memberships
+      .map((membership: any) => {
+        const member = members.find((item: any) => item.id === membership.member_id);
+        if (!member || !membership.end_date) return null;
+        const expiry = String(membership.end_date);
+        const today = new Date().toISOString().slice(0, 10);
+        const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
+        if (days === 5) return { key: 'expiry', title: 'Membership expires in 5 days', message: `${member.full_name} membership expires on ${expiry}` };
+        if (days === 1) return { key: 'expiry', title: 'Membership expires tomorrow', message: `${member.full_name} membership expires on ${expiry}` };
+        if (days === 0) return { key: 'expiry', title: 'Membership expires today', message: `${member.full_name} membership expires today` };
+        if (days < 0) return { key: 'expired', title: 'Membership expired', message: `${member.full_name} membership expired on ${expiry}` };
+        return null;
+      })
+      .filter(Boolean);
+    if (access.role === 'owner' && lifecycleNotifications.length) {
+      await Promise.all(lifecycleNotifications.map((item: any) => notifyOwnerOnce(item.key, item.title, item.message).catch(() => undefined)));
+    }
     const analytics = {
       payments: readPayments ? payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })) : [],
       memberships: (access.role === 'owner' || access.permissions.includes('plans.read')) ? memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })) : [],
