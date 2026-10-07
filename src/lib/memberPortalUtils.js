@@ -16,15 +16,35 @@ export function membershipProgress(startDate, expiryDate) {
   const elapsed = Math.max(0, Math.round((today - start) / DAY));
   return { remaining: Math.max(0, Math.round((end - today) / DAY)), pct: Math.min(100, Math.round((elapsed / total) * 100)) };
 }
-export function attendanceSummary(records = []) {
-  // Use the member's local calendar date from the timestamp. Reading the UTC
-  // date portion directly can shift late-night check-ins into the wrong day.
-  const dates = new Set(records.map((item) => dateKey(item.checkedInAt || item.date)).filter(Boolean));
+export function attendanceSummary(records = [], startDate = '') {
+  // A streak is an attendance streak, not an account-age streak. The backend
+  // only returns check-ins from the member's attendance tracking start date.
+  // Keep this second boundary client-side as a defense against stale/cached data.
+  const startKey = startDate ? dateKey(startDate) : '';
+  const dates = new Set(
+    records
+      .map((item) => dateKey(item.checkedInAt || item.date))
+      .filter((key) => key && (!startKey || key >= startKey))
+  );
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let current = 0;
-  for (let i = 0; i < 366; i++) { const date = new Date(today.getTime() - i * DAY); const key = dateKey(date); if (!dates.has(key)) break; current++; }
+  for (let i = 0; i < 366; i++) {
+    const date = new Date(today.getTime() - i * DAY);
+    const key = dateKey(date);
+    if (startKey && key < startKey) break;
+    if (!dates.has(key)) break;
+    current++;
+  }
   const monthPrefix = dateKey(today).slice(0, 7);
   const monthCount = [...dates].filter((date) => date.startsWith(monthPrefix)).length;
-  const week = Array.from({ length: 7 }, (_, index) => { const date = new Date(today.getTime() - (6 - index) * DAY); const key = dateKey(date); return { day: date.toLocaleDateString("en", { weekday: "short" }), date: date.toLocaleDateString("en", { day: "numeric", month: "short" }), attended: dates.has(key) }; });
+  const week = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today.getTime() - (6 - index) * DAY);
+    const key = dateKey(date);
+    return {
+      day: date.toLocaleDateString("en", { weekday: "short" }),
+      date: date.toLocaleDateString("en", { day: "numeric", month: "short" }),
+      attended: (!startKey || key >= startKey) && dates.has(key)
+    };
+  });
   return { current, monthCount, week, dates };
 }
