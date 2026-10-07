@@ -205,13 +205,19 @@ export default async function(req: Request): Promise<Response> {
       try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
       const metadata = JSON.stringify({ ...existingMetadata, note: input.note || '', preferredTime: input.preferredTime || existingMetadata.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender || existingMetadata.gender || '' });
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')) });
-      const memberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id&order=created_at.desc&limit=1`);
-      let membership = memberships[0];
-      if (membership) {
-        await update('memberships', `id=eq.${encodeURIComponent(membership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: 'active' });
-      } else {
-        membership = (await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: cappedPaid, status: 'active' }))[0];
-      }
+      // Renewal starts a new membership period. Never overwrite the previous
+      // membership because its dates, plan and linked payments are historical
+      // financial records that must remain immutable.
+      const membership = (await insert('memberships', {
+        member_id: owned[0].id,
+        gym_id: gym.id,
+        plan_id: plan.id,
+        start_date: input.startDate,
+        end_date: input.expiryDate,
+        amount_due: amountDue,
+        amount_paid: cappedPaid,
+        status: 'active'
+      }))[0];
       if (renewalPayment > 0) {
         await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership.id, amount: renewalPayment, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${Date.now()}`, note: 'Membership renewal payment', paid_at: resolvePaidAt(input.startDate) });
         await notifyOwner('payments', 'Payment received', `${owned[0].full_name} paid $${Number(renewalPayment).toLocaleString()} for renewal`);
