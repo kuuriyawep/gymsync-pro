@@ -53,6 +53,10 @@ export default async function(req: Request): Promise<Response> {
     const ensurePlan = async (name: string, price: number) => {
       const found = await select('membership_plans', `gym_id=eq.${gymFilter}&name=eq.${encodeURIComponent(name)}&select=*&limit=1`);
       if (found[0]) return found[0];
+      // Creating a plan is a plans.write operation. A staff member may use an
+      // existing plan while registering/editing a member, but must not be able
+      // to create a new plan as a side effect of a member write.
+      if (!writePlans) throw new Error('Membership plan not found');
       const durations: Record<string, number> = { Monthly: 1, '3 Months': 3, '6 Months': 6, Custom: 1 };
       return (await insert('membership_plans', { gym_id: gym.id, name, duration_months: durations[name] || 1, price, is_active: true }))[0];
     };
