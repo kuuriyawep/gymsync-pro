@@ -526,14 +526,20 @@ export default async function(req: Request): Promise<Response> {
       const fullName = String(body.full_name || '').trim();
       const role = String(body.role || 'Front Desk');
       if (!fullName) return Response.json({ error: 'Full name is required' }, { status: 400 });
-      if (!email || !['Manager', 'Front Desk', 'Cashier'].includes(role)) return Response.json({ error: 'Valid email and role are required' }, { status: 400 });
+      if (!email || !['Manager', 'Front Desk', 'Cashier'].includes(role)) {
+        return Response.json({ error: 'Valid email and role are required' }, { status: 400 });
+      }
 
-      const roleMap: Record<string, string> = { 'Manager': 'manager', 'Front Desk': 'front_desk', 'Cashier': 'cashier' };
+      const roleMap: Record<string, string> = {
+        Manager: 'manager',
+        'Front Desk': 'front_desk',
+        Cashier: 'cashier',
+      };
       const dbRole = roleMap[role] || 'front_desk';
 
-      // Never create duplicate active/invited staff assignments for the same
-      // email. This also prevents one Supabase identity from being ambiguously
-      // claimed by multiple gyms.
+      // Email delivery is intentionally not part of staff activation. The
+      // verified Google identity is the sign-in method, so the flow works on
+      // another device without depending on a custom SMTP/domain.
       const existingStaff = await select(
         'staff',
         `email=eq.${encodeURIComponent(email)}&status=in.(active,invited)&select=id,gym_id,status&limit=20`
@@ -541,15 +547,15 @@ export default async function(req: Request): Promise<Response> {
       if (existingStaff.length) {
         const sameGym = existingStaff.some((item: any) => item.gym_id === gym.id);
         return Response.json(
-          { error: sameGym ? 'This staff email already has an active or pending invitation for this gym' : 'This email is already assigned or invited as staff' },
+          {
+            error: sameGym
+              ? 'This staff email already has an active or pending invitation for this gym'
+              : 'This email is already assigned or invited as staff'
+          },
           { status: 409 }
         );
       }
 
-      // Supabase Auth is the actual invitation system. The admin invite endpoint
-      // creates the Auth user (if new) and sends the invitation email. It must
-      // run server-side with the service key; it is never exposed to the browser.
-      const authRoot = restUrl.replace(/\/rest\/v1\/?$/, '');
       const staffRow = (await insert('staff', {
         gym_id: gym.id,
         full_name: fullName,
@@ -559,75 +565,27 @@ export default async function(req: Request): Promise<Response> {
         invited_at: new Date().toISOString(),
       }))[0];
 
-      try {
-        const inviteResponse = await fetch(`${authRoot}/auth/v1/admin/invite`, {
-          method: 'POST',
-          headers: {
-            apikey: serviceKey,
-            Authorization: `Bearer ${serviceKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            data: {
-              full_name: fullName,
-              staff_role: dbRole,
-              gym_id: gym.id,
-            },
-          }),
-        });
-
-        const invitePayload: any = await inviteResponse.json().catch(() => ({}));
-        if (!inviteResponse.ok || !invitePayload?.user?.id) {
-          await request(`staff?id=eq.${encodeURIComponent(staffRow.id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
-          const code = String(invitePayload?.code || '');
-          if (code === 'email_exists' || code === 'user_already_exists') {
-            return Response.json({ error: 'This email already has a Supabase account. Ask the staff member to sign in with that account, then invite a new email if needed.' }, { status: 409 });
-          }
-          return Response.json({ error: 'Unable to send the staff invitation email' }, { status: 502 });
-        }
-
-        const authUserId = String(invitePayload.user.id);
-        const linked = (await update(
-          'staff',
-          `id=eq.${encodeURIComponent(staffRow.id)}&gym_id=eq.${encodeURIComponent(gym.id)}`,
-          { user_id: authUserId }
-        ))[0] || { ...staffRow, user_id: authUserId };
-
-        // Pre-create the trusted profile row. The role remains server-derived
-        // from the staff association; the client never gets to choose it.
-        try {
-          await request('profiles?on_conflict=id', {
-            method: 'POST',
-            headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-            body: JSON.stringify({
-              id: authUserId,
-              role: 'staff',
-              gym_id: gym.id,
-              full_name: fullName,
-              email,
-              staff_role: dbRole,
-            }),
-          });
-        } catch {
-          // resolveAccess will repair the profile on first login if needed.
-        }
-
-        return Response.json({
-          staff: [{
-            id: linked.id,
-            name: fullName,
-            email,
-            role,
-            status: 'Invited',
-            lastActive: 'Never',
-          }],
-          success: true,
-        });
-      } catch {
-        await request(`staff?id=eq.${encodeURIComponent(staffRow.id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' }).catch(() => {});
-        return Response.json({ error: 'Unable to send the staff invitation email' }, { status: 502 });
+      if (!staffRow?.id) {
+        return Response.json({ error: 'Unable to create the staff invitation' }, { status: 500 });
       }
+
+      // The invited row is the authorization record. When this exact Gmail
+      // account signs in with Google on any device, resolveAccess() matches
+      // the verified email, binds user_id, activates the row, and routes the
+      // user into the correct gym.
+      return Response.json({
+        staff: [{
+          id: staffRow.id,
+          name: fullName,
+          email,
+          role,
+          status: 'Invited',
+          lastActive: 'Never',
+        }],
+        success: true,
+        delivery: 'google_sign_in',
+        message: 'Staff access created. The staff member must sign in with Google using this same email address.',
+      });
     }
     if (operation === 'revokeStaff') {
       await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
