@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { clearClientSessionState } from "@/lib/sessionCleanup";
 
 const AuthContext = createContext(undefined);
@@ -31,54 +32,39 @@ export const AuthProvider = ({ children }) => {
     setIsLoadingRole(true);
     setRoleError(null);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, role, gym_id, staff_role, full_name, email")
-        .eq("id", userId)
-        .maybeSingle();
+      // Role resolution must go through the trusted backend because staff
+      // invitations are activated there. This is also device-independent:
+      // the backend resolves the Supabase user id, not browser-local state.
+      const { data: access } = await invokeWithAuth("gymAccess", {
+        operation: "resolveRole",
+      });
 
       if (requestId !== roleRequestId.current) return; // superseded
-      if (error) throw error;
 
-      let resolvedProfile = data ?? null;
-      let resolvedRole = data?.role ?? null;
+      const resolvedRole = access?.role ?? null;
+      let resolvedProfile = null;
 
-      // A member can already be linked in members even if an older auth flow
-      // left profiles.gym_id empty or the profile row was not created yet.
-      // Use the linked membership as a safe member-role fallback.
-      if (!resolvedRole) {
-        const { data: member } = await supabase
-          .from("members")
-          .select("id, gym_id, full_name, email")
-          .eq("user_id", userId)
+      // Keep the existing profile data for UI details when it is available,
+      // but never make a missing/stale profile row decide authorization.
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, role, gym_id, staff_role, full_name, email")
+          .eq("id", userId)
           .maybeSingle();
+        if (data) resolvedProfile = data;
+      } catch {
+        // Backend role resolution is authoritative.
+      }
 
-        if (member?.id) {
-          resolvedRole = "member";
-          resolvedProfile = {
-            ...(data || {}),
-            id: userId,
-            role: "member",
-            gym_id: member.gym_id,
-            full_name: member.full_name || data?.full_name || null,
-            email: member.email || data?.email || null,
-          };
-        }
-      } else if (resolvedRole === "member" && !resolvedProfile.gym_id) {
-        const { data: member } = await supabase
-          .from("members")
-          .select("gym_id, full_name, email")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (member?.gym_id) {
-          resolvedProfile = {
-            ...resolvedProfile,
-            gym_id: member.gym_id,
-            full_name: member.full_name || resolvedProfile.full_name,
-            email: member.email || resolvedProfile.email,
-          };
-        }
+      if (!resolvedProfile && resolvedRole) {
+        resolvedProfile = {
+          id: userId,
+          role: resolvedRole,
+          gym_id: access?.gymId || null,
+          full_name: null,
+          email: null,
+        };
       }
 
       setProfile(resolvedProfile);
