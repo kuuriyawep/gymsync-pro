@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
 function normalizeNext(value) {
-  return value === "member" ? "member" : "owner";
+  if (value === "member") return "member";
+  if (value === "staff") return "staff";
+  return "owner";
 }
 
 export default function AuthCallback() {
@@ -44,47 +47,25 @@ export default function AuthCallback() {
           return;
         }
 
-        const userId = data.session.user.id;
-
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role, gym_id")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-
-        // A member can be linked even if an older auth flow left profiles.gym_id
-        // empty. The member row is the final source for membership linkage.
-        const { data: member } = await supabase
-          .from("members")
-          .select("id, gym_id")
-          .eq("user_id", userId)
-          .maybeSingle();
+        const { data: access } = await invokeWithAuth("gymAccess", {
+          operation: "resolveRole",
+        });
+        const resolvedRole = access?.data?.role || access?.role || null;
 
         if (cancelled) return;
 
-        if (profile?.role === "member") {
-          if (member?.id || profile.gym_id) {
-            window.location.replace("/member");
-          } else {
-            window.location.replace("/join-gym");
-          }
-          return;
-        }
-
-        if (member?.id) {
+        if (resolvedRole === "member") {
           window.location.replace("/member");
           return;
         }
 
-        if (profile?.role === "owner" || profile?.role === "staff") {
+        if (resolvedRole === "staff" || resolvedRole === "owner") {
           window.location.replace(returnTo !== "/" ? returnTo : "/");
           return;
         }
 
-        // New Google users do not have a business role yet.
-        // Owners continue through onboarding; members go through Join Gym.
+        // New users without a business role continue through the correct
+        // onboarding/join flow.
         window.location.replace(next === "member" ? "/join-gym" : "/onboarding");
       } catch (err) {
         if (cancelled) return;
