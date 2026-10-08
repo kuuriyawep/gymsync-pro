@@ -50,7 +50,7 @@ export default function AuthCallback() {
         const { data: access } = await invokeWithAuth("gymAccess", {
           operation: "resolveRole",
         });
-        const resolvedRole = access?.data?.role || access?.role || null;
+        const resolvedRole = access?.role || null;
 
         if (cancelled) return;
 
