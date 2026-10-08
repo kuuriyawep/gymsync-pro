@@ -55,7 +55,7 @@ async function resolveSupabaseIdentity(ctx: SupabaseAuthContext): Promise<{ id: 
 }
 
 export async function resolveAccess(base44: any, rest: ReturnType<typeof createSupabaseRestClient>, supabaseAuth?: SupabaseAuthContext): Promise<Access> {
-  const { select, update } = rest;
+  const { request, select, update } = rest;
 
   // Canonical identity is now Supabase Auth (gyms.owner_id / staff.user_id /
   // members.user_id). This is tried first whenever the caller supplies a
