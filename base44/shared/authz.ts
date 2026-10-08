@@ -68,20 +68,56 @@ export async function resolveAccess(base44: any, rest: ReturnType<typeof createS
     const gym = gyms[0] || null;
     if (gym) return { userId, email, role: 'owner', gym, staff: null, member: null, permissions: ['*'] };
 
-    let staffRows = await select('staff', `user_id=eq.${encodeURIComponent(userId)}&status=eq.active&select=*&limit=1`);
+    // Staff invitations are bound to the Supabase user id as soon as the
+    // owner sends the invitation. Accepting the email link therefore works
+    // on any device/browser and never depends on a client-local invite token.
+    let staffRows = await select('staff', `user_id=eq.${encodeURIComponent(userId)}&status=in.(active,invited)&select=*&limit=1`);
     let staff = staffRows[0] || null;
-    // Complete an owner-created invitation on the first authenticated login.
-    // The authenticated Supabase email is the invitation binding; once claimed,
-    // the staff row is tied permanently to the Supabase user id and activated.
     if (!staff && email) {
+      // Backward compatibility for invitations created before user_id was
+      // stored on the staff row. Claim only an unbound invitation for the
+      // authenticated email.
       staffRows = await select('staff', `email=eq.${encodeURIComponent(email)}&status=eq.invited&user_id=is.null&select=*&limit=1`);
       if (staffRows[0]) {
-        staff = (await update('staff', `id=eq.${encodeURIComponent(staffRows[0].id)}&status=eq.invited&user_id=is.null`, { user_id: userId, status: 'active', joined_at: new Date().toISOString() }))[0] || staffRows[0];
+        staff = (await update(
+          'staff',
+          `id=eq.${encodeURIComponent(staffRows[0].id)}&status=eq.invited&user_id=is.null`,
+          { user_id: userId, status: 'active', joined_at: new Date().toISOString() }
+        ))[0] || staffRows[0];
       }
     }
     if (staff) {
+      if (String(staff.status || '').toLowerCase() === 'invited') {
+        staff = (await update(
+          'staff',
+          `id=eq.${encodeURIComponent(staff.id)}&user_id=eq.${encodeURIComponent(userId)}&status=eq.invited`,
+          { status: 'active', joined_at: staff.joined_at || new Date().toISOString() }
+        ))[0] || { ...staff, status: 'active' };
+      }
       const gymRows = await select('gyms', `id=eq.${encodeURIComponent(staff.gym_id)}&select=*&limit=1`);
-      return { userId, email, role: 'staff', gym: gymRows[0] || null, staff, member: null, permissions: permissionList(staff) };
+      const gym = gymRows[0] || null;
+      if (gym) {
+        // Keep profiles in sync so frontend role guards work on first login
+        // and on later devices without relying on an old profile row.
+        try {
+          await request('profiles?on_conflict=id', {
+            method: 'POST',
+            headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+            body: JSON.stringify({
+              id: userId,
+              role: 'staff',
+              gym_id: staff.gym_id,
+              full_name: staff.full_name || email.split('@')[0],
+              email,
+              staff_role: staff.role || null,
+            }),
+          });
+        } catch {
+          // Authorization is still based on the staff row; profile sync is
+          // best-effort and must not block a valid invited staff login.
+        }
+      }
+      return { userId, email, role: 'staff', gym, staff, member: null, permissions: permissionList(staff) };
     }
 
     const memberRows = await select('members', `user_id=eq.${encodeURIComponent(userId)}&select=*&limit=1`);
