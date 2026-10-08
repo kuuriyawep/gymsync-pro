@@ -108,9 +108,12 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(session.user);
     setIsAuthenticated(true);
-    // Resolve the business role before auth loading completes so protected
-    // routes never render with an unresolved role.
-    await resolveRole(session.user.id);
+    // Authentication is independent from business-role resolution. Do not
+    // block the whole app on a profile query: ProtectedRoute only needs the
+    // Supabase session, while RoleRoute can wait for/handle role resolution.
+    // This prevents a transient RLS/network/profile error from trapping a
+    // valid authenticated user on the login loading screen.
+    void resolveRole(session.user.id);
   }, [resolveRole]);
 
   const checkUserAuth = useCallback(async () => {
