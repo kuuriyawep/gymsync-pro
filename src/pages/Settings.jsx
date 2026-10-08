@@ -70,7 +70,7 @@ export default function Settings() {
     if (!invite.fullName.trim()) { toast({ title: "Invite failed", description: "Full name is required." }); return; }
     if (!invite.email.trim()) { toast({ title: "Invite failed", description: "Email is required." }); return; }
     setInviteSaving(true);
-    try { await inviteStaff(invite.fullName.trim(), invite.email.trim(), invite.role); setInviteOpen(false); setInvite({ fullName: "", email: "", role: "Front Desk" }); toast({ title: "Invite sent", description: `${invite.fullName} was invited as ${invite.role}.` }); }
+    try { await inviteStaff(invite.fullName.trim(), invite.email.trim(), invite.role); setInviteOpen(false); setInvite({ fullName: "", email: "", role: "Front Desk" }); toast({ title: "Staff access created", description: `${invite.fullName} can now sign in with Google using ${invite.email.trim()} on any device.` }); }
     catch (error) { toast({ title: "Invite failed", description: error.message }); }
     finally { setInviteSaving(false); }
   };
