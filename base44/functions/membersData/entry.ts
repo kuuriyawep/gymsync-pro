@@ -424,11 +424,14 @@ export default async function(req: Request): Promise<Response> {
       await request(`membership_plans?id=eq.${id}&gym_id=eq.${gymFilter}`, { method: 'DELETE' });
     }
 
-    const [members, memberships, plans, payments] = await Promise.all([
+    const [members, memberships, plans, payments, trainers] = await Promise.all([
       select('members', `gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
       select('memberships', `gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
       select('membership_plans', `gym_id=eq.${gymFilter}&select=*`),
-      select('payments', `gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`)
+      select('payments', `gym_id=eq.${gymFilter}&select=*&order=paid_at.desc`),
+      (access.role === 'owner' || access.permissions.includes('trainers.read'))
+        ? select('trainers', `gym_id=eq.${gymFilter}&select=id,status`)
+        : Promise.resolve([])
     ]);
     const titleCase = (value: string) => value.split(' ').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
     const result = members.map((member: any, index: number) => {
@@ -469,6 +472,7 @@ export default async function(req: Request): Promise<Response> {
       await Promise.all(lifecycleNotifications.map((item: any) => notifyOwnerOnce(item.key, item.title, item.message).catch(() => undefined)));
     }
     const analytics = {
+      trainers: trainers.map((trainer: any) => ({ id: trainer.id, status: trainer.status || '' })),
       payments: readPayments ? payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })) : [],
       memberships: (access.role === 'owner' || access.permissions.includes('plans.read')) ? memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })) : [],
       plans: (access.role === 'owner' || access.permissions.includes('plans.read')) ? plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })) : [],
