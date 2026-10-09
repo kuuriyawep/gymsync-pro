@@ -14,8 +14,23 @@ const iconFor = {
 };
 
 const relativeTime = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : formatDistanceToNowStrict(date, { addSuffix: true });
+  if (!value) return "Date unavailable";
+  // Supabase normally returns ISO timestamps with an explicit timezone. If an
+  // older row has a timezone-less timestamp, treat it as UTC rather than the
+  // browser's local zone to avoid shifting the displayed event time.
+  const raw = String(value).trim();
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw);
+  const date = new Date(hasZone ? raw : `${raw}Z`);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+  const delta = date.getTime() - Date.now();
+  // Never tell the user an event happened "in 20 hours". Small clock skew is
+  // normal; larger future values indicate bad source data and should be shown
+  // as a calendar date instead of a false relative time.
+  if (delta > 2 * 60 * 1000) {
+    return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  }
+  if (delta > 0) return "Just now";
+  return formatDistanceToNowStrict(date, { addSuffix: true });
 };
 
 export default function NotificationsMenu() {
@@ -151,12 +166,12 @@ export default function NotificationsMenu() {
         {allOpen && (
           <div className="fixed inset-0 z-50">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40" onClick={() => setAllOpen(false)} />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute bottom-0 right-0 top-0 flex w-full max-w-sm flex-col bg-white shadow-2xl">
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} role="dialog" aria-modal="true" aria-label="All notifications" className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-lg flex-col overflow-hidden border-l border-black/10 bg-white shadow-2xl">
               <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/10 px-5">
                 <div className="flex items-center gap-2"><Inbox className="h-5 w-5" /><h3 className="font-semibold">All Notifications</h3></div>
                 <button onClick={() => setAllOpen(false)} className="rounded-lg p-1.5 hover:bg-black/5"><X className="h-5 w-5" /></button>
               </div>
-              <div className="flex-1 overflow-y-auto py-1">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
                 {items.length === 0 ? (
                   <p className="px-5 py-10 text-center text-sm text-black/45">No notifications</p>
                 ) : (
