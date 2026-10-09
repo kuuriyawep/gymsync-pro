@@ -250,6 +250,8 @@ export default async function(req: Request): Promise<Response> {
         // Update only the current/latest membership. Historical memberships must
         // remain immutable so past plan, dates and financial records stay intact.
         await update('memberships', `id=eq.${encodeURIComponent(latestMembership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+        // Keep amount_paid consistent if the plan price changes, without altering the payment ledger.
+        await recalculateMembershipPaid(latestMembership.id);
       } else {
         await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: 0, status: input.status === 'Expired' ? 'expired' : 'active' });
       }
