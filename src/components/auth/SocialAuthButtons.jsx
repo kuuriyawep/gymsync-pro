@@ -50,8 +50,9 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
         provider,
         options: {
           redirectTo: getOAuthRedirectUrl(),
-              // Open the provider URL ourselves so OAuth can run outside the
-          // Base44 Preview iframe. We create the tab synchronously above.
+          // Return the provider URL so it can open in the top-level tab,
+          // outside the Base44 Preview iframe.
+          skipBrowserRedirect: true,
         },
       });
       if (error) throw error;
