@@ -232,6 +232,26 @@ export default function Settings() {
 
       <StaffInviteModal open={inviteOpen} onClose={() => setInviteOpen(false)} invite={invite} setInvite={setInvite} onSubmit={handleInviteStaff} saving={inviteSaving} />
 
+      <StaffProfileModal
+        staff={selectedStaff ? (staff.find((item) => item.id === selectedStaff.id) || selectedStaff) : null}
+        open={!!selectedStaff}
+        onClose={() => setSelectedStaff(null)}
+        saving={staffSaving}
+        onSave={async (updated) => {
+          setStaffSaving(true);
+          try {
+            await updateStaff(updated);
+            setSelectedStaff((current) => current ? { ...current, ...updated } : null);
+            toast({ title: "Staff profile updated", description: "Name, photo and role have been saved." });
+          } catch (error) {
+            toast({ title: "Could not update staff", description: error.message || "Please try again." });
+            throw error;
+          } finally {
+            setStaffSaving(false);
+          }
+        }}
+      />
+
       <ConfirmDialog
         open={!!revoke}
         onClose={() => setRevoke(null)}
