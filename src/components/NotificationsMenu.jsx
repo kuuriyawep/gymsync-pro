@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Inbox, UserX, Clock, UserPlus, DollarSign, MessageSquare, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceStrict } from "date-fns";
 import { useAuth } from "@/lib/AuthContext";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 
@@ -13,7 +13,7 @@ const iconFor = {
   feedback_response: MessageSquare,
 };
 
-const relativeTime = (value) => {
+const relativeTime = (value, clockOffset = 0) => {
   if (!value) return "Date unavailable";
   // Supabase normally returns ISO timestamps with an explicit timezone. If an
   // older row has a timezone-less timestamp, treat it as UTC rather than the
@@ -22,7 +22,8 @@ const relativeTime = (value) => {
   const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw);
   const date = new Date(hasZone ? raw : `${raw}Z`);
   if (Number.isNaN(date.getTime())) return "Date unavailable";
-  const delta = date.getTime() - Date.now();
+  const referenceNow = Date.now() + clockOffset;
+  const delta = date.getTime() - referenceNow;
   // Never tell the user an event happened "in 20 hours". Small clock skew is
   // normal; larger future values indicate bad source data and should be shown
   // as a calendar date instead of a false relative time.
@@ -30,7 +31,7 @@ const relativeTime = (value) => {
     return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
   }
   if (delta > 0) return "Just now";
-  return formatDistanceToNowStrict(date, { addSuffix: true });
+  return formatDistanceStrict(date, new Date(referenceNow), { addSuffix: true });
 };
 
 export default function NotificationsMenu() {
@@ -38,6 +39,7 @@ export default function NotificationsMenu() {
   const [allOpen, setAllOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [serverClockOffset, setServerClockOffset] = useState(0);
   const { roles } = useAuth();
   const canViewWorkspaceNotifications = roles.includes("owner") || roles.includes("staff");
 
@@ -49,11 +51,17 @@ export default function NotificationsMenu() {
     setLoading(true);
     try {
       const response = await invokeWithAuth("gymAccess", { operation: "listWorkspaceNotifications" });
-      const rows = response?.data?.notifications || [];
+      const payload = response?.data || {};
+      const rows = payload.notifications || [];
+      // Use the server clock so an incorrectly set laptop/phone date cannot
+      // turn a recent event into a future-relative timestamp.
+      const serverNowMs = payload.serverNow ? new Date(payload.serverNow).getTime() : NaN;
+      const offset = Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0;
+      setServerClockOffset(offset);
       setItems(rows.map((item) => ({
         ...item,
-        time: relativeTime(item.occurredAt),
-      })));
+        time: relativeTime(item.occurredAt, offset),
+      })))
     } catch {
       setItems([]);
     } finally {
