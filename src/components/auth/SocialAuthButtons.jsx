@@ -37,15 +37,23 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
         // AuthCallback safely falls back to the default route.
       }
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: getOAuthRedirectUrl(),
+          // Base44 Preview can render the app inside an editor iframe. Google
+          // blocks OAuth in embedded user agents, so escape the iframe and
+          // perform the provider flow in the top-level browser window.
+          skipBrowserRedirect: true,
         },
       });
       if (error) throw error;
-      // On success the browser navigates away to the provider immediately;
-      // loading state intentionally isn't cleared here.
+      if (!data?.url) throw new Error("The sign-in provider did not return an authorization URL.");
+      // Assigning the top-level location avoids running Google OAuth inside
+      // app.base44.com's embedded Preview frame. The callback remains the
+      // explicitly configured deployed app URL.
+      window.top.location.assign(data.url);
+      // Navigation begins here; intentionally keep loading active.
     } catch (error) {
       onError(error.message || `${provider} sign-in is unavailable`);
       setLoading("");
