@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Inbox, UserX, Clock, UserPlus, DollarSign, MessageSquare, X, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceStrict } from "date-fns";
@@ -170,17 +171,19 @@ export default function NotificationsMenu() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {allOpen && (
-          <div className="fixed inset-0 z-50">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/40" onClick={() => setAllOpen(false)} />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} role="dialog" aria-modal="true" aria-label="All notifications" className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-lg flex-col overflow-hidden border-l border-black/10 bg-white shadow-2xl">
+      {allOpen && createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[9999]">
+            <motion.button type="button" aria-label="Close all notifications" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 h-full w-full cursor-default bg-black/40" onClick={() => setAllOpen(false)} />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} role="dialog" aria-modal="true" aria-label="All notifications" className="absolute inset-y-0 right-0 z-10 flex w-full max-w-lg flex-col overflow-hidden border-l border-black/10 bg-white shadow-2xl">
               <div className="flex h-14 shrink-0 items-center justify-between border-b border-black/10 px-5">
                 <div className="flex items-center gap-2"><Inbox className="h-5 w-5" /><h3 className="font-semibold">All Notifications</h3></div>
-                <button onClick={() => setAllOpen(false)} className="rounded-lg p-1.5 hover:bg-black/5"><X className="h-5 w-5" /></button>
+                <button onClick={() => setAllOpen(false)} className="rounded-lg p-1.5 hover:bg-black/5" aria-label="Close notifications"><X className="h-5 w-5" /></button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
-                {items.length === 0 ? (
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-black/45"><RefreshCw className="h-4 w-4 animate-spin" /> Loading...</div>
+                ) : items.length === 0 ? (
                   <p className="px-5 py-10 text-center text-sm text-black/45">No notifications</p>
                 ) : (
                   items.map((notification) => <Row key={notification.id} notification={notification} />)
@@ -188,8 +191,9 @@ export default function NotificationsMenu() {
               </div>
             </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
