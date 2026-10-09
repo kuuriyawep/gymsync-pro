@@ -8,6 +8,8 @@ const emptyGym = {
   email: "",
   address: "",
   notifications: { expiry: false, payments: false, newMembers: false },
+  membershipDefaults: { currency: "USD", paymentMethod: "cash", membershipPlanId: "", autoRenew: false },
+  membershipPlans: [],
   isLoading: true,
   loadError: "",
 };
@@ -26,7 +28,7 @@ export async function loadGym() {
   if (!loadingPromise) {
     loadingPromise = invokeWithAuth("gymAccess", { operation: "getGymProfile" })
       .then((response) => {
-        state = { ...emptyGym, ...response.data.gym, isLoading: false };
+        state = { ...emptyGym, ...response.data.gym, membershipDefaults: { ...emptyGym.membershipDefaults, ...(response.data.gym?.membershipDefaults || {}) }, membershipPlans: Array.isArray(response.data.membershipPlans) ? response.data.membershipPlans : [], isLoading: false };
         loaded = true;
         emit();
         return state;
@@ -45,6 +47,16 @@ export async function setGym(gym) {
   const response = await invokeWithAuth("gymAccess", { operation: "updateGymProfile", gym });
   state = { ...emptyGym, ...response.data.gym, isLoading: false };
   loaded = true;
+  emit();
+  return state;
+}
+
+export async function setMembershipDefaults(membershipDefaults) {
+  const response = await invokeWithAuth("gymAccess", {
+    operation: "updateMembershipDefaults",
+    membershipDefaults,
+  });
+  state = { ...state, membershipDefaults: response.data.membershipDefaults, isLoading: false };
   emit();
   return state;
 }
