@@ -48,7 +48,7 @@ export default function PhotoPicker({ value, onChange, onRemove, shape = "circle
     <div className="flex items-center gap-3">
       <button
         type="button"
-        onClick={() => ref.current?.click()}
+        onClick={() => (pendingFile ? null : galleryRef.current?.click())}
         className={`relative ${size} ${round ? "rounded-full" : "rounded-2xl"} border border-dashed border-black/25 flex items-center justify-center overflow-hidden bg-black/[0.02] hover:bg-black/5 transition-colors shrink-0`}
       >
         {previewUrl ? (
