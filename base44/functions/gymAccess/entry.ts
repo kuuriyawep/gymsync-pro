@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
+    const allowed = ['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'join, 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
