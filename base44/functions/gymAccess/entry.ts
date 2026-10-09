@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage'];
+    const allowed = ['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage', 'memberCheckIn'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -258,6 +258,31 @@ export default async function(req: Request): Promise<Response> {
       const memberData = await loadMemberData();
       if (!memberData) return Response.json({ error: 'No linked membership found' }, { status: 404 });
       return Response.json({ member: memberData });
+    }
+
+    if (operation === 'memberCheckIn') {
+      // A member may only check themselves in. The member and gym IDs come
+      // from the authenticated server-side identity, never from client input.
+      if (access.role !== 'member' || !access.member?.id || !access.member?.gym_id) return deny('Only a linked member can check in');
+      const member = access.member;
+      const todayKey = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Mogadishu', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      const dayStart = new Date(`${todayKey}T00:00:00+03:00`).toISOString();
+      const tomorrowDate = new Date(`${todayKey}T00:00:00+03:00`);
+      tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+      const dayEnd = tomorrowDate.toISOString();
+      const existing = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&check_in_at=gte.${encodeURIComponent(dayStart)}&check_in_at=lt.${encodeURIComponent(dayEnd)}&select=id,check_in_at&limit=1`);
+      if (existing[0]) return Response.json({ success: true, alreadyCheckedIn: true, checkedInAt: existing[0].check_in_at });
+      const createdAt = new Date().toISOString();
+      try {
+        const created = (await insert('attendance', { gym_id: member.gym_id, member_id: member.id, check_in_at: createdAt, recorded_by: access.userId }, 'return=representation'))[0];
+        return Response.json({ success: true, alreadyCheckedIn: false, checkedInAt: created?.check_in_at || createdAt });
+      } catch {
+        // A unique-index conflict is treated as an idempotent repeat, not a
+        // failed check-in. Re-read today's record to avoid duplicate records.
+        const duplicate = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&check_in_at=gte.${encodeURIComponent(dayStart)}&check_in_at=lt.${encodeURIComponent(dayEnd)}&select=id,check_in_at&limit=1`);
+        if (duplicate[0]) return Response.json({ success: true, alreadyCheckedIn: true, checkedInAt: duplicate[0].check_in_at });
+        throw new Error('Unable to save attendance check-in');
+      }
     }
 
     if (operation === 'createFeedback') {
