@@ -325,9 +325,9 @@ export default async function(req: Request): Promise<Response> {
       const memberRows = await select('members', `id=eq.${memberId}&gym_id=eq.${gymFilter}&select=full_name&limit=1`);
       await notifyOwner('payments', 'Payment received', `${memberRows[0]?.full_name || 'A member'} paid ${Number(amount).toLocaleString()}`);
       if (membership) {
-        const amountDue = Number(membership.amount_due || 0);
-        const nextPaid = Math.min(amountDue, Number(membership.amount_paid || 0) + amount);
-        await update('memberships', `id=eq.${encodeURIComponent(membership.id)}&gym_id=eq.${gymFilter}`, { amount_paid: nextPaid });
+        // Derive the membership's paid amount from its ledger instead of
+        // incrementing the stored value, which may already be out of sync.
+        await recalculateMembershipPaid(membership.id);
       }
     }
 
