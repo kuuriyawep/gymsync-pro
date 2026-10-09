@@ -19,6 +19,15 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
   const connect = async (provider) => {
     setLoading(provider);
     onError("");
+    // Open a blank tab synchronously during the user click. This avoids
+    // cross-origin access to window.top and reduces popup-blocker issues when
+    // Base44 Preview hosts the app in a cross-origin iframe.
+    let authWindow = null;
+    try {
+      authWindow = window.open("about:blank", "_blank");
+    } catch {
+      authWindow = null;
+    }
     try {
       const destination = redirectTo || "/";
       // OAuth providers return to the exact allow-listed callback. Persist the
@@ -41,20 +50,22 @@ export default function SocialAuthButtons({ redirectTo, onError }) {
         provider,
         options: {
           redirectTo: getOAuthRedirectUrl(),
-          // Base44 Preview can render the app inside an editor iframe. Google
-          // blocks OAuth in embedded user agents, so escape the iframe and
-          // perform the provider flow in the top-level browser window.
-          skipBrowserRedirect: true,
+              // Open the provider URL ourselves so OAuth can run outside the
+          // Base44 Preview iframe. We create the tab synchronously above.
         },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("The sign-in provider did not return an authorization URL.");
-      // Assigning the top-level location avoids running Google OAuth inside
-      // app.base44.com's embedded Preview frame. The callback remains the
-      // explicitly configured deployed app URL.
-      window.top.location.assign(data.url);
-      // Navigation begins here; intentionally keep loading active.
+      // Do not read or write window.top: it is cross-origin in Base44 Preview
+      // and causes a SecurityError. Navigate the newly opened tab instead.
+      if (authWindow && !authWindow.closed) {
+        authWindow.location.href = data.url;
+      } else {
+        throw new Error("Your browser blocked the Google sign-in window. Open GymSync using its published app URL in Safari, then try again.");
+      }
+      // Navigation begins in the provider tab; keep loading active.
     } catch (error) {
+      try { if (authWindow && !authWindow.closed) authWindow.close(); } catch { /* ignore cross-origin close errors */ }
       onError(error.message || `${provider} sign-in is unavailable`);
       setLoading("");
     }
