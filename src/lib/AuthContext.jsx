@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await supabase
           .from("profiles")
-          .select("id, role, gym_id, staff_role, full_name, email")
+          .select("id, role, gym_id, staff_role, full_name, phone, avatar_url")
           .eq("id", userId)
           .maybeSingle();
         if (data) resolvedProfile = data;
