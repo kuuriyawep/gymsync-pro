@@ -11,6 +11,7 @@ import { useGym, setGym, setNotificationSettings } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
+import StaffProfileModal from "@/components/settings/StaffProfileModal";
 import { useStaffAccess } from "@/lib/staffStore";
 import ProfileImage from "@/components/ProfileImage";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
@@ -47,12 +48,14 @@ export default function Settings() {
   const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
   const gymStore = useGym();
   const [gym, setGymLocal] = useState(gymStore);
-  const { staff, loading: staffLoading, invite: inviteStaff, revoke: revokeStaff } = useStaffAccess();
+  const { staff, loading: staffLoading, loadError: staffLoadError, invite: inviteStaff, update: updateStaff, revoke: revokeStaff } = useStaffAccess();
   const { user, logout } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ fullName: "", email: "", role: "Front Desk" });
   const [inviteSaving, setInviteSaving] = useState(false);
   const [revoke, setRevoke] = useState(null);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [staffSaving, setStaffSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [notificationSaving, setNotificationSaving] = useState(false);
@@ -212,7 +215,7 @@ export default function Settings() {
                   </div>
                 )}
 
-                {active === "staff" && <StaffAccessPanel staff={staff} loading={staffLoading} onInvite={() => setInviteOpen(true)} onRevoke={setRevoke} />}
+                {active === "staff" && <StaffAccessPanel staff={staff} loading={staffLoading} loadError={staffLoadError} onInvite={() => setInviteOpen(true)} onOpenStaff={setSelectedStaff} onRevoke={setRevoke} />}
 
                 {active === "danger" && (
                   <div className="border border-black/15 rounded-xl p-5 md:p-6">
