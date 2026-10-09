@@ -245,7 +245,6 @@ export default function Settings() {
             toast({ title: "Staff profile updated", description: "Name, photo and role have been saved." });
           } catch (error) {
             toast({ title: "Could not update staff", description: error.message || "Please try again." });
-            throw error;
           } finally {
             setStaffSaving(false);
           }

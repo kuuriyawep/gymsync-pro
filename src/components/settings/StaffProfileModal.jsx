@@ -23,8 +23,12 @@ export default function StaffProfileModal({ staff, open, onClose, onSave, saving
 
   if (!staff) return null;
   const save = async () => {
-    await onSave({ ...staff, ...draft });
-    setEditing(false);
+    try {
+      await onSave({ ...staff, ...draft });
+      setEditing(false);
+    } catch {
+      // Keep the form open so the owner can correct the issue or retry.
+    }
   };
 
   return <Modal open={open} onClose={onClose} title="Staff profile" footer={<>
