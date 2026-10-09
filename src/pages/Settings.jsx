@@ -45,7 +45,7 @@ const Field = ({ label, children }) => (<div><label className={labelCls}>{label}
 export default function Settings() {
   const location = useLocation();
   const requestedTab = new URLSearchParams(location.search).get("tab");
-  const [active, setActive] = useState(requestedTab === "gym" ? "gym" : "profile");
+  const [active, setActive] = useState(requestedTab && sections.some((section) => section.id === requestedTab) ? requestedTab : null);
   const gymStore = useGym();
   const [gym, setGymLocal] = useState(gymStore);
   const { staff, loading: staffLoading, loadError: staffLoadError, invite: inviteStaff, update: updateStaff, revoke: revokeStaff } = useStaffAccess();
@@ -87,8 +87,8 @@ export default function Settings() {
           <p className="text-sm text-black/50 mt-0.5">Manage your account and gym preferences</p>
         </div>
 
-        <div className="space-y-6">
-          <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-5 lg:gap-6 items-start">
+          <div className="w-full lg:col-start-2 lg:row-start-1 bg-white border border-black/10 rounded-xl p-3 md:p-4">
             <div className="grid grid-cols-1 gap-1">
               {sections.map((s) => (
                 <button key={s.id} data-settings-section={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
@@ -99,10 +99,13 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">{activeItem.label}</h2>
-              <p className="text-sm text-black/50">{activeItem.desc}</p>
+          {active && activeItem && <div className="flex-1 min-w-0 lg:col-start-1 lg:row-start-1">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-semibold">{activeItem.label}</h2>
+                <p className="text-sm text-black/50">{activeItem.desc}</p>
+              </div>
+              <button type="button" onClick={() => setActive(null)} className="shrink-0 rounded-lg border border-black/15 px-3 py-2 text-xs font-medium hover:bg-black/5">All settings</button>
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-[300px]">
@@ -226,7 +229,7 @@ export default function Settings() {
                 )}
               </motion.div>
             </AnimatePresence>
-          </div>
+          </div>}
         </div>
       </div>
 
