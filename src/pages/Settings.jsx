@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SaveButton from "@/components/SaveButton";
 import PhotoPicker from "@/components/PhotoPicker";
-import { useGym, setGym, setNotificationSettings } from "@/lib/gymStore";
+import { useGym, setGym, setNotificationSettings, setMembershipDefaults } from "@/lib/gymStore";
 import { useAuth } from "@/lib/AuthContext";
 import StaffAccessPanel from "@/components/settings/StaffAccessPanel";
 import StaffInviteModal from "@/components/settings/StaffInviteModal";
@@ -62,6 +62,8 @@ export default function Settings() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [notificationSaving, setNotificationSaving] = useState(false);
+  const [membershipSaving, setMembershipSaving] = useState(false);
+  const [membershipDraft, setMembershipDraft] = useState(gymStore.membershipDefaults);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,6 +72,7 @@ export default function Settings() {
 
   useEffect(() => {
     setGymLocal(gymStore);
+    setMembershipDraft(gymStore.membershipDefaults || { currency: "USD", paymentMethod: "cash", membershipPlanId: "", autoRenew: false });
   }, [gymStore]);
 
   useEffect(() => {
@@ -181,15 +184,16 @@ export default function Settings() {
                 {active === "membership" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                     <div className="space-y-4">
-                      <Field label="Default currency"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
-                      <Field label="Default payment method"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
-                      <Field label="Default membership plan"><select className={inputCls} value="" disabled><option value="">Not configured</option></select></Field>
+                      <Field label="Default currency"><select className={inputCls} value={membershipDraft.currency || "USD"} onChange={(e) => setMembershipDraft((current) => ({ ...current, currency: e.target.value }))} disabled={membershipSaving}><option value="USD">USD — US Dollar</option><option value="SOS">SOS — Somali Shilling</option><option value="ETB">ETB — Ethiopian Birr</option><option value="KES">KES — Kenyan Shilling</option><option value="AED">AED — UAE Dirham</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — British Pound</option></select></Field>
+                      <Field label="Default payment method"><select className={inputCls} value={membershipDraft.paymentMethod || "cash"} onChange={(e) => setMembershipDraft((current) => ({ ...current, paymentMethod: e.target.value }))} disabled={membershipSaving}><option value="cash">Cash</option><option value="mobile_money">Mobile money</option><option value="card">Card</option><option value="bank_transfer">Bank transfer</option></select></Field>
+                      <Field label="Default membership plan"><select className={inputCls} value={membershipDraft.membershipPlanId || ""} onChange={(e) => setMembershipDraft((current) => ({ ...current, membershipPlanId: e.target.value }))} disabled={membershipSaving}><option value="">No default plan</option>{(gymStore.membershipPlans || []).map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {plan.durationMonths} month{plan.durationMonths === 1 ? "" : "s"} · {Number(plan.price).toLocaleString()} {membershipDraft.currency || "USD"}</option>)}</select>{gymStore.membershipPlans?.length === 0 && <p className="text-xs text-black/50 mt-1">No active membership plans found. Create or activate a plan to choose a default.</p>}</Field>
                     </div>
                     <div className="flex items-center justify-between py-2">
-                      <div><p className="text-sm font-medium">Auto-renew memberships</p><p className="text-xs text-black/50">Automatically renew members on expiry</p></div>
-                      <Toggle on={false} disabled />
+                      <div><p className="text-sm font-medium">Auto-renew memberships</p><p className="text-xs text-black/50">Save the preference for future renewal workflows</p></div>
+                      <Toggle on={Boolean(membershipDraft.autoRenew)} disabled={membershipSaving} onClick={() => setMembershipDraft((current) => ({ ...current, autoRenew: !current.autoRenew }))} />
                     </div>
-                    <p className="text-sm text-black/50">Membership defaults are not supported by the current gym settings storage, so these controls are unavailable.</p>
+                    <div className="flex justify-end pt-2"><button type="button" disabled={membershipSaving} onClick={async () => { setMembershipSaving(true); try { const saved = await setMembershipDefaults(membershipDraft); setMembershipDraft(saved.membershipDefaults); toast({ title: "Membership settings saved", description: "Your defaults have been saved to this gym." }); } catch (error) { toast({ title: "Could not save membership settings", description: error?.response?.data?.error || error.message || "Please try again." }); } finally { setMembershipSaving(false); } }} className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{membershipSaving && <Loader2 className="w-4 h-4 animate-spin" />}{membershipSaving ? "Saving..." : "Save settings"}</button></div>
+                    <p className="text-sm text-black/50">These defaults are saved for this gym. Auto-renew is stored as a preference; automatic billing or membership renewal is not activated by this setting alone.</p>
                   </div>
                 )}
 
