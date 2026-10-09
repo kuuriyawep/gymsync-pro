@@ -68,7 +68,7 @@ export function downloadReportsPdf(data, label) {
   y += 8;
 
   // Payment status
-  section("Payment Status");
+  section("Members by Payment Status (member counts, not transactions)");
   (data.paymentStatus || []).forEach(function (item) {
     kv(item.name, item.value || 0);
   });
@@ -77,7 +77,7 @@ export function downloadReportsPdf(data, label) {
   // Membership insights
   section("Membership Insights");
   kv("Most Popular Plan", data.mostPopularPlan || "No data");
-  kv("Renewal Rate", (data.renewalRate || 0) + "%");
+  kv("Renewal Rate", data.renewalRate == null ? "N/A - no eligible expired memberships" : data.renewalRate + "%");
   y += 8;
 
   // Plan performance table
