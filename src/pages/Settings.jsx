@@ -136,15 +136,16 @@ export default function Settings() {
 
                 {active === "profile" && (
                   <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
-                    <ProfileImage src={null} alt={user?.full_name || "Owner"} fallback={(user?.full_name || "O").slice(0, 2).toUpperCase()} className="w-24 h-24 text-2xl" />
+                    <PhotoPicker value={profileDraft.avatar_url} onChange={(avatar_url) => setProfileDraft((current) => ({ ...current, avatar_url }))} onRemove={() => setProfileDraft((current) => ({ ...current, avatar_url: "" }))} size="w-24 h-24" placeholder={(profileDraft.full_name || user?.email || "O").split(" ").filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase()} hint="Choose a clear profile photo. JPG, PNG or another image format, max 10 MB." />
                     <div className="space-y-4">
-                      <Field label="Full name"><input className={inputCls} value={user?.full_name || ""} disabled /></Field>
+                      <Field label="Full name"><input className={inputCls} autoComplete="name" value={profileDraft.full_name} onChange={(e) => setProfileDraft((current) => ({ ...current, full_name: e.target.value }))} /></Field>
                       <Field label="Email"><input className={inputCls} value={user?.email || ""} disabled /></Field>
-                      <Field label="Phone"><input className={inputCls} value="" placeholder="Not available" disabled /></Field>
-                      <Field label="Role"><input className={inputCls} defaultValue="Owner" disabled /></Field>
+                      <Field label="Phone"><input className={inputCls} type="tel" autoComplete="tel" value={profileDraft.phone} onChange={(e) => setProfileDraft((current) => ({ ...current, phone: e.target.value }))} placeholder="Enter phone number" /></Field>
+                      <Field label="Role"><input className={inputCls} value={profile?.role === "owner" ? "Owner" : profile?.role || "Account"} disabled /></Field>
                     </div>
+                    <div className="flex justify-end pt-3"><button type="button" disabled={profileSaving} onClick={async () => { try { await saveOwnerProfile(); } catch (error) { toast({ title: "Could not save profile", description: error.message || "Please try again." }); } }} className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50">{profileSaving && <Loader2 className="w-4 h-4 animate-spin" />}{profileSaving ? "Saving..." : "Save profile"}</button></div>
                     <div className="pt-4 border-t border-black/5">
-                      <p className="text-sm text-black/50">Password changes are available in Security.</p>
+                      <p className="text-sm text-black/50">Your name, phone number and profile photo are saved to your account. Email and role are managed securely by your account settings.</p>
                     </div>
                   </div>
                 )}
