@@ -402,6 +402,7 @@ export default async function(req: Request): Promise<Response> {
         `gym_id=eq.${encodeURIComponent(gym.id)}&user_id=eq.${encodeURIComponent(targetUserId)}&select=*&order=created_at.desc&limit=50`
       );
       return Response.json({
+        serverNow: new Date().toISOString(),
         notifications: rows.filter(canReadWorkspaceNotification).map((item: any) => ({
           id: item.id,
           type: item.type || 'general',
