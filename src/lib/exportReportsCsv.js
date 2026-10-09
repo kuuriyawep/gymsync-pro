@@ -44,7 +44,7 @@ export function buildReportsCsv(data, label) {
   lines.push("");
 
   // Payment status
-  lines.push(row(["PAYMENT STATUS"]));
+  lines.push(row(["MEMBERS BY PAYMENT STATUS — counts are members, not payment transactions"]));
   (data.paymentStatus || []).forEach((item) => {
     lines.push(row([item.name, item.value ?? 0]));
   });
@@ -62,7 +62,7 @@ export function buildReportsCsv(data, label) {
   // Membership insights
   lines.push(row(["MEMBERSHIP INSIGHTS"]));
   lines.push(row(["Most Popular Plan", data.mostPopularPlan ?? "No data"]));
-  lines.push(row(["Renewal Rate (%)", data.renewalRate ?? 0]));
+  lines.push(row(["Renewal Rate (%)", data.renewalRate == null ? "N/A — no eligible expired memberships" : data.renewalRate]));
   lines.push("");
 
   // Plan performance
