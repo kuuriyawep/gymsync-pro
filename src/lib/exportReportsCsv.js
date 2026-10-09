@@ -25,8 +25,8 @@ export function buildReportsCsv(data, label) {
   lines.push(row(["Generated", generatedDate]));
   lines.push("");
 
-  // Summary metrics
-  lines.push(row(["SUMMARY"]));
+  // Current snapshot metrics (not limited to the selected chart period)
+  lines.push(row(["CURRENT SNAPSHOT — current totals and this month's value"]));
   lines.push(row(["Total Members", data.stats?.totalMembers ?? 0]));
   lines.push(row(["Active Members", data.stats?.activeMembers ?? 0]));
   lines.push(row(["Expiring Soon", data.stats?.expiringSoon ?? 0]));
@@ -35,8 +35,8 @@ export function buildReportsCsv(data, label) {
   lines.push(row(["Active Trainers", data.stats?.activeTrainers ?? 0]));
   lines.push("");
 
-  // Revenue breakdown
-  lines.push(row(["REVENUE BREAKDOWN"]));
+  // Rolling-window revenue KPIs are intentionally independent of the selected chart period.
+  lines.push(row(["ROLLING REVENUE WINDOWS — independent of selected report period"]));
   const rev = data.revenue || {};
   Object.entries(rev).forEach(([key, value]) => {
     lines.push(row([`${key} Revenue`, value ?? 0]));
@@ -73,8 +73,17 @@ export function buildReportsCsv(data, label) {
   });
   lines.push("");
 
+  // Totals for the exact period selected in Reports.
+  const series = data.series || [];
+  lines.push(row(["SELECTED PERIOD TOTALS — " + (label || "Selected period")]));
+  lines.push(row(["Revenue", series.reduce((sum, item) => sum + Number(item.revenue || 0), 0)]));
+  lines.push(row(["New Members", series.reduce((sum, item) => sum + Number(item.newMembers || 0), 0)]));
+  lines.push(row(["Renewals", series.reduce((sum, item) => sum + Number(item.renewals || 0), 0)]));
+  lines.push(row(["Expired Memberships", series.reduce((sum, item) => sum + Number(item.expired || 0), 0)]));
+  lines.push("");
+
   // Time series for the selected range
-  lines.push(row(["TIME SERIES"]));
+  lines.push(row(["TIME SERIES — " + (label || "Selected period")]));
   lines.push(row(["Period", "Revenue", "New Members", "Renewals", "Expired"]));
   (data.series || []).forEach((item) => {
     lines.push(row([item.label, item.revenue ?? 0, item.newMembers ?? 0, item.renewals ?? 0, item.expired ?? 0]));
