@@ -15,6 +15,7 @@ import StaffProfileModal from "@/components/settings/StaffProfileModal";
 import { useStaffAccess } from "@/lib/staffStore";
 import ProfileImage from "@/components/ProfileImage";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import { supabase } from "@/lib/supabaseClient";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account details" },
@@ -49,7 +50,9 @@ export default function Settings() {
   const gymStore = useGym();
   const [gym, setGymLocal] = useState(gymStore);
   const { staff, loading: staffLoading, loadError: staffLoadError, invite: inviteStaff, update: updateStaff, revoke: revokeStaff } = useStaffAccess();
-  const { user, logout } = useAuth();
+  const { user, profile, reloadRole, logout } = useAuth();
+  const [profileDraft, setProfileDraft] = useState({ full_name: "", phone: "", avatar_url: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invite, setInvite] = useState({ fullName: "", email: "", role: "Front Desk" });
   const [inviteSaving, setInviteSaving] = useState(false);
@@ -68,6 +71,27 @@ export default function Settings() {
   useEffect(() => {
     setGymLocal(gymStore);
   }, [gymStore]);
+
+  useEffect(() => {
+    setProfileDraft({ full_name: profile?.full_name || user?.user_metadata?.full_name || "", phone: profile?.phone || "", avatar_url: profile?.avatar_url || user?.user_metadata?.avatar_url || "" });
+  }, [profile, user]);
+
+  const saveOwnerProfile = async () => {
+    if (!user?.id) throw new Error("Your session has expired. Please sign in again.");
+    const fullName = profileDraft.full_name.trim();
+    if (!fullName) throw new Error("Full name is required.");
+    setProfileSaving(true);
+    try {
+      const { data, error } = await supabase.from("profiles").update({ full_name: fullName, phone: profileDraft.phone.trim() || null, avatar_url: profileDraft.avatar_url || null }).eq("id", user.id).select("id, role, gym_id, staff_role, full_name, phone, avatar_url").maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Profile was not saved. Check that your account profile exists and try again.");
+      const { error: authError } = await supabase.auth.updateUser({ data: { full_name: fullName, avatar_url: data.avatar_url } });
+      if (authError) throw authError;
+      await reloadRole();
+      setProfileDraft({ full_name: data.full_name || "", phone: data.phone || "", avatar_url: data.avatar_url || "" });
+      toast({ title: "Profile saved", description: "Your account details and photo have been saved." });
+    } finally { setProfileSaving(false); }
+  };
 
   const handleInviteStaff = async () => {
     if (!invite.fullName.trim()) { toast({ title: "Invite failed", description: "Full name is required." }); return; }
