@@ -31,6 +31,7 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
   const payments = source.payments || [];
   const memberships = source.memberships || [];
   const plans = source.plans || [];
+  const trainers = source.trainers || [];
   const now = new Date();
   const today = atStartOfDay(now);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -58,14 +59,28 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
     expired: memberships.filter((m) => within(validDate(m.endDate), bucket.start, bucket.end) && validDate(m.endDate) < today).length,
   }));
   const planNames = new Map(plans.map((p) => [p.id, p.name]));
+  // Count each currently active member once, using their latest membership record.
+  // Old membership rows must not inflate active subscription counts.
+  const memberById = new Map(members.map((member) => [member.id, member]));
+  const latestMembershipByMember = new Map();
+  [...memberships].sort((a, b) => new Date(b.createdAt || b.startDate || 0).getTime() - new Date(a.createdAt || a.startDate || 0).getTime()).forEach((membership) => {
+    if (!latestMembershipByMember.has(membership.memberId)) latestMembershipByMember.set(membership.memberId, membership);
+  });
   const planCounts = {};
-  memberships.filter((m) => m.status === "active" && (!m.endDate || validDate(m.endDate) >= today)).forEach((m) => { const name = planNames.get(m.planId) || "Unknown"; planCounts[name] = (planCounts[name] || 0) + 1; });
+  latestMembershipByMember.forEach((membership, memberId) => {
+    const member = memberById.get(memberId);
+    const current = membership.status === "active" && (!membership.endDate || validDate(membership.endDate) >= today);
+    if (current && member && member.status === "Active" && (!member.expiryDate || validDate(member.expiryDate) >= today)) {
+      const name = planNames.get(membership.planId) || "Unknown";
+      planCounts[name] = (planCounts[name] || 0) + 1;
+    }
+  });
   const planPerformance = Object.entries(planCounts).map(([plan, count]) => ({ plan, count })).sort((a, b) => b.count - a.count);
   const paid = members.filter((m) => m.paymentStatus === "Paid").length;
   const pending = members.filter((m) => m.paymentStatus === "Pending").length;
   const overdue = members.filter((m) => m.paymentStatus === "Overdue").length;
   return {
-    stats: { totalMembers: members.length, activeMembers: active.length, expiringSoon: expiring.length, expired: expired.length, monthlyRevenue: revenueSince(payments, monthStart), activeTrainers: 0 },
+    stats: { totalMembers: members.length, activeMembers: active.length, expiringSoon: expiring.length, expired: expired.length, monthlyRevenue: revenueSince(payments, monthStart), activeTrainers: trainers.filter((trainer) => String(trainer.status || "").toLowerCase() === "active").length },
     expiry: { expired: expired.length, today: members.filter((m) => m.expiryDate === today.toISOString().slice(0, 10)).length, threeDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 3 * DAY); }).length, fiveDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 5 * DAY); }).length },
     series,
     recentActivities: source.recentActivities || [],
