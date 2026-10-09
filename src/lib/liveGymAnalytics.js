@@ -98,6 +98,6 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
     members: { total: members.length, active: active.length, newMembers: members.filter((m) => validDate(m.createdAt || m.registeredDate) >= monthStart).length, expired: expired.length },
     planPerformance,
     mostPopularPlan: planPerformance[0]?.plan || "No data",
-    renewalRate: members.length ? Math.round((renewedIds.size / members.length) * 100) : 0,
+    renewalRate: eligibleRenewalIds.size ? Math.round((renewedIds.size / eligibleRenewalIds.size) * 100) : 0,
   };
 }
