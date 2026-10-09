@@ -27,15 +27,25 @@ export function attendanceSummary(records = [], startDate = '') {
       .filter((key) => key && (!startKey || key >= startKey))
   );
   const today = new Date(); today.setHours(0, 0, 0, 0);
+  // A streak remains alive throughout today if the latest check-in was
+  // yesterday; it resets only after a full missed calendar day. If the member
+  // has already checked in today, count from today as usual.
+  const todayKey = dateKey(today);
+  const yesterday = new Date(today.getTime() - DAY);
+  const yesterdayKey = dateKey(yesterday);
+  const firstKey = dates.has(todayKey) ? todayKey : dates.has(yesterdayKey) ? yesterdayKey : '';
   let current = 0;
-  for (let i = 0; i < 366; i++) {
-    const date = new Date(today.getTime() - i * DAY);
-    const key = dateKey(date);
-    if (startKey && key < startKey) break;
-    if (!dates.has(key)) break;
-    current++;
+  if (firstKey) {
+    for (let i = 0; i < 366; i++) {
+      const date = new Date(`${firstKey}T00:00:00`);
+      date.setDate(date.getDate() - i);
+      const key = dateKey(date);
+      if (startKey && key < startKey) break;
+      if (!dates.has(key)) break;
+      current++;
+    }
   }
-  const monthPrefix = dateKey(today).slice(0, 7);
+  const monthPrefix = todayKey.slice(0, 7);
   const monthCount = [...dates].filter((date) => date.startsWith(monthPrefix)).length;
   const week = Array.from({ length: 7 }, (_, index) => {
     const date = new Date(today.getTime() - (6 - index) * DAY);
