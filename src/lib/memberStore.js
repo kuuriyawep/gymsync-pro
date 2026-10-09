@@ -4,7 +4,7 @@ import { Sentry } from "@/lib/sentry";
 
 const listeners = new Set();
 let members = [];
-let analytics = { payments: [], memberships: [], plans: [], recentActivities: [] };
+let analytics = { payments: [], memberships: [], plans: [], trainers: [], recentActivities: [] };
 let loaded = false;
 let loadError = null;
 let loadingPromise = null;
@@ -20,7 +20,7 @@ async function run(operation, payload = {}) {
   try {
     const response = await invokeWithAuth("membersData", { operation, ...payload });
     members = response.data.members;
-    analytics = response.data.analytics || { payments: [], memberships: [], plans: [], recentActivities: [] };
+    analytics = response.data.analytics || { payments: [], memberships: [], plans: [], trainers: [], recentActivities: [] };
     loadError = null;
     loaded = true;
     emit();
@@ -60,7 +60,7 @@ export function getMembers() { return members; }
 export function setMembers(next) { members = typeof next === "function" ? next(members) : next; emit(); }
 export function resetMemberStore() {
   members = [];
-  analytics = { payments: [], memberships: [], plans: [], recentActivities: [] };
+  analytics = { payments: [], memberships: [], plans: [], trainers: [], recentActivities: [] };
   loaded = false;
   loadError = null;
   loadingPromise = null;
