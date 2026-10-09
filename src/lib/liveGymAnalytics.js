@@ -1,6 +1,17 @@
 const DAY = 86400000;
 const atStartOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
-const validDate = (value) => value ? new Date(value) : null;
+// Supabase date columns arrive as YYYY-MM-DD. Parse those in local time so
+// date-only values do not shift to the previous day in UTC+ time zones.
+const validDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string") {
+    const match = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(value);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
 const within = (date, start, end) => date && date >= start && date < end;
 
 function bucketsFor(range) {
@@ -11,10 +22,10 @@ function bucketsFor(range) {
     for (let i = 0; i < 7; i++) { const start = new Date(first.getTime() + i * DAY); buckets.push({ start, end: new Date(start.getTime() + DAY), label: start.toLocaleDateString("en", { weekday: "short" }) }); }
   } else if (range === "30d") {
     const first = atStartOfDay(new Date(now.getTime() - 29 * DAY));
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const start = new Date(first.getTime() + i * 7 * DAY);
-      const end = i === 3 ? new Date(todayOrNow(now).getTime() + DAY) : new Date(start.getTime() + 7 * DAY);
-      buckets.push({ start, end, label: `Week ${i + 1}` });
+      const end = i === 4 ? new Date(atStartOfDay(now).getTime() + DAY) : new Date(start.getTime() + 7 * DAY);
+      if (start < end) buckets.push({ start, end, label: i === 4 ? "Final days" : `Week ${i + 1}` });
     }
   } else {
     const count = range === "year" ? now.getMonth() + 1 : 6;
@@ -24,8 +35,13 @@ function bucketsFor(range) {
   return buckets;
 }
 
-function todayOrNow(date) { return atStartOfDay(date); }
-function revenueSince(payments, start) { return payments.filter((p) => validDate(p.paidAt) >= start).reduce((sum, p) => sum + Number(p.amount || 0), 0); }
+function revenueSince(payments, start, now = new Date()) {
+  return payments.filter((p) => {
+    const paidAt = validDate(p.paidAt);
+    const amount = Number(p.amount);
+    return paidAt && paidAt >= start && paidAt <= now && Number.isFinite(amount) && amount > 0;
+  }).reduce((sum, p) => sum + Number(p.amount), 0);
+}
 
 export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
   const payments = source.payments || [];
@@ -90,10 +106,10 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
   const overdue = members.filter((m) => m.paymentStatus === "Overdue").length;
   return {
     stats: { totalMembers: members.length, activeMembers: active.length, expiringSoon: expiring.length, expired: expired.length, monthlyRevenue: revenueSince(payments, monthStart), activeTrainers: trainers.filter((trainer) => String(trainer.status || "").toLowerCase() === "active").length },
-    expiry: { expired: expired.length, today: members.filter((m) => m.expiryDate === today.toISOString().slice(0, 10)).length, threeDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 3 * DAY); }).length, fiveDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 5 * DAY); }).length },
+    expiry: { expired: expired.length, today: members.filter((m) => { const d = validDate(m.expiryDate); return d && d.getTime() === today.getTime(); }).length, threeDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 3 * DAY); }).length, fiveDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 5 * DAY); }).length },
     series,
     recentActivities: source.recentActivities || [],
-    revenue: { daily: revenueSince(payments, today), weekly: revenueSince(payments, new Date(today.getTime() - 6 * DAY)), monthly: revenueSince(payments, monthStart), quarterly: revenueSince(payments, new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)), yearly: revenueSince(payments, new Date(now.getFullYear(), 0, 1)) },
+    revenue: { daily: revenueSince(payments, today, now), weekly: revenueSince(payments, new Date(today.getTime() - 6 * DAY), now), monthly: revenueSince(payments, monthStart, now), quarterly: revenueSince(payments, new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1), now), yearly: revenueSince(payments, new Date(now.getFullYear(), 0, 1), now) },
     paymentStatus: [{ name: "Paid", value: paid }, { name: "Pending", value: pending }, { name: "Overdue", value: overdue }],
     members: { total: members.length, active: active.length, newMembers: members.filter((m) => validDate(m.createdAt || m.registeredDate) >= monthStart).length, expired: expired.length },
     planPerformance,
