@@ -403,9 +403,39 @@ export default async function(req: Request): Promise<Response> {
         payments: Boolean(row.settings?.notifications?.payments ?? true),
         newMembers: Boolean(row.settings?.notifications?.newMembers ?? true),
       },
+      membershipDefaults: {
+        currency: String(row.settings?.membershipDefaults?.currency || 'USD'),
+        paymentMethod: String(row.settings?.membershipDefaults?.paymentMethod || 'cash'),
+        membershipPlanId: row.settings?.membershipDefaults?.membershipPlanId || '',
+        autoRenew: Boolean(row.settings?.membershipDefaults?.autoRenew ?? false),
+      },
     });
 
-    if (operation === 'getGymProfile') return Response.json({ gym: gymProfile(gym) });
+    if (operation === 'getGymProfile') {
+      const plans = await select('membership_plans', `gym_id=eq.${encodeURIComponent(gym.id)}&is_active=eq.true&select=id,name,duration_months,price,is_active&order=duration_months.asc`);
+      return Response.json({ gym: gymProfile(gym), membershipPlans: plans.map((plan: any) => ({ id: plan.id, name: plan.name || 'Membership plan', durationMonths: Number(plan.duration_months || 1), price: Number(plan.price || 0) })) });
+    }
+
+    if (operation === 'updateMembershipDefaults') {
+      if (access.role !== 'owner') return deny();
+      const input = body.membershipDefaults || {};
+      const currency = String(input.currency || '').trim().toUpperCase();
+      const paymentMethod = String(input.paymentMethod || '').trim().toLowerCase();
+      const membershipPlanId = String(input.membershipPlanId || '').trim();
+      const autoRenew = input.autoRenew === true;
+      if (!['USD', 'SOS', 'ETB', 'KES', 'AED', 'EUR', 'GBP'].includes(currency)) return Response.json({ error: 'Choose a supported currency' }, { status: 400 });
+      if (!['cash', 'mobile_money', 'card', 'bank_transfer'].includes(paymentMethod)) return Response.json({ error: 'Choose a supported payment method' }, { status: 400 });
+      if (membershipPlanId) {
+        const plan = await select('membership_plans', `id=eq.${encodeURIComponent(membershipPlanId)}&gym_id=eq.${encodeURIComponent(gym.id)}&is_active=eq.true&select=id&limit=1`);
+        if (!plan[0]) return Response.json({ error: 'Choose an active membership plan from this gym' }, { status: 400 });
+      }
+      const settings = {
+        ...(gym.settings || {}),
+        membershipDefaults: { currency, paymentMethod, membershipPlanId: membershipPlanId || null, autoRenew },
+      };
+      const updated = (await update('gyms', `id=eq.${encodeURIComponent(gym.id)}`, { settings }))[0];
+      return Response.json({ membershipDefaults: gymProfile(updated || { ...gym, settings }).membershipDefaults });
+    }
 
     // Staff share workspace alerts, but only within their read permissions.
     // Front Desk can record payments (payments.write) without seeing payment
