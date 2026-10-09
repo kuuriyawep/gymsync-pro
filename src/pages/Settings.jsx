@@ -85,8 +85,10 @@ export default function Settings() {
       const { data, error } = await supabase.from("profiles").update({ full_name: fullName, phone: profileDraft.phone.trim() || null, avatar_url: profileDraft.avatar_url || null }).eq("id", user.id).select("id, role, gym_id, staff_role, full_name, phone, avatar_url").maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Profile was not saved. Check that your account profile exists and try again.");
-      const { error: authError } = await supabase.auth.updateUser({ data: { full_name: fullName, avatar_url: data.avatar_url } });
-      if (authError) throw authError;
+      // The profiles row is canonical. Metadata is a convenience fallback for
+      // account surfaces; a metadata sync failure must not report a failed save
+      // after the database has already persisted the profile.
+      await supabase.auth.updateUser({ data: { full_name: fullName, avatar_url: data.avatar_url } }).catch(() => null);
       await reloadRole();
       setProfileDraft({ full_name: data.full_name || "", phone: data.phone || "", avatar_url: data.avatar_url || "" });
       toast({ title: "Profile saved", description: "Your account details and photo have been saved." });
