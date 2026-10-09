@@ -362,7 +362,7 @@ export default async function(req: Request): Promise<Response> {
     let gym = await getGym();
     if (!gym) return Response.json({ error: 'Gym not found' }, { status: 404 });
 
-    const ownerOnly = new Set(['listStaff', 'inviteStaff', 'revokeStaff', 'updateGymProfile', 'deleteAccount']);
+    const ownerOnly = new Set(['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'updateGymProfile', 'deleteAccount']);
     if (ownerOnly.has(operation) && access.role !== 'owner') return deny();
     if (operation === 'getGymProfile' && !hasPermission(access, 'gym.read')) return deny();
     if (operation === 'sendMessage' && !hasPermission(access, 'members.write')) return deny();
@@ -581,14 +581,34 @@ export default async function(req: Request): Promise<Response> {
           role,
           status: 'Invited',
           lastActive: 'Never',
+          avatarUrl: staffRow.avatar_url || null,
+          createdAt: staffRow.created_at || staffRow.invited_at || null,
+          joinedAt: null,
         }],
         success: true,
         delivery: 'google_sign_in',
         message: 'Staff access created. The staff member must sign in with Google using this same email address.',
       });
     }
+    if (operation === 'updateStaff') {
+      const id = String(body.id || '').trim();
+      const fullName = String(body.full_name || '').trim();
+      const role = String(body.role || '').trim();
+      const avatarUrl = body.avatar_url == null || body.avatar_url === '' ? null : String(body.avatar_url).trim();
+      const roleMap: Record<string, string> = { Manager: 'manager', 'Front Desk': 'front_desk', Cashier: 'cashier' };
+      if (!id || !fullName || fullName.length > 120) return Response.json({ error: 'A valid staff name is required (max 120 characters)' }, { status: 400 });
+      if (!Object.prototype.hasOwnProperty.call(roleMap, role)) return Response.json({ error: 'Choose a valid staff role' }, { status: 400 });
+      if (avatarUrl && (!/^https:\/\//i.test(avatarUrl) || avatarUrl.length > 1000)) return Response.json({ error: 'Photo URL must be a valid HTTPS URL' }, { status: 400 });
+      const existing = await select('staff', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id,status&limit=1`);
+      if (!existing[0]) return Response.json({ error: 'Staff member not found in this gym' }, { status: 404 });
+      await update('staff', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, { full_name: fullName, role: roleMap[role], avatar_url: avatarUrl });
+    }
     if (operation === 'revokeStaff') {
-      await request(`staff?id=eq.${encodeURIComponent(String(body.id || ''))}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
+      const id = String(body.id || '').trim();
+      if (!id) return Response.json({ error: 'Staff member is required' }, { status: 400 });
+      const existing = await select('staff', `id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}&select=id&limit=1`);
+      if (!existing[0]) return Response.json({ error: 'Staff member not found in this gym' }, { status: 404 });
+      await request(`staff?id=eq.${encodeURIComponent(id)}&gym_id=eq.${encodeURIComponent(gym.id)}`, { method: 'DELETE' });
     }
     const rows = await select('staff', `gym_id=eq.${encodeURIComponent(gym.id)}&select=*&order=created_at.desc`);
     // Map DB role values back to UI role names
@@ -597,7 +617,7 @@ export default async function(req: Request): Promise<Response> {
       const staffEmail = String(item.email || '');
       const name = String(item.full_name || (staffEmail ? staffEmail.split('@')[0] : '') || 'Staff member');
       const statusMap: Record<string, string> = { 'invited': 'Invited', 'active': 'Active', 'revoked': 'Revoked' };
-      return { id: item.id, name, email: staffEmail, role: roleLabelMap[item.role] || item.role || 'Staff', status: statusMap[item.status] || item.status || 'Invited', lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : 'Never' };
+      return { id: item.id, name, email: staffEmail, role: roleLabelMap[item.role] || item.role || 'Staff', status: statusMap[item.status] || item.status || 'Invited', lastActive: item.joined_at ? new Date(item.joined_at).toLocaleDateString() : 'Never', avatarUrl: item.avatar_url || null, createdAt: item.created_at || item.invited_at || null, joinedAt: item.joined_at || null };
     });
     return Response.json({ staff });
   } catch (error) {
