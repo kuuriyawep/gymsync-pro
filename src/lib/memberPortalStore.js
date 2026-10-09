@@ -64,6 +64,13 @@ export async function joinGym(phone, fullName) {
   if (!member) throw new Error(state.error || "Membership linked but could not be loaded");
   return { ...data, member };
 }
+export async function checkInMember() {
+  const result = await invoke("memberCheckIn");
+  // Reload from the server so the calendar, weekly markers and streak are all
+  // derived from the persisted attendance row rather than optimistic UI data.
+  await loadMemberPortal(true);
+  return result;
+}
 export async function createMemberFeedback(feedback) {
   const title = String(feedback?.title || "").trim();
   const body = String(feedback?.body || "").trim();
