@@ -270,7 +270,7 @@ export default async function(req: Request): Promise<Response> {
       const tomorrowDate = new Date(`${todayKey}T00:00:00+03:00`);
       tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
       const dayEnd = tomorrowDate.toISOString();
-      const existing = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&check_in_at=gte.${encodeURIComponent(dayStart)}&check_in_at=lt.${encodeURIComponent(dayEnd)}&select=id,check_in_at&limit=1`);
+      const existing = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&and=(check_in_at.gte.${encodeURIComponent(dayStart)},check_in_at.lt.${encodeURIComponent(dayEnd)})&select=id,check_in_at&limit=1`);
       if (existing[0]) return Response.json({ success: true, alreadyCheckedIn: true, checkedInAt: existing[0].check_in_at });
       const createdAt = new Date().toISOString();
       try {
@@ -279,7 +279,7 @@ export default async function(req: Request): Promise<Response> {
       } catch {
         // A unique-index conflict is treated as an idempotent repeat, not a
         // failed check-in. Re-read today's record to avoid duplicate records.
-        const duplicate = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&check_in_at=gte.${encodeURIComponent(dayStart)}&check_in_at=lt.${encodeURIComponent(dayEnd)}&select=id,check_in_at&limit=1`);
+        const duplicate = await select('attendance', `member_id=eq.${encodeURIComponent(member.id)}&gym_id=eq.${encodeURIComponent(member.gym_id)}&and=(check_in_at.gte.${encodeURIComponent(dayStart)},check_in_at.lt.${encodeURIComponent(dayEnd)})&select=id,check_in_at&limit=1`);
         if (duplicate[0]) return Response.json({ success: true, alreadyCheckedIn: true, checkedInAt: duplicate[0].check_in_at });
         throw new Error('Unable to save attendance check-in');
       }
