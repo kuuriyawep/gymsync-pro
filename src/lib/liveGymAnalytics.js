@@ -44,7 +44,16 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
     list.push(m);
     membershipHistory.set(m.memberId, list);
   });
-  const renewedIds = new Set([...membershipHistory].filter(([, list]) => list.length > 1).map(([id]) => id));
+  const eligibleRenewalIds = new Set();
+  const renewedIds = new Set();
+  membershipHistory.forEach((list, memberId) => {
+    const ordered = [...list].sort((a, b) => new Date(a.createdAt || a.startDate || 0).getTime() - new Date(b.createdAt || b.startDate || 0).getTime());
+    if (ordered.some((membership) => membership.endDate && validDate(membership.endDate) < today)) {
+      eligibleRenewalIds.add(memberId);
+      const latest = ordered[ordered.length - 1];
+      if (latest && latest.status === "active" && (!latest.endDate || validDate(latest.endDate) >= today)) renewedIds.add(memberId);
+    }
+  });
   const renewalMembershipIds = new Set();
   membershipHistory.forEach((list) => {
     list.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
