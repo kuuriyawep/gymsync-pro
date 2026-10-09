@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Flame, Check, X, Calendar } from "lucide-react";
 import MemberLayout from "@/components/MemberLayout";
 import MemberDataState from "@/components/member/MemberDataState";
-import { useMemberPortal } from "@/lib/memberPortalStore";
+import { checkInMember, useMemberPortal } from "@/lib/memberPortalStore";
 import { attendanceSummary } from "@/lib/memberPortalUtils";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function MemberAttendance() {
   const { data, loaded, error } = useMemberPortal();
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInMessage, setCheckInMessage] = useState("");
+  const [checkInError, setCheckInError] = useState("");
 
   if (!loaded) {
     return (
@@ -27,6 +30,22 @@ export default function MemberAttendance() {
     data.attendanceStartDate
   );
   const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const checkedInToday = summary.dates.has(todayKey);
+  const handleCheckIn = async () => {
+    if (checkingIn || checkedInToday) return;
+    setCheckingIn(true);
+    setCheckInMessage("");
+    setCheckInError("");
+    try {
+      const result = await checkInMember();
+      setCheckInMessage(result?.alreadyCheckedIn ? "You have already checked in today." : "Check-in saved. Your attendance streak has been updated.");
+    } catch (err) {
+      setCheckInError(err?.message || "Check-in could not be saved. Please try again.");
+    } finally {
+      setCheckingIn(false);
+    }
+  };
   const first = new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -51,6 +70,18 @@ export default function MemberAttendance() {
           <p className="text-3xl font-bold mt-2">
             {summary.current} day streak
           </p>
+        </div>
+
+        <div className="border border-black/10 rounded-2xl p-5 space-y-3">
+          <div>
+            <h3 className="font-semibold">Daily check-in</h3>
+            <p className="text-sm text-black/50 mt-1">Record today's gym visit to build your attendance streak.</p>
+          </div>
+          <button type="button" onClick={handleCheckIn} disabled={checkingIn || checkedInToday} className={`w-full rounded-xl px-4 py-3 text-sm font-semibold transition ${checkedInToday ? "border border-black/10 bg-black/5 text-black/50 cursor-not-allowed" : "bg-black text-white hover:bg-black/80 disabled:opacity-60"}`}>
+            {checkingIn ? "Saving check-in…" : checkedInToday ? "Checked in today ✓" : "Check in today"}
+          </button>
+          {checkInMessage && <p role="status" className="text-sm text-black/70">{checkInMessage}</p>}
+          {checkInError && <p role="alert" className="text-sm text-red-600">{checkInError}</p>}
         </div>
 
         <div className="border border-black/10 rounded-2xl p-5">
