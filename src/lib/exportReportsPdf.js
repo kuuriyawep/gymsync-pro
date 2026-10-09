@@ -48,7 +48,7 @@ export function downloadReportsPdf(data, label) {
   };
 
   // Summary
-  section("Summary");
+  section("Current Snapshot (not limited to selected period)");
   var s = data.stats || {};
   kv("Total Members", s.totalMembers || 0);
   kv("Active Members", s.activeMembers || 0);
@@ -59,7 +59,7 @@ export function downloadReportsPdf(data, label) {
   y += 8;
 
   // Revenue breakdown
-  section("Revenue Breakdown");
+  section("Rolling Revenue Windows (independent of selected period)");
   var rev = data.revenue || {};
   Object.keys(rev).forEach(function (key) {
     var cap = key.charAt(0).toUpperCase() + key.slice(1);
@@ -100,8 +100,17 @@ export function downloadReportsPdf(data, label) {
   }
   y += 8;
 
+  // Selected-period totals match the time-series buckets shown on the Reports page.
+  const series = data.series || [];
+  section("Selected Period Totals - " + (label || "Selected period"));
+  kv("Revenue", "$" + series.reduce((sum, item) => sum + Number(item.revenue || 0), 0).toLocaleString());
+  kv("New Members", series.reduce((sum, item) => sum + Number(item.newMembers || 0), 0));
+  kv("Renewals", series.reduce((sum, item) => sum + Number(item.renewals || 0), 0));
+  kv("Expired Memberships", series.reduce((sum, item) => sum + Number(item.expired || 0), 0));
+  y += 8;
+
   // Time series table
-  section("Time Series");
+  section("Time Series - " + (label || "Selected period"));
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
   doc.text("Period", margin, y);
