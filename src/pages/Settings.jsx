@@ -164,10 +164,10 @@ export default function Settings() {
                     <div className="bg-white border border-black/10 rounded-xl p-5 md:p-6 space-y-5">
                       <PhotoPicker value={gym.logoUrl} onChange={(url) => setGymLocal({ ...gym, logoUrl: url })} onRemove={() => setGymLocal({ ...gym, logoUrl: null })} shape="rounded" size="w-24 h-24" placeholder="OG" hint="PNG or JPG. Max 1MB." />
                       <div className="space-y-4">
-                        <Field label="Gym name"><input className={inputCls} value={gym.name} onInput={(e) => setGymLocal({ ...gym, name: e.target.value })} /></Field>
-                        <Field label="Phone"><input className={inputCls} value={gym.phone} onInput={(e) => setGymLocal({ ...gym, phone: e.target.value })} /></Field>
-                        <Field label="Email"><input className={inputCls} value={gym.email} onInput={(e) => setGymLocal({ ...gym, email: e.target.value })} /></Field>
-                        <Field label="Address"><input data-testid="gym-address" className={inputCls} value={gym.address} onInput={(e) => setGymLocal({ ...gym, address: e.target.value })} /></Field>
+                        <Field label="Gym name"><input className={inputCls} value={gym.name} onInput={(e) => setGymLocal({ ...gym, name: e.currentTarget.value })} /></Field>
+                        <Field label="Phone"><input className={inputCls} value={gym.phone} onInput={(e) => setGymLocal({ ...gym, phone: e.currentTarget.value })} /></Field>
+                        <Field label="Email"><input className={inputCls} value={gym.email} onInput={(e) => setGymLocal({ ...gym, email: e.currentTarget.value })} /></Field>
+                        <Field label="Address"><input data-testid="gym-address" className={inputCls} value={gym.address} onInput={(e) => setGymLocal({ ...gym, address: e.currentTarget.value })} /></Field>
                       </div>
                       <div className="flex justify-end pt-2"><SaveButton label="Save profile" successLabel="Saved" onSave={async () => { const saved = await setGym(gym); setGymLocal(saved); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); }} /></div>
                     </div>

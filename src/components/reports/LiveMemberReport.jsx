@@ -1,6 +1,7 @@
 import React from "react";
 import { Users, UserCheck, RefreshCw, UserX } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+/** @type {Array<[string, string, React.ComponentType<{ className?: string }>]>} */
 const cards = [["total", "Total Members", Users], ["active", "Active Members", UserCheck], ["newMembers", "New This Month", RefreshCw], ["expired", "Expired Members", UserX]];
 export default function LiveMemberReport({ data }) {
   return <section className="space-y-4"><h2 className="text-xs font-semibold uppercase tracking-wider text-black/40">Members</h2>

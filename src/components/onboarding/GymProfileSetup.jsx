@@ -15,7 +15,7 @@ export default function GymProfileSetup({ value, onChange }) {
     setUploadError("");
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
       onChange({ logoUrl: file_url });
     } catch (_) {
       setUploadError("Logo upload failed. Please try again.");

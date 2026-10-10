@@ -1,6 +1,7 @@
 import React from "react";
 import { UserX, CalendarCheck, Clock, AlarmClock, UserPlus, DollarSign, RefreshCw } from "lucide-react";
 
+/** @type {Array<[string, string, React.ComponentType<{ className?: string }>]>} */
 const expiryCards = [["expired", "Expired", UserX], ["today", "Expires Today", CalendarCheck], ["threeDays", "Within 3 Days", Clock], ["fiveDays", "Within 5 Days", AlarmClock]];
 const icons = { member: UserPlus, payment: DollarSign, update: RefreshCw };
 const relative = (value) => { const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000)); if (seconds < 60) return "Just now"; if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`; if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`; return `${Math.floor(seconds / 86400)}d ago`; };

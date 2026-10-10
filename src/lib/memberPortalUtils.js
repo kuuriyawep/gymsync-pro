@@ -12,9 +12,9 @@ export function membershipProgress(startDate, expiryDate) {
   const start = new Date(`${startDate}T00:00:00`);
   const end = new Date(`${expiryDate}T00:00:00`);
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const total = Math.max(1, Math.round((end - start) / DAY));
-  const elapsed = Math.max(0, Math.round((today - start) / DAY));
-  return { remaining: Math.max(0, Math.round((end - today) / DAY)), pct: Math.min(100, Math.round((elapsed / total) * 100)) };
+  const total = Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY));
+  const elapsed = Math.max(0, Math.round((today.getTime() - start.getTime()) / DAY));
+  return { remaining: Math.max(0, Math.round((end.getTime() - today.getTime()) / DAY)), pct: Math.min(100, Math.round((elapsed / total) * 100)) };
 }
 export function attendanceSummary(records = [], startDate = '') {
   // A streak is an attendance streak, not an account-age streak. The backend

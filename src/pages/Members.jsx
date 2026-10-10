@@ -51,7 +51,7 @@ export default function Members() {
   const [editingId, setEditingId] = useState(null);
   const [actionMode, setActionMode] = useState("edit");
   const [form, setForm] = useState(emptyForm);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
 
@@ -87,9 +87,9 @@ export default function Members() {
     });
     list = [...list].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
-      if (sort === "expiry") return new Date(a.expiryDate) - new Date(b.expiryDate);
+      if (sort === "expiry") return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
       if (sort === "payment") return a.paymentStatus.localeCompare(b.paymentStatus);
-      return new Date(b.registeredDate) - new Date(a.registeredDate);
+      return new Date(b.registeredDate).getTime() - new Date(a.registeredDate).getTime();
     });
     return list;
   }, [members, query, filter, sort]);

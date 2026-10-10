@@ -16,6 +16,20 @@ import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { UserCog, Users, ListChecks, Eye, CreditCard, BarChart3, Zap, Sparkles, Flame, MessageSquare, Dumbbell, Building2 } from "lucide-react";
 
+/**
+ * @typedef {Object} OnboardingStep
+ * @property {string} id
+ * @property {string} kind
+ * @property {React.ComponentType<{ className?: string }>} [icon]
+ * @property {string} [title]
+ * @property {string} [subtitle]
+ * @property {Array<{ value: string; label: string; icon?: React.ComponentType<{ className?: string }> }>} [options]
+ * @property {boolean} [multi]
+ * @property {number} [maxSelections]
+ * @property {React.ComponentType<any>} [visual]
+ * @property {boolean} [useAnswers]
+ */
+/** @type {OnboardingStep[]} */
 const ownerQuestions = [
   { id: "role", kind: "question", icon: UserCog, title: "What best describes you?", subtitle: "This helps us tailor your setup.", options: [
     { value: "owner", label: "Gym Owner", icon: UserCog }, { value: "manager", label: "Gym Manager", icon: Users }, { value: "staff", label: "Staff / Administrator", icon: ListChecks },
@@ -37,6 +51,7 @@ const ownerQuestions = [
   ]},
 ];
 
+/** @type {OnboardingStep[]} */
 const memberSteps = [
   { id: "welcome", kind: "visual", icon: Dumbbell, title: "Make your gym routine work for you", subtitle: "A simple member experience built around your goals.", visual: MemberDashboardPreview },
   { id: "goal", kind: "question", icon: Dumbbell, title: "What's your main goal?", options: [
@@ -60,7 +75,7 @@ export default function Onboarding() {
   const { isAuthenticated, profile } = useAuth();
   const [path, setPath] = useState(null);
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(/** @type {Record<string, any>} */ ({}));
   const [savingGym, setSavingGym] = useState(false);
 
   useEffect(() => {
@@ -151,6 +166,7 @@ export default function Onboarding() {
   return <OnboardingShell step={step} total={steps.length} onBack={back}><AnimatePresence mode="wait"><motion.div key={current.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.25 }} className="flex-1 flex flex-col">{content}</motion.div></AnimatePresence>{footer}</OnboardingShell>;
 }
 
+/** @returns {OnboardingStep[]} */
 function buildOwnerSteps(answers) {
   const q = ownerQuestions;
   if (answers.role && answers.role !== "owner") return [q[0], { id: "access", kind: "access", icon: Users, title: "Your gym admin controls access", subtitle: "Managers and staff join a gym through an invitation from the gym owner." }];

@@ -6,6 +6,8 @@ export function DashboardPreview() {
   const bars = [1.8, 2.1, 1.9, 2.4, 2.8, 3.2, 1.4];
   const max = 3.2;
   const days = ["M", "T", "W", "T", "F", "S", "S"];
+  /** @type {Array<[string, string, React.ComponentType<{ className?: string }>]>} */
+  const expiryPreviewCards = [["Expired", "47", UserX], ["Expiring", "184", CalendarCheck]];
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-2">
@@ -28,7 +30,7 @@ export function DashboardPreview() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {[["Expired", "47", UserX], ["Expiring", "184", CalendarCheck]].map(([l, v, I]) => (
+        {expiryPreviewCards.map(([l, v, I]) => (
           <div key={l} className="bg-white border border-black/10 rounded-xl p-3 flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-black/5 flex items-center justify-center"><I className="w-3.5 h-3.5" /></div>
             <div><p className="text-base font-bold">{v}</p><p className="text-[10px] text-black/50">{l}</p></div>
@@ -95,6 +97,8 @@ export function ValueSummary({ answers }) {
   const size = answers.memberCount || "your members";
   const methodMap = { paper: "notebooks", sheets: "spreadsheets", whatsapp: "WhatsApp notes", other: "another system", manual: "manual work" };
   const method = methodMap[answers.management] || "spreadsheets and notebooks";
+  /** @type {Array<[string, string, React.ComponentType<{ className?: string }>]>} */
+  const valueCards = [["Members", "Everyone in one list", Users], ["Payments", "Record & balance", CreditCard], ["Expiry", "See who's expiring", Clock], ["Reports", "Understand performance", CalendarCheck]];
   return (
     <div className="space-y-4">
       <div className="bg-black text-white rounded-2xl p-5">
@@ -102,7 +106,7 @@ export function ValueSummary({ answers }) {
         <p className="text-sm text-white/70 mt-2">GymSync brings members, memberships, payments, staff and attendance into one place — so you always know where your gym stands.</p>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        {[["Members", "Everyone in one list", Users], ["Payments", "Record & balance", CreditCard], ["Expiry", "See who's expiring", Clock], ["Reports", "Understand performance", CalendarCheck]].map(([t, d, I]) => (
+        {valueCards.map(([t, d, I]) => (
           <div key={t} className="bg-white border border-black/10 rounded-xl p-3">
             <div className="w-7 h-7 rounded-lg bg-black/5 flex items-center justify-center mb-2"><I className="w-3.5 h-3.5" /></div>
             <p className="text-sm font-semibold">{t}</p>

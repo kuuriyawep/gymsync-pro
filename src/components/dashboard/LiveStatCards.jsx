@@ -2,6 +2,7 @@ import React from "react";
 import { Users, UserCheck, Clock, UserX, DollarSign, Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 
+/** @type {Array<[string, string, React.ComponentType<{ className?: string }>]>} */
 const cards = [
   ["totalMembers", "Total Members", Users], ["activeMembers", "Active Members", UserCheck],
   ["expiringSoon", "Expiring Soon", Clock], ["expired", "Expired Members", UserX],

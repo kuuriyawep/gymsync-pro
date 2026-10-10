@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 
+/** @param {{ step: number; total: number; onBack?: () => void; children: React.ReactNode; footer?: React.ReactNode; hideProgress?: boolean }} props */
 export default function OnboardingShell({ step, total, onBack, children, footer, hideProgress }) {
   const pct = total > 0 ? Math.round(((step + 1) / total) * 100) : 0;
   return (

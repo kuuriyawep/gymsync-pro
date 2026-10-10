@@ -20,6 +20,7 @@ const labels = {
   engagement: "a stronger member experience",
 };
 
+/** @param {{ answers?: Record<string, any>; onContinue?: () => void; onLater?: () => void; onRestore?: () => void }} props */
 export default function Paywall({ answers = {}, onContinue, onLater, onRestore }) {
   const outcomes = answers.outcome || [];
   const benefitText = outcomes.length

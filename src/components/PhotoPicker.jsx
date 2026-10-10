@@ -34,7 +34,7 @@ export default function PhotoPicker({ value, onChange, onRemove, shape = "circle
     setUploading(true);
     setUploadError("");
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: pendingFile });
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: pendingFile });
       onChange?.(file_url);
       setPendingFile(null);
     } catch (_) {

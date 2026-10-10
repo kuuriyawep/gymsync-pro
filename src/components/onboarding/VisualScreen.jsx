@@ -1,5 +1,6 @@
 import React from "react";
 
+/** @param {{ icon?: React.ComponentType<{ className?: string }>; title: string; subtitle?: string; children?: React.ReactNode }} props */
 export default function VisualScreen({ icon: Icon, title, subtitle, children }) {
   return (
     <div className="flex-1 flex flex-col">

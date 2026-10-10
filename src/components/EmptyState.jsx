@@ -1,5 +1,6 @@
 import React from "react";
 
+/** @param {{ icon?: React.ComponentType<{ className?: string }>; title: string; description?: string; actionLabel?: string; onAction?: () => void }} props */
 export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction }) {
   return (
     <div className="bg-white border border-black/10 rounded-xl p-10 text-center">
