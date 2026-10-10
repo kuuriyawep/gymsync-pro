@@ -80,56 +80,12 @@ export async function createMemberFeedback(feedback) {
     throw new Error("Title and details are required");
   }
 
-  // Feedback is a normal member-owned Supabase row, so write it directly with
-  // the current Supabase Auth session. The previous Base44 function path could
-  // return a generic 500 even when the database insert had already succeeded.
-  const memberId = state.data?.profile?.id;
-  if (!memberId) throw new Error("Your membership session is not ready. Please refresh and try again.");
-
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData?.user?.id) {
-    throw new Error("Your sign-in session has expired. Please sign in again.");
-  }
-
-  const { data: memberRow, error: memberError } = await supabase
-    .from("members")
-    .select("id,gym_id")
-    .eq("id", memberId)
-    .maybeSingle();
-
-  if (memberError) throw new Error(memberError.message || "Could not verify your membership.");
-  if (!memberRow?.gym_id) throw new Error("Your gym membership is not linked correctly.");
-
-  const typeMap = {
-    Feedback: "feedback",
-    Complaint: "complaint",
-    "Feature Request": "feature_request",
-    "Machine Request": "machine_request",
-    "Coach Request": "coach_request",
-  };
-
-  // Insert without requesting the inserted row back. The member RLS policy
-  // allows the write, but a PostgREST INSERT ... RETURNING can be filtered by
-  // the SELECT policy and then .single() turns that successful write into a
-  // misleading 400/500-style error. The gymAccess service path already reads
-  // feedback with the service role, so the next portal refresh can load it.
-  const { error: insertError } = await supabase
-    .from("feedback_requests")
-    .insert({
-      gym_id: memberRow.gym_id,
-      member_id: memberId,
-      user_id: userData.user.id,
-      channel: "gym",
-      type: typeMap[type] || "feedback",
-      subject: title,
-      message: body,
-      status: "open",
-      priority: "normal",
-    });
-
-  if (insertError) {
-    throw new Error(insertError.message || "Your request could not be submitted.");
-  }
+  // Submit through the gymAccess backend function, which writes with the
+  // service role. The direct Supabase client insert depended on the browser
+  // session and the member RLS SELECT policy, so it failed for members whose
+  // session was not yet detected or whose member row was not self-readable.
+  // The backend resolves identity server-side and bypasses RLS entirely.
+  await invoke("createFeedback", { feedback: { type, title, body } });
 
   // Update the local portal immediately. Do not reload unrelated portal data
   // after a successful insert; a secondary read failure must never show a
