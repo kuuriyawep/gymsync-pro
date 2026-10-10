@@ -17,22 +17,22 @@ const relative = (value) => {
  */
 export default function RecentActivity({ activities }) {
   return (
-    <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
+    <div className="bg-card border border-border rounded-xl p-4 md:p-5">
       <h3 className="font-semibold mb-4">Recent Activity</h3>
       {(!activities || activities.length === 0) ? (
-        <p className="text-sm text-black/45 py-6 text-center">No activity yet</p>
+        <p className="text-sm text-muted-foreground py-6 text-center">No activity yet</p>
       ) : (
         <div className="space-y-3">
           {activities.slice(0, 6).map((a) => {
             const Icon = icons[a.type] || RefreshCw;
             return (
               <div key={a.id} className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-accent-members" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm leading-tight">{a.text}</p>
-                  <p className="text-xs text-black/40 mt-0.5">{relative(a.occurredAt)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{relative(a.occurredAt)}</p>
                 </div>
               </div>
             );

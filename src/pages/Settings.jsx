@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
-import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2 } from "lucide-react";
+import { User, Building2, CreditCard, Bell, Shield, Mail, Phone, MapPin, Monitor, LogOut, UserCog, AlertTriangle, Loader2, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -16,12 +16,14 @@ import { useStaffAccess } from "@/lib/staffStore";
 import ProfileImage from "@/components/ProfileImage";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { useTheme, setTheme } from "@/lib/themeStore";
 
 const sections = [
   { id: "profile", label: "Profile", icon: User, desc: "Your personal account details" },
   { id: "gym", label: "Gym Profile", icon: Building2, desc: "Your gym's information and branding" },
   { id: "membership", label: "Membership", icon: CreditCard, desc: "Default currency and payment method" },
   { id: "notifications", label: "Notifications", icon: Bell, desc: "Choose which alerts you receive" },
+  { id: "appearance", label: "Appearance", icon: Sun, desc: "Choose light or dark mode" },
   { id: "security", label: "Security", icon: Shield, desc: "Password, active sessions and sign out" },
   { id: "staff", label: "Staff & Access", icon: UserCog, desc: "Invite staff and manage their gym access" },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle, desc: "Irreversible account actions" },
@@ -65,6 +67,7 @@ export default function Settings() {
   const [membershipSaving, setMembershipSaving] = useState(false);
   const [membershipDraft, setMembershipDraft] = useState(gymStore.membershipDefaults);
   const { toast } = useToast();
+  const theme = useTheme();
 
   useEffect(() => {
     if (requestedTab === "gym") setActive("gym");
@@ -113,15 +116,15 @@ export default function Settings() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Settings</h1>
-          <p className="text-sm text-black/50 mt-0.5">Manage your account and gym preferences</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage your account and gym preferences</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-5 lg:gap-6 items-start">
-          <div className="w-full lg:col-start-2 lg:row-start-1 bg-white border border-black/10 rounded-xl p-3 md:p-4">
+          <div className="w-full lg:col-start-2 lg:row-start-1 bg-card border border-border rounded-xl p-3 md:p-4">
             <div className="grid grid-cols-1 gap-1">
               {sections.map((s) => (
-                <button key={s.id} data-settings-section={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-white" : "text-black/70 hover:bg-black/5"}`}>
-                  {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-black" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
+                <button key={s.id} data-settings-section={s.id} onClick={() => setActive(s.id)} className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${active === s.id ? "text-primary-foreground" : "text-muted-foreground hover:bg-accent"}`}>
+                  {active === s.id && <motion.span layoutId="settings-pill" className="absolute inset-0 rounded-lg bg-primary" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
                   <span className="relative flex items-center gap-3"><s.icon className="w-4.5 h-4.5" />{s.label}</span>
                 </button>
               ))}
@@ -132,9 +135,9 @@ export default function Settings() {
             <div className="mb-4 flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <h2 className="text-lg font-semibold">{activeItem.label}</h2>
-                <p className="text-sm text-black/50">{activeItem.desc}</p>
+                <p className="text-sm text-muted-foreground">{activeItem.desc}</p>
               </div>
-              <button type="button" onClick={() => setActive(null)} className="shrink-0 rounded-lg border border-black/15 px-3 py-2 text-xs font-medium hover:bg-black/5">All settings</button>
+              <button type="button" onClick={() => setActive(null)} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-medium hover:bg-accent">All settings</button>
             </div>
             <AnimatePresence mode="wait">
               <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="min-h-[300px]">
@@ -226,6 +229,22 @@ export default function Settings() {
                       </div>
                     ))}
                     <p className="pt-3 text-sm text-black/50">These preferences are saved to your gym and control which workspace alerts are shown.</p>
+                  </div>
+                )}
+
+                {active === "appearance" && (
+                  <div className="bg-card border border-border rounded-xl p-5 md:p-6 space-y-4">
+                    <p className="text-sm text-muted-foreground">Choose how GymSync looks. Dark mode is easier on the eyes in low light.</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button type="button" onClick={() => setTheme("light")} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${theme === "light" ? "border-primary bg-accent" : "border-border hover:border-primary"}`}>
+                        <Sun className="w-5 h-5" />
+                        <div className="text-left"><p className="text-sm font-semibold">Light</p><p className="text-xs text-muted-foreground">Default</p></div>
+                      </button>
+                      <button type="button" onClick={() => setTheme("dark")} className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-colors ${theme === "dark" ? "border-primary bg-accent" : "border-border hover:border-primary"}`}>
+                        <Moon className="w-5 h-5" />
+                        <div className="text-left"><p className="text-sm font-semibold">Dark</p><p className="text-xs text-muted-foreground">Low light</p></div>
+                      </button>
+                    </div>
                   </div>
                 )}
 
