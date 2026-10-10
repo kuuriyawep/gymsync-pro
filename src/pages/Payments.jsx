@@ -87,7 +87,7 @@ export default function Payments() {
     list = [...list].sort((a, b) => {
       if (sort === "amount") return b.amount - a.amount;
       if (sort === "name") return a.name.localeCompare(b.name);
-      return new Date(b.date) - new Date(a.date);
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
     return list;
   }, [payments, query, statusFilter, methodFilter, dateFilter, sort]);

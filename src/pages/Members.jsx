@@ -125,6 +125,7 @@ export default function Members() {
     setSearchParams({}, { replace: true });
   }, [members, searchParams, setSearchParams]);
   const validate = () => {
+    /** @type {Record<string, string>} */
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.phone.trim()) e.phone = "Phone is required";
