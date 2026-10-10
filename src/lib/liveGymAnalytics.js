@@ -112,8 +112,18 @@ export function buildLiveGymAnalytics(members = [], source = {}, range = "6m") {
   const paid = members.filter((m) => m.paymentStatus === "Paid").length;
   const pending = members.filter((m) => m.paymentStatus === "Pending").length;
   const overdue = members.filter((m) => m.paymentStatus === "Overdue").length;
+  const rangeRevenue = series.reduce((sum, bucket) => sum + bucket.revenue, 0);
+  const rangeDurationMs = buckets.length > 0 ? buckets[buckets.length - 1].end.getTime() - buckets[0].start.getTime() : 0;
+  const previousStart = buckets.length > 0 ? new Date(buckets[0].start.getTime() - rangeDurationMs) : null;
+  const previousRangeRevenue = previousStart ? payments.filter((p) => {
+    const paidAt = validDate(p.paidAt);
+    const amount = Number(p.amount);
+    return paidAt && paidAt >= previousStart && paidAt < buckets[0].start && Number.isFinite(amount) && amount > 0;
+  }).reduce((sum, p) => sum + Number(p.amount), 0) : 0;
   return {
-    stats: { totalMembers: members.length, activeMembers: active.length, expiringSoon: expiring.length, expired: expired.length, monthlyRevenue: revenueSince(payments, monthStart), activeTrainers: trainers.filter((trainer) => String(trainer.status || "").toLowerCase() === "active").length },
+    stats: { totalMembers: members.length, activeMembers: active.length, expiringSoon: expiring.length, expired: expired.length, pending, monthlyRevenue: revenueSince(payments, monthStart), activeTrainers: trainers.filter((trainer) => String(trainer.status || "").toLowerCase() === "active").length },
+    rangeRevenue,
+    previousRangeRevenue,
     expiry: { expired: expired.length, today: members.filter((m) => { const d = validDate(m.expiryDate); return d && d.getTime() === today.getTime(); }).length, threeDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 3 * DAY); }).length, fiveDays: members.filter((m) => { const d = validDate(m.expiryDate); return d && d > today && d <= new Date(today.getTime() + 5 * DAY); }).length },
     series,
     recentActivities: source.recentActivities || [],
