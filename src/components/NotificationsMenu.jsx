@@ -100,19 +100,19 @@ export default function NotificationsMenu() {
     return (
       <button
         onClick={() => markOne(notification.id)}
-        className="group flex w-full items-start gap-3 px-4 py-3.5 text-left hover:bg-black/[0.025]"
+        className="group flex w-full items-start gap-3 px-4 py-3.5 text-left hover:bg-accent"
       >
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-black/[0.055]">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
           <Icon className="h-5 w-5" strokeWidth={2} />
-          {!notification.read && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-red-600 ring-2 ring-white" />}
+          {!notification.read && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-red-600 ring-2 ring-card" />}
         </span>
         <span className="min-w-0 flex-1 pt-0.5">
           <span className="flex items-start justify-between gap-3">
             <span className="min-w-0">
               <span className="block text-sm font-semibold leading-5">{notification.title}</span>
-              <span className="mt-0.5 block text-sm leading-5 text-black/65">{notification.description}</span>
+              <span className="mt-0.5 block text-sm leading-5 text-muted-foreground">{notification.description}</span>
             </span>
-            <span className="shrink-0 pt-0.5 text-xs text-black/45">{notification.time}</span>
+            <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{notification.time}</span>
           </span>
         </span>
       </button>
@@ -123,7 +123,7 @@ export default function NotificationsMenu() {
     <div className="relative">
       <button
         onClick={() => { setOpen((value) => !value); if (!open) load(); }}
-        className={`relative rounded-xl p-2 transition-colors ${unread > 0 ? "bg-black text-white" : "hover:bg-black/5"}`}
+        className={`relative rounded-xl p-2 transition-colors ${unread > 0 ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
       >
         <Inbox className="h-5 w-5" />
@@ -138,31 +138,31 @@ export default function NotificationsMenu() {
               initial={{ y: -6, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -6, opacity: 0 }}
-              className="fixed left-2 right-2 top-[4.5rem] z-40 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] ring-1 ring-black/5 sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[28rem]"
+              className="fixed left-2 right-2 top-[4.5rem] z-40 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_20px_60px_rgba(0,0,0,0.18)] sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[28rem]"
             >
-              <div className="flex h-16 items-center justify-between border-b border-black/10 px-5">
+              <div className="flex h-16 items-center justify-between border-b border-border px-5">
                 <div className="flex items-center gap-2">
                   <Inbox className="h-5 w-5" />
                   <h3 className="text-xl font-bold tracking-tight">Notifications</h3>
                 </div>
-                <button onClick={markAll} disabled={unread === 0} className="text-sm font-semibold text-black/75 hover:text-black disabled:cursor-default disabled:text-black/35">
+                <button onClick={markAll} disabled={unread === 0} className="text-sm font-semibold text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-50">
                   Mark all read
                 </button>
               </div>
               <div className="max-h-[22rem] overflow-y-auto py-1">
                 {loading ? (
-                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-black/45">
+                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-muted-foreground">
                     <RefreshCw className="h-4 w-4 animate-spin" /> Loading...
                   </div>
                 ) : items.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-sm text-black/45">No notifications</p>
+                  <p className="px-5 py-10 text-center text-sm text-muted-foreground">No notifications</p>
                 ) : (
                   items.slice(0, 5).map((notification) => <Row key={notification.id} notification={notification} />)
                 )}
               </div>
               <button
                 onClick={() => { setAllOpen(true); setOpen(false); }}
-                className="w-full border-t border-black/10 py-3.5 text-center text-sm font-medium hover:bg-black/[0.025]"
+                className="w-full border-t border-border py-3.5 text-center text-sm font-medium hover:bg-accent"
               >
                 View all notifications
               </button>

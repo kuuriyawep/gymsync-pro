@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useMembers, useGymAnalytics } from "@/lib/memberStore";
 import { useTrainers } from "@/lib/trainerStore";
 import ProfileImage from "@/components/ProfileImage";
+import { Image } from "@/components/ui/image";
 
 const primaryNav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -23,10 +24,18 @@ const secondaryNav = [
   { label: "Feedback", path: "/feedback", icon: MessageSquare },
   { label: "Support", path: "/support", icon: LifeBuoy },
 ];
+// Mobile bar: the five destinations shown in the owner screenshots.
+const bottomNav = [
+  { label: "Dashboard", path: "/", icon: LayoutDashboard },
+  { label: "Members", path: "/members", icon: Users },
+  { label: "Payments", path: "/payments", icon: CreditCard },
+  { label: "Reports", path: "/reports", icon: BarChart3 },
+  { label: "Settings", path: "/settings", icon: Settings },
+];
 
 const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
-export default function Layout({ children }) {
+export default function Layout({ children, dark = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -36,8 +45,11 @@ export default function Layout({ children }) {
   const members = useMembers();
   const analytics = useGymAnalytics();
   const { trainers } = useTrainers();
-  const { logout } = useAuth();
+  const { logout, roles, profile, user } = useAuth();
   const [appFeedbackOpen, setAppFeedbackOpen] = useState(false);
+  const roleLabel = roles[0] ? roles[0].replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Owner";
+  const accountName = profile?.full_name || user?.email || "";
+  const accountInitials = accountName.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
@@ -62,8 +74,8 @@ export default function Layout({ children }) {
   const go = (to) => { setSearch(""); setSearchFocus(false); navigate(to); };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
-      <aside className="hidden md:flex flex-col w-64 border-r border-border bg-background sticky top-0 h-screen">
+    <div className={`min-h-screen bg-background flex${dark ? " dark" : ""}`}>
+      <aside className="hidden md:flex flex-col w-64 border-r border-border bg-background text-foreground sticky top-0 h-screen">
         <div className="flex items-center gap-2 px-6 h-16 border-b border-border">
           <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-5 h-5" />} className="w-10 h-10" shape="rounded" dark />
           <span className="font-heading font-bold text-lg tracking-tight truncate">{gym.isLoading ? "Loading…" : gym.name}</span>
@@ -87,11 +99,23 @@ export default function Layout({ children }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">
-        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border h-16 flex items-center px-4 md:px-6 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-          <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent" onClick={() => setMobileMenuOpen(true)}><Menu className="w-5 h-5" /></button>
-          <div className="min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.isLoading ? "Loading…" : gym.name}`}>
-            <span className="text-sm font-semibold truncate">{gym.isLoading ? "Loading…" : gym.name}</span>
-          </div>
+        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border text-foreground h-16 flex items-center px-4 md:px-6 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <button className="md:hidden p-2 -ml-2 rounded-lg hover:bg-accent" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu"><Menu className="w-5 h-5" /></button>
+          {dark ? (
+            <div className="flex min-w-0 items-center gap-2.5">
+              {gym.logoUrl
+                ? <Image src={gym.logoUrl} alt={gym.isLoading ? "Gym logo" : gym.name} className="h-9 w-9 shrink-0 rounded-xl" fittingType="fill" />
+                : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Dumbbell className="w-4 h-4" /></span>}
+              <div className="min-w-0">
+                <p className="truncate font-heading text-base font-bold leading-tight">GymSync</p>
+                <p className="truncate text-[11px] text-muted-foreground">{gym.isLoading ? "Loading…" : gym.name} · {roleLabel}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="min-w-0 max-w-[60vw]" aria-label={`Current gym: ${gym.isLoading ? "Loading…" : gym.name}`}>
+              <span className="text-sm font-semibold truncate">{gym.isLoading ? "Loading…" : gym.name}</span>
+            </div>
+          )}
           <div className="flex-1" />
           <div className="relative hidden lg:block w-64">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted">
@@ -113,22 +137,28 @@ export default function Layout({ children }) {
             </AnimatePresence>
           </div>
           <NotificationsMenu />
-          <button onClick={() => navigate("/settings?tab=gym")} className="rounded-xl" aria-label="Open gym profile">
-            <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark />
-          </button>
+          {dark ? (
+            <button onClick={() => navigate("/settings?tab=gym")} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground" aria-label="Open gym profile">
+              {accountInitials || <Dumbbell className="w-4 h-4" />}
+            </button>
+          ) : (
+            <button onClick={() => navigate("/settings?tab=gym")} className="rounded-xl" aria-label="Open gym profile">
+              <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-10 h-10" shape="rounded" dark />
+            </button>
+          )}
         </header>
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">{children}</main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-background border-t border-border flex items-center justify-around h-16 px-2" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        {primaryNav.map((item, i) => {
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-background border-t border-border text-foreground flex items-center justify-around h-16 px-2" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {bottomNav.map((item, i) => {
           const active = isActive(item.path);
           return (
             <motion.div key={item.path} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i, duration: 0.25 }} className="flex-1">
               <Link to={item.path} className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 <motion.div whileTap={{ scale: 0.85 }}><item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} /></motion.div>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-[11px] font-medium">{item.label}</span>
               </Link>
             </motion.div>
           );
@@ -139,7 +169,7 @@ export default function Layout({ children }) {
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-50">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
-            <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute left-0 top-0 bottom-0 w-72 bg-background flex flex-col" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <motion.div initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "tween", duration: 0.25 }} className="absolute left-0 top-0 bottom-0 w-72 bg-background text-foreground flex flex-col" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
               <div className="flex items-center justify-between px-5 h-16 border-b border-border">
                 <div className="flex items-center gap-2"><ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-4 h-4" />} className="w-9 h-9" shape="rounded" dark /><span className="font-bold text-lg truncate">{gym.isLoading ? "Loading…" : gym.name}</span></div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-lg hover:bg-accent"><X className="w-5 h-5" /></button>

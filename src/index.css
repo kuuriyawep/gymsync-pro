@@ -45,24 +45,24 @@
 
   .dark {
     --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 7.1%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7.1%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 3.9%;
+    --secondary: 0 0% 10%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 53.3%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 11.8%;
+    --input: 0 0% 14%;
+    --ring: 0 0% 100%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -81,13 +81,13 @@
 
 
 
-/* Dark mode intentionally disabled: most of the app (Dashboard, Members,
-   Settings, etc.) uses hardcoded bg-white/text-black rather than the theme
-   tokens below, while unstyled text inherits body's token-based
-   text-foreground. Letting this media query flip text-foreground to
-   near-white against those hardcoded white cards produced invisible
-   white-on-white text on any phone with OS dark mode on. Pin to light until
-   the app is actually audited for real dark-mode support. */
+/* The .dark token block above is NOT tied to the OS colour scheme and must
+   never be applied globally: most pages (Payments, Reports, Settings, …)
+   still render hardcoded bg-white/text-black surfaces, so flipping the body
+   tokens would produce invisible white-on-white text. It is used only where
+   it is applied explicitly — the Dashboard and Members surfaces opt in
+   through the Layout `dark` prop, which puts the `.dark` class on that
+   page's wrapper so its token-based classes resolve to the dark palette. */
 
 @layer base {
   * {
