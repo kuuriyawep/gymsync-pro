@@ -51,7 +51,7 @@ export default function Members() {
   const [editingId, setEditingId] = useState(null);
   const [actionMode, setActionMode] = useState("edit");
   const [form, setForm] = useState(emptyForm);
-  const [errors, setErrors] = useState(/** @type {Record<string, string>} */ ({}));
+  const [errors, setErrors] = useState({});
   const [confirmDelete, setConfirmDelete] = useState(null);
   const { toast } = useToast();
 
@@ -87,9 +87,9 @@ export default function Members() {
     });
     list = [...list].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name);
-      if (sort === "expiry") return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+      if (sort === "expiry") return new Date(a.expiryDate) - new Date(b.expiryDate);
       if (sort === "payment") return a.paymentStatus.localeCompare(b.paymentStatus);
-      return new Date(b.registeredDate).getTime() - new Date(a.registeredDate).getTime();
+      return new Date(b.registeredDate) - new Date(a.registeredDate);
     });
     return list;
   }, [members, query, filter, sort]);
@@ -125,7 +125,6 @@ export default function Members() {
     setSearchParams({}, { replace: true });
   }, [members, searchParams, setSearchParams]);
   const validate = () => {
-    /** @type {Record<string, string>} */
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.phone.trim()) e.phone = "Phone is required";

@@ -55,7 +55,6 @@ async function detectCountryFromDevice() {
   }
 }
 
-/** @param {{ value: string; onChange: (value: string) => void; error?: string }} props */
 export default function PhoneNumberField({ value, onChange, error }) {
   const [countryCode, setCountryCode] = useState(DEFAULT_COUNTRY);
   const [open, setOpen] = useState(false);

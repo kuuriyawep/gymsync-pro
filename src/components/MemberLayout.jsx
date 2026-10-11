@@ -12,7 +12,6 @@ const nav = [
   { label: "Profile", path: "/member/profile", icon: User },
 ];
 
-/** @param {{ children: React.ReactNode; title?: string; back?: string }} props */
 export default function MemberLayout({ children, title, back }) {
   const location = useLocation();
   const navigate = useNavigate();
