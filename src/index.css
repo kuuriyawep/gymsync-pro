@@ -110,3 +110,43 @@
     -webkit-touch-callout: none;
   }
 }
+
+/* Premium dark theme scoped to the existing owner Dashboard only.
+   Other pages and global color mode remain unchanged. */
+.dashboard-premium {
+  --background: 222 22% 7%;
+  --foreground: 210 20% 96%;
+  --card: 222 20% 11%;
+  --card-foreground: 210 20% 96%;
+  --popover: 222 20% 11%;
+  --popover-foreground: 210 20% 96%;
+  --primary: 152 62% 45%;
+  --primary-foreground: 222 24% 7%;
+  --secondary: 222 16% 16%;
+  --secondary-foreground: 210 20% 96%;
+  --muted: 222 16% 16%;
+  --muted-foreground: 215 13% 68%;
+  --accent: 222 16% 17%;
+  --accent-foreground: 210 20% 96%;
+  --border: 220 15% 21%;
+  --input: 220 15% 21%;
+  --ring: 152 62% 45%;
+  --accent-revenue: 152 62% 45%;
+  --accent-members: 215 85% 68%;
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  min-height: calc(100vh - 4rem);
+}
+.dashboard-premium .bg-card {
+  box-shadow: 0 8px 28px hsl(222 35% 3% / 0.18);
+  border-color: hsl(var(--border));
+}
+.dashboard-premium button,
+.dashboard-premium a {
+  -webkit-tap-highlight-color: transparent;
+}
+.dashboard-premium button:focus-visible,
+.dashboard-premium a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 3px;
+}
