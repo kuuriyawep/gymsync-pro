@@ -42,13 +42,13 @@ export default function Dashboard() {
   const sparkValues = data.series.map((bucket) => bucket.revenue);
   const comparison = data.previousRangeRevenue > 0 ? Math.round(((data.rangeRevenue - data.previousRangeRevenue) / data.previousRangeRevenue) * 100) : null;
 
-  return <Layout><div className="space-y-6">
+  return <Layout><div className="dashboard-premium space-y-6 rounded-2xl p-4 md:p-6 -m-4 md:-m-6 lg:-m-8">
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
         <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Overview of your real gym data</p>
       </div>
-      <button onClick={handleExport} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground"><Download className="w-4 h-4" /> Export</button>
+      <button onClick={handleExport} className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity"><Download className="w-4 h-4" /> Export</button>
     </div>
     {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -56,7 +56,7 @@ export default function Dashboard() {
       <DashboardKpiCards active={data.stats.activeMembers} expired={data.stats.expired} pending={data.stats.pending} />
     </div>
     <div>
-      <div className="flex items-center gap-1.5 flex-wrap justify-end mb-3">{ranges.map((item) => <button key={item.key} onClick={() => setRange(item.key)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${range === item.key ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-accent"}`}>{item.label}</button>)}</div>
+      <div className="flex items-center gap-1.5 flex-wrap justify-end mb-3">{ranges.map((item) => <button key={item.key} onClick={() => setRange(item.key)} className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${range === item.key ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-accent"}`}>{item.label}</button>)}</div>
       <LivePerformanceChart data={data.series} label={rangeLabel} />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
