@@ -1,37 +1,30 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
-import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
+import StatusBadge from "@/components/StatusBadge";
+import PaymentsSummary from "@/components/payments/PaymentsSummary";
+import PaymentRow from "@/components/payments/PaymentRow";
+import EditPaymentModal from "@/components/payments/EditPaymentModal";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Search, Eye, Pencil, DollarSign, CalendarDays, Clock, AlertCircle, CreditCard, Printer, ChevronDown } from "lucide-react";
+import { Banknote, CalendarDays, ChevronDown, DollarSign, Plus, Printer, Receipt, Search, StickyNote, User, Wallet } from "lucide-react";
 import { useMembers, useGymAnalytics, useMembersLoaded, useMembersError, recordPayment, updatePayment } from "@/lib/memberStore";
 import { useGym } from "@/lib/gymStore";
-import EditPaymentModal from "@/components/payments/EditPaymentModal";
-import { format, parseISO, isValid, isToday, isThisWeek, isThisMonth } from "date-fns";
+import { buildRevenueMetrics, money, parseDate, planRate } from "@/lib/gymMetrics";
+import { card, ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
+import { format, parseISO, isValid, isThisMonth } from "date-fns";
 
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
-const labelCls = "block text-sm font-medium mb-1.5";
-const statusFilters = ["All", "Paid", "Pending", "Overdue", "Refunded"];
-const methodFilters = ["All", "Cash", "Mobile Money", "Card", "Other"];
-const dateFilters = ["All Time", "Today", "This Week", "This Month"];
+const methodOptions = ["Cash", "Card", "Mobile Money", "Bank Transfer"];
 const sortOptions = [
   { key: "recent", label: "Most Recent" },
   { key: "amount", label: "Amount: High to Low" },
   { key: "name", label: "Member A-Z" },
 ];
-const payOptions = ["Paid"];
-const methodOptions = ["Cash", "Mobile Money", "Card", "Other"];
-
-const payBadge = (s) => {
-  if (s === "Paid") return "bg-emerald-600 text-white";
-  if (s === "Pending") return "bg-black/10 text-black";
-  if (s === "Overdue") return "border border-black text-black";
-  return "bg-black/5 text-black/50 line-through";
-};
-const initials = (name) => name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 const emptyForm = { memberId: "", name: "", plan: "Monthly", amount: "", method: "Cash", date: format(new Date(), "yyyy-MM-dd"), status: "Paid", notes: "" };
+
+const chip = (active) =>
+  `flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${active ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-400" : "border-border bg-card text-muted-foreground hover:text-foreground"}`;
 
 export default function Payments() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,15 +35,39 @@ export default function Payments() {
   const gym = useGym();
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+  const { toast } = useToast();
+
+  // Payments mapped to the member they belong to; the status shown is derived
+  // from that membership's balance, which is how the gym actually works.
   const payments = useMemo(() => (analytics.payments || []).map((payment) => {
     const member = members.find((item) => item.id === payment.memberId);
+    const paidAt = String(payment.paidAt || "");
+    const date = paidAt.slice(0, 10);
+    const hasTime = /T(?!00:00:00)/.test(paidAt);
     const method = String(payment.method || "").replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-    return { id: payment.id, paymentId: `PAY-${String(payment.id).slice(0, 8).toUpperCase()}`, name: payment.memberName, plan: member?.plan || "Membership", amount: Number(payment.amount || 0), method, date: String(payment.paidAt).slice(0, 10), status: member?.paymentStatus || "Paid", reference: payment.reference || "—", notes: payment.note || "", memberPhone: member?.phone || "", memberEmail: member?.email || "" };
+    return {
+      id: payment.id,
+      paymentId: `PAY-${String(payment.id).slice(0, 8).toUpperCase()}`,
+      name: payment.memberName,
+      plan: member?.plan || "Membership",
+      amount: Number(payment.amount || 0),
+      method,
+      date,
+      dateLabel: date && isValid(parseISO(date)) ? format(parseISO(date), "MMM d, yyyy") : "—",
+      timeLabel: hasTime ? format(new Date(paidAt), "hh:mm a") : "",
+      status: member?.paymentStatus || "Paid",
+      reference: payment.reference || "—",
+      notes: payment.note || "",
+      memberPhone: member?.phone || "",
+      memberEmail: member?.email || "",
+      membershipId: payment.membershipId || null,
+      paidAt,
+    };
   }), [analytics.payments, members]);
+
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [methodFilter, setMethodFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState("All Time");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [planFilter, setPlanFilter] = useState("All Plans");
   const [sort, setSort] = useState("recent");
   const [sortOpen, setSortOpen] = useState(false);
   const [recordOpen, setRecordOpen] = useState(false);
@@ -61,36 +78,32 @@ export default function Payments() {
   const [editSaving, setEditSaving] = useState(false);
   const [viewing, setViewing] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const { toast } = useToast();
 
-  const summary = useMemo(() => {
-    const total = payments.reduce((s, p) => s + p.amount, 0);
-    const month = payments.filter((p) => isThisMonth(parseISO(p.date))).reduce((s, p) => s + p.amount, 0);
-    const pending = members.filter((m) => m.paymentStatus === "Pending").length;
-    const overdue = members.filter((m) => m.paymentStatus === "Overdue").length;
-    return { total, month, pending, overdue };
-  }, [payments, members]);
+  const metrics = useMemo(() => buildRevenueMetrics(payments), [payments]);
+  const pendingCount = useMemo(() => members.filter((m) => m.paymentStatus === "Pending").length, [members]);
+  const overdueCount = useMemo(() => members.filter((m) => m.paymentStatus === "Overdue").length, [members]);
+  const planOptions = useMemo(() => [...new Set(members.map((m) => m.plan).filter(Boolean))].sort(), [members]);
+  const monthRange = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), "MMM d") + " – " + format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), "MMM d, yyyy");
 
   const filtered = useMemo(() => {
-    let list = payments.filter((p) => {
-      const q = query.trim().toLowerCase();
-      const matchQuery = !q || p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q);
-      const matchStatus = statusFilter === "All" || p.status === statusFilter;
-      const matchMethod = methodFilter === "All" || p.method === methodFilter;
-      const d = parseISO(p.date);
-      let matchDate = true;
-      if (dateFilter === "Today") matchDate = isToday(d);
-      else if (dateFilter === "This Week") matchDate = isThisWeek(d, { weekStartsOn: 1 });
-      else if (dateFilter === "This Month") matchDate = isThisMonth(d);
-      return matchQuery && matchStatus && matchMethod && matchDate;
+    const q = query.trim().toLowerCase();
+    const list = payments.filter((p) => {
+      const matchQuery = !q || p.name.toLowerCase().includes(q) || p.paymentId.toLowerCase().includes(q) || p.memberPhone.includes(q);
+      const matchStatus = statusFilter === "All Status" || p.status === statusFilter;
+      const matchPlan = planFilter === "All Plans" || p.plan === planFilter;
+      return matchQuery && matchStatus && matchPlan;
     });
-    list = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       if (sort === "amount") return b.amount - a.amount;
       if (sort === "name") return a.name.localeCompare(b.name);
-      return new Date(b.date) - new Date(a.date);
+      return new Date(b.paidAt || b.date) - new Date(a.paidAt || a.date);
     });
-    return list;
-  }, [payments, query, statusFilter, methodFilter, dateFilter, sort]);
+  }, [payments, query, statusFilter, planFilter, sort]);
+
+  const selectedMember = members.find((item) => String(item.id) === String(form.memberId)) || null;
+  const selectedRate = analytics.plans?.find((plan) => plan.name === selectedMember?.plan);
+  const dueAmount = Number(selectedMember?.fee || selectedRate?.price || 0);
+  const amountValue = Number(form.amount);
 
   const openRecord = () => { setForm({ ...emptyForm, date: format(new Date(), "yyyy-MM-dd") }); setFormError(""); setRecordOpen(true); };
   const openRecordForMember = (member) => {
@@ -105,6 +118,7 @@ export default function Payments() {
     if (member) openRecordForMember(member);
     setSearchParams({}, { replace: true });
   }, [members, searchParams, setSearchParams]);
+
   const openDetails = (p) => { setViewing(p); setDetailsOpen(true); };
   const openReceipt = (p) => { setViewing(p); setReceiptOpen(true); setDetailsOpen(false); };
   const openEdit = (p) => { setEditing(p); setEditOpen(true); };
@@ -143,224 +157,214 @@ export default function Payments() {
     }
   };
 
-  const summaryCards = [
-    { label: "Total Revenue", value: `$${summary.total.toLocaleString()}`, icon: DollarSign },
-    { label: "This Month", value: `$${summary.month.toLocaleString()}`, icon: CalendarDays },
-    { label: "Pending Payments", value: summary.pending, icon: Clock },
-    { label: "Overdue Payments", value: summary.overdue, icon: AlertCircle },
-  ];
+  if (!loaded) return <Layout dark><PageSkeleton /></Layout>;
 
-  if (!loaded) return <Layout><PageSkeleton /></Layout>;
+  const selectCls = `${input} flex items-center justify-between gap-2 text-left`;
 
   return (
-    <Layout>
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <Layout dark>
+      <div className="space-y-4 text-foreground sm:space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Payments</h1>
-            <p className="text-sm text-black/50 mt-0.5">Track membership payments and gym revenue</p>
+            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Payments</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Track member payments and manage transactions.</p>
           </div>
-          <button onClick={openRecord} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
-            <Plus className="w-4 h-4" /> Record Payment
-          </button>
+          <button onClick={openRecord} className={primaryBtn}><Plus className="w-4 h-4" /> Record Payment</button>
         </div>
 
-        {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
+        {loadError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">{loadError}</div>}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {summaryCards.map((s) => (
-            <div key={s.label} className="bg-white border border-black/10 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2"><div className="w-8 h-8 rounded-lg bg-black/5 flex items-center justify-center"><s.icon className="w-4 h-4" /></div></div>
-              <p className="text-xl md:text-2xl font-bold">{s.value}</p><p className="text-xs text-black/50">{s.label}</p>
-            </div>
-          ))}
-        </div>
+        <PaymentsSummary metrics={metrics} pendingCount={pendingCount} overdueCount={overdueCount} rangeLabel={monthRange} />
 
-        {/* Search */}
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-black/5">
-          <Search className="w-4 h-4 text-black/40" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by member or payment ID…" className="bg-transparent outline-none text-sm flex-1 placeholder:text-black/40" />
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {statusFilters.map((f) => (
-              <button key={f} onClick={() => setStatusFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${statusFilter === f ? "bg-black text-white border-black" : "bg-white text-black/70 border-black/15 hover:bg-black/5"}`}>{f}</button>
-            ))}
+        {/* Search + filters */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5">
+            <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by member name, phone or ID…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {methodFilters.map((f) => (
-              <button key={f} onClick={() => setMethodFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${methodFilter === f ? "bg-black text-white border-black" : "bg-white text-black/70 border-black/15 hover:bg-black/5"}`}>{f}</button>
-            ))}
-            <div className="flex items-center gap-1.5 flex-wrap sm:ml-auto">
-              {dateFilters.map((f) => (
-                <button key={f} onClick={() => setDateFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${dateFilter === f ? "bg-black text-white border-black" : "bg-white text-black/70 border-black/15 hover:bg-black/5"}`}>{f}</button>
-              ))}
+          <select className={`${selectCls} sm:w-40`} value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} aria-label="Filter by plan">
+            <option>All Plans</option>
+            {planOptions.map((plan) => <option key={plan}>{plan}</option>)}
+          </select>
+          <select className={`${selectCls} sm:w-40`} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
+            {["All Status", "Paid", "Pending", "Overdue"].map((status) => <option key={status}>{status}</option>)}
+          </select>
+        </div>
+
+        {/* Payment list */}
+        <div className={card}>
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
+            <div>
+              <h2 className="font-heading font-semibold">Recent Payments</h2>
+              <p className="text-xs text-muted-foreground">{filtered.length} of {payments.length} payments</p>
             </div>
-            <div className="relative">
-              <button onClick={() => setSortOpen((o) => !o)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-black/15 text-xs font-medium hover:bg-black/5">
-                Sort: {sortOptions.find((o) => o.key === sort)?.label} <ChevronDown className="w-3.5 h-3.5 text-black/50" />
+            <div className="relative shrink-0">
+              <button onClick={() => setSortOpen((open) => !open)} className="flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+                {sortOptions.find((option) => option.key === sort)?.label} <ChevronDown className="w-3.5 h-3.5" />
               </button>
               {sortOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
-                  <div className="absolute right-0 top-9 z-20 bg-white border border-black/10 rounded-lg shadow-lg w-48 py-1">
-                    {sortOptions.map((o) => (
-                      <button key={o.key} onClick={() => { setSort(o.key); setSortOpen(false); }} className={`flex items-center w-full px-3 py-2 text-sm hover:bg-black/5 text-left ${sort === o.key ? "font-semibold" : ""}`}>{o.label}</button>
+                  <div className="fixed inset-0 z-30" onClick={() => setSortOpen(false)} />
+                  <div className="absolute right-0 top-10 z-40 w-48 overflow-hidden rounded-xl border border-border bg-popover py-1 shadow-xl">
+                    {sortOptions.map((option) => (
+                      <button key={option.key} onClick={() => { setSort(option.key); setSortOpen(false); }} className={`block w-full px-3 py-2 text-left text-sm hover:bg-accent ${sort === option.key ? "font-semibold" : ""}`}>{option.label}</button>
                     ))}
                   </div>
                 </>
               )}
             </div>
           </div>
+          {filtered.length === 0 ? (
+            <div className="px-6 py-14 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400"><Receipt className="w-6 h-6" /></div>
+              <p className="font-semibold">No payments found</p>
+              <p className="mt-1 text-sm text-muted-foreground">{payments.length === 0 ? "Recorded payments will appear here." : "Try changing your search or filters."}</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {filtered.map((payment) => <PaymentRow key={payment.id} payment={payment} onOpen={() => openDetails(payment)} />)}
+            </div>
+          )}
         </div>
-
-        {filtered.length === 0 ? (
-          <EmptyState icon={CreditCard} title="No payments found" description="Try changing your search or filters." />
-        ) : (
-          <>
-            {/* Desktop table */}
-            <div className="hidden md:block bg-white border border-black/10 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-black/10 text-left text-xs text-black/40">
-                  <th className="px-5 py-3 font-medium">Member</th><th className="px-5 py-3 font-medium">Payment ID</th><th className="px-5 py-3 font-medium">Amount</th>
-                  <th className="px-5 py-3 font-medium">Plan</th><th className="px-5 py-3 font-medium">Method</th><th className="px-5 py-3 font-medium">Date</th><th className="px-5 py-3 font-medium">Status</th><th className="px-5 py-3 font-medium text-right">Actions</th>
-                </tr></thead>
-                <tbody>
-                  {filtered.map((p) => (
-                    <tr key={p.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02]">
-                      <td className="px-5 py-3"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-[10px] font-semibold">{initials(p.name)}</div><span className="font-medium">{p.name}</span></div></td>
-                      <td className="px-5 py-3 text-black/70 tabular-nums">{p.paymentId}</td>
-                      <td className="px-5 py-3 tabular-nums font-medium">${p.amount}</td>
-                      <td className="px-5 py-3 text-black/70">{p.plan}</td>
-                      <td className="px-5 py-3 text-black/70">{p.method}</td>
-                      <td className="px-5 py-3 text-black/70">{format(parseISO(p.date), "MMM d, yyyy")}</td>
-                      <td className="px-5 py-3"><span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span></td>
-                      <td className="px-5 py-3"><div className="flex items-center justify-end gap-1">
-                        <button onClick={() => openDetails(p)} className="p-1.5 rounded-lg hover:bg-black/5" title="View"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-black/5" title="Edit"><Pencil className="w-4 h-4" /></button>
-                      </div></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile cards */}
-            <div className="md:hidden space-y-3">
-              {filtered.map((p) => (
-                <div key={p.id} className="bg-white border border-black/10 rounded-xl p-4" onClick={() => openDetails(p)}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-[10px] font-semibold">{initials(p.name)}</div><div><p className="font-medium">{p.name}</p><p className="text-xs text-black/50">{p.paymentId} · {p.method}</p></div></div>
-                    <p className="font-bold tabular-nums">${p.amount}</p>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-black/5 text-xs">
-                    <span className="text-black/50">{p.plan} · {format(parseISO(p.date), "MMM d, yyyy")}</span>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${payBadge(p.status)}`}>{p.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
       </div>
 
       {/* Record Payment */}
-      <Modal open={recordOpen} onClose={() => setRecordOpen(false)} title="Record Payment"
+      <Modal open={recordOpen} onClose={() => setRecordOpen(false)} title="Record Payment" subtitle="Record a payment for this member." icon={Wallet}
         footer={<>
-          <button onClick={() => setRecordOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-60">{saving ? "Recording..." : "Record Payment"}</button>
+          <button onClick={() => setRecordOpen(false)} className={ghostBtn}>Cancel</button>
+          <button onClick={submit} disabled={saving} className={primaryBtn}><Wallet className="w-4 h-4" /> {saving ? "Recording..." : "Record Payment"}</button>
         </>}>
-        <div className="space-y-4">
-          {formError && <p role="alert" className="text-sm font-medium text-foreground">{formError}</p>}
-          <div><label className={labelCls}>Member</label>
-            <select className={inputCls} value={form.memberId} onChange={(e) => onMemberSelect(e.target.value)}>
-              <option value="">Select a member…</option>
-              {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className={labelCls}>Membership Plan</label>
-              <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-                {["Monthly", "3 Months", "6 Months", "Custom"].map((o) => <option key={o}>{o}</option>)}
-              </select></div>
-            <div><label className={labelCls}>Amount ($)</label>
-              <input type="number" className={inputCls} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
+        <div className="space-y-5">
+          {formError && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-medium text-red-400">{formError}</p>}
+
+          <div>
+            <label className={label}>Member</label>
+            <div className="relative">
+              <User className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+              <select className={`${input} pl-9`} value={form.memberId} onChange={(e) => onMemberSelect(e.target.value)}>
+                <option value="">Select a member…</option>
+                {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className={labelCls}>Payment Method</label>
-              <select className={inputCls} value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
-                {methodOptions.map((o) => <option key={o}>{o}</option>)}
-              </select></div>
-            <div><label className={labelCls}>Payment Date</label>
-              <input type="date" className={inputCls} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+
+          <div>
+            <label className={label}>Membership Plan</label>
+            <div className={`${input} flex items-center justify-between`}>
+              <span className="truncate">{selectedMember ? selectedMember.plan : "Select a member first"}</span>
+              <span className="shrink-0 pl-2 text-xs text-muted-foreground">{selectedMember && dueAmount > 0 ? `${money(dueAmount)} / ${planRate(selectedRate) || "plan"}` : ""}</span>
+            </div>
           </div>
-          <div><label className={labelCls}>Payment Status</label>
-            <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              {payOptions.map((o) => <option key={o}>{o}</option>)}
-            </select></div>
-          <div><label className={labelCls}>Notes</label>
-            <textarea rows={2} className={inputCls} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional notes…" /></div>
+
+          <div>
+            <div className="flex items-baseline justify-between">
+              <label className={label}>Amount ($)</label>
+              {selectedMember && <span className="text-[11px] text-muted-foreground">Balance {money(Math.max(0, Number(selectedMember.balance || 0)))}</span>}
+            </div>
+            {dueAmount > 0 && (
+              <div className="mb-2 flex gap-2">
+                <button type="button" onClick={() => setForm((current) => ({ ...current, amount: String(dueAmount) }))} className={chip(amountValue === dueAmount)}>Full · {money(dueAmount)}</button>
+                <button type="button" onClick={() => setForm((current) => ({ ...current, amount: String(Math.round((dueAmount / 2) * 100) / 100) }))} className={chip(amountValue === Math.round((dueAmount / 2) * 100) / 100)}>Partial · {money(Math.round((dueAmount / 2) * 100) / 100)}</button>
+              </div>
+            )}
+            <div className="relative">
+              <DollarSign className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+              <input type="number" min="0" step="0.01" className={`${input} pl-9 pr-14`} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">USD</span>
+            </div>
+          </div>
+
+          <div>
+            <label className={label}>Payment Method</label>
+            <div className="grid grid-cols-2 gap-2">
+              {methodOptions.map((method) => (
+                <button key={method} type="button" onClick={() => setForm({ ...form, method })} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${form.method === method ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-400" : "border-border bg-card text-muted-foreground hover:text-foreground"}`}>
+                  <Banknote className="w-4 h-4" /> {method}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={label}>Payment Date</label>
+              <input type="date" className={input} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+            </div>
+            <div>
+              <label className={label}>Payment Status</label>
+              <div className={`${input} flex items-center`}><StatusBadge status="Paid" /></div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label className={label}>Notes</label>
+              <span className="text-[11px] text-muted-foreground">{form.notes.length}/500</span>
+            </div>
+            <textarea rows={3} maxLength={500} className={textarea} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional notes..." />
+          </div>
+
+          <p className="flex items-start gap-2 rounded-xl border border-border bg-accent p-3 text-xs text-muted-foreground">
+            <StickyNote className="mt-0.5 w-3.5 h-3.5 shrink-0" /> Recording a payment marks it as received and updates the member's balance straight away.
+          </p>
         </div>
       </Modal>
 
       {/* Payment Details */}
-      <Modal open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Payment Details"
+      <Modal open={detailsOpen} onClose={() => setDetailsOpen(false)} title="Payment Details" subtitle="Recorded transaction." icon={Receipt}
         footer={<>
-          <button onClick={() => setDetailsOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Close</button>
-          <button onClick={() => viewing && openReceipt(viewing)} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">View receipt</button>
+          <button onClick={() => setDetailsOpen(false)} className={ghostBtn}>Close</button>
+          <button onClick={() => viewing && openReceipt(viewing)} className={primaryBtn}>View receipt</button>
         </>}>
         {viewing && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-4 border border-black/10 rounded-xl">
-              <div><p className="text-xs text-black/40">Amount</p><p className="text-2xl font-bold">${viewing.amount}</p></div>
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${payBadge(viewing.status)}`}>{viewing.status}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-border p-4">
+              <div><p className="text-xs text-muted-foreground">Amount</p><p className="text-2xl font-bold tabular-nums">{money(viewing.amount)}</p></div>
+              <StatusBadge status={viewing.status} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
                 ["Payment ID", viewing.paymentId], ["Member", viewing.name], ["Plan", viewing.plan],
-                ["Method", viewing.method], ["Date", format(parseISO(viewing.date), "MMM d, yyyy")], ["Reference", viewing.reference],
+                ["Method", viewing.method], ["Date", viewing.dateLabel], ["Reference", viewing.reference],
               ].map(([l, v]) => (
-                <div key={l} className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">{l}</p><p className="text-sm font-medium mt-0.5">{v}</p></div>
+                <div key={l} className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">{l}</p><p className="mt-0.5 truncate text-sm font-medium">{v}</p></div>
               ))}
             </div>
-            {viewing.notes && <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Notes</p><p className="text-sm mt-0.5">{viewing.notes}</p></div>}
+            {viewing.notes && <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Notes</p><p className="mt-0.5 text-sm">{viewing.notes}</p></div>}
           </div>
         )}
       </Modal>
 
-      {/* Edit Payment */}
       <EditPaymentModal open={editOpen} onClose={() => setEditOpen(false)} payment={editing} onSave={submitEdit} saving={editSaving} />
 
       {/* Receipt */}
-      <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Payment Receipt"
+      <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Payment Receipt" subtitle="Share or print this receipt." icon={CalendarDays}
         footer={<>
-          <button onClick={() => setReceiptOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Close</button>
-          <button onClick={() => window.print()} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90"><Printer className="w-4 h-4" /> Print</button>
+          <button onClick={() => setReceiptOpen(false)} className={ghostBtn}>Close</button>
+          <button onClick={() => window.print()} className={primaryBtn}><Printer className="w-4 h-4" /> Print</button>
         </>}>
         {viewing && (
-          <div className="border border-black/15 rounded-xl p-5">
-            <div className="text-center pb-4 border-b border-dashed border-black/15">
+          <div className="rounded-2xl border border-border p-5">
+            <div className="border-b border-dashed border-border pb-4 text-center">
               <p className="text-lg font-bold">{gym.name || "Gym"}</p>
-              <p className="text-xs text-black/50">{gym.address || "Not available"}</p>
-              <p className="text-xs text-black/50">{gym.phone || "Not available"} · {gym.email || "Not available"}</p>
+              <p className="text-xs text-muted-foreground">{gym.address || "Not available"}</p>
+              <p className="text-xs text-muted-foreground">{gym.phone || "Not available"} · {gym.email || "Not available"}</p>
             </div>
-            <div className="py-4 border-b border-dashed border-black/15 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-black/50">Receipt No.</span><span className="font-medium tabular-nums">{viewing.paymentId}</span></div>
-              <div className="flex justify-between"><span className="text-black/50">Date</span><span className="font-medium">{format(parseISO(viewing.date), "MMM d, yyyy")}</span></div>
-              <div className="flex justify-between"><span className="text-black/50">Member</span><span className="font-medium">{viewing.name}</span></div>
-              {viewing.memberPhone && <div className="flex justify-between"><span className="text-black/50">Phone</span><span className="font-medium">{viewing.memberPhone}</span></div>}
-              {viewing.memberEmail && <div className="flex justify-between"><span className="text-black/50">Email</span><span className="font-medium">{viewing.memberEmail}</span></div>}
-              <div className="flex justify-between"><span className="text-black/50">Plan</span><span className="font-medium">{viewing.plan}</span></div>
-              <div className="flex justify-between"><span className="text-black/50">Method</span><span className="font-medium">{viewing.method}</span></div>
+            <div className="space-y-2 border-b border-dashed border-border py-4 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Receipt No.</span><span className="font-medium tabular-nums">{viewing.paymentId}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span className="font-medium">{viewing.dateLabel}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Member</span><span className="font-medium">{viewing.name}</span></div>
+              {viewing.memberPhone && <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span className="font-medium">{viewing.memberPhone}</span></div>}
+              <div className="flex justify-between"><span className="text-muted-foreground">Plan</span><span className="font-medium">{viewing.plan}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Method</span><span className="font-medium">{viewing.method}</span></div>
             </div>
-            <div className="py-4 flex justify-between items-center">
+            <div className="flex items-center justify-between py-4">
               <span className="text-sm font-medium">Total Paid</span>
-              <span className="text-2xl font-bold">${viewing.amount}</span>
+              <span className="text-2xl font-bold tabular-nums">{money(viewing.amount)}</span>
             </div>
-            <div className="pt-3 border-t border-black/15 text-center">
-              <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${payBadge(viewing.status)}`}>{viewing.status}</span>
-              <p className="text-xs text-black/40 mt-3">Thank you for your payment!</p>
+            <div className="border-t border-border pt-3 text-center">
+              <StatusBadge status={viewing.status} />
+              <p className="mt-3 text-xs text-muted-foreground">Thank you for your payment!</p>
             </div>
           </div>
         )}

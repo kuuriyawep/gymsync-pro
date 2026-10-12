@@ -31,6 +31,13 @@ function bucketsFor(range) {
       const end = i === 4 ? new Date(atStartOfDay(now).getTime() + DAY) : new Date(start.getTime() + 7 * DAY);
       if (start < end) buckets.push({ start, end, label: i === 4 ? "Final days" : `Week ${i + 1}` });
     }
+  } else if (range === "90d") {
+    const first = atStartOfDay(new Date(now.getTime() - 89 * DAY));
+    for (let i = 0; i < 13; i++) {
+      const start = new Date(first.getTime() + i * 7 * DAY);
+      const end = i === 12 ? new Date(atStartOfDay(now).getTime() + DAY) : new Date(start.getTime() + 7 * DAY);
+      if (start < end) buckets.push({ start, end, label: start.toLocaleDateString("en", { month: "short", day: "numeric" }) });
+    }
   } else {
     const count = range === "year" ? now.getMonth() + 1 : 6;
     const first = range === "year" ? new Date(now.getFullYear(), 0, 1) : new Date(now.getFullYear(), now.getMonth() - 5, 1);

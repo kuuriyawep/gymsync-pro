@@ -141,17 +141,17 @@ export default function PhoneNumberField({ value, onChange, error }) {
 
   return (
     <div className="relative">
-      <div className={`rounded-lg border bg-white overflow-visible transition-colors ${error ? "border-black bg-black/5" : "border-black/15 focus-within:border-black focus-within:ring-1 focus-within:ring-black"}`}>
+      <div className={`overflow-visible rounded-xl border bg-accent transition-colors ${error ? "border-red-500/60" : "border-border focus-within:border-emerald-400/60"}`}>
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
-          className="w-full min-h-[46px] px-3 py-2.5 border-b border-black/10 flex items-center gap-2 text-left hover:bg-black/[0.03]"
+          className="flex min-h-[46px] w-full items-center gap-2 border-b border-border px-3 py-2.5 text-left hover:bg-accent/80"
           aria-label="Select country calling code"
           aria-expanded={open}
         >
-          <span className="truncate flex-1 text-sm font-medium">{selectedCountry?.name || "Country"}</span>
-          <span className="text-sm text-black/50 tabular-nums">{selectedCountry?.dialCode}</span>
-          {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-black/40" /> : <ChevronDown className="w-3.5 h-3.5 text-black/40" />}
+          <span className="flex-1 truncate text-sm font-medium">{selectedCountry?.name || "Country"}</span>
+          <span className="text-sm tabular-nums text-muted-foreground">{selectedCountry?.dialCode}</span>
+          {detecting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
         </button>
 
         <input
@@ -161,7 +161,7 @@ export default function PhoneNumberField({ value, onChange, error }) {
           value={nationalNumber}
           onChange={handleNationalChange}
           placeholder="Mobile"
-          className="w-full min-h-[46px] px-3 py-2.5 bg-transparent text-sm outline-none"
+          className="min-h-[46px] w-full bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground"
           aria-label="Mobile phone number"
         />
       </div>
@@ -169,35 +169,35 @@ export default function PhoneNumberField({ value, onChange, error }) {
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 right-0 top-full z-40 mt-2 bg-white border border-black/10 rounded-xl shadow-xl overflow-hidden">
-            <div className="p-2 border-b border-black/10 flex items-center gap-2">
-              <Search className="w-4 h-4 text-black/40 shrink-0" />
+          <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-border bg-popover shadow-xl">
+            <div className="flex items-center gap-2 border-b border-border p-2">
+              <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
               <input
                 autoFocus
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search country"
-                className="flex-1 bg-transparent outline-none text-sm"
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 aria-label="Search country"
               />
-              <button type="button" onClick={() => setSearch("")} className="p-1 rounded-md hover:bg-black/5" aria-label="Clear country search">
-                <X className="w-4 h-4 text-black/40" />
+              <button type="button" onClick={() => setSearch("")} className="rounded-md p-1 hover:bg-accent" aria-label="Clear country search">
+                <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
 
             <div className="max-h-64 overflow-y-auto overscroll-contain">
               {filteredCountries.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-black/50 text-center">No country found.</p>
+                <p className="px-4 py-6 text-center text-sm text-muted-foreground">No country found.</p>
               ) : (
                 filteredCountries.map((country) => (
                   <button
                     key={`${country.code}-${country.dialCode}`}
                     type="button"
                     onClick={() => chooseCountry(country)}
-                    className="w-full px-4 py-2.5 flex items-center gap-3 text-left hover:bg-black/[0.04] text-sm"
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-accent"
                   >
                     <span className="flex-1 truncate">{country.name}</span>
-                    <span className="text-black/50 tabular-nums">{country.dialCode}</span>
+                    <span className="tabular-nums text-muted-foreground">{country.dialCode}</span>
                     {country.code === countryCode && <Check className="w-4 h-4 shrink-0" />}
                   </button>
                 ))
