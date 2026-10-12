@@ -1,15 +1,16 @@
 import React from "react";
+import { card, primaryBtn } from "@/lib/uiClasses";
 
 export default function EmptyState({ icon: Icon, title, description, actionLabel, onAction }) {
   return (
-    <div className="bg-white border border-black/10 rounded-xl p-10 text-center">
-      <div className="w-14 h-14 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-4">
-        {Icon && <Icon className="w-7 h-7 text-black/40" />}
+    <div className={`${card} p-10 text-center`}>
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+        {Icon && <Icon className="h-7 w-7 text-emerald-400" />}
       </div>
       <p className="text-base font-semibold">{title}</p>
-      {description && <p className="text-sm text-black/50 mt-1">{description}</p>}
+      {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       {actionLabel && (
-        <button onClick={onAction} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+        <button onClick={onAction} className={`${primaryBtn} mt-4`}>
           {actionLabel}
         </button>
       )}

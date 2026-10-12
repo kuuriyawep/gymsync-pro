@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Loader2, Check } from "lucide-react";
 
-export default function SaveButton({ onSave, label = "Save changes", successLabel = "Saved", className = "px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90" }) {
+export default function SaveButton({ onSave, label = "Save changes", successLabel = "Saved", className = "rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-950 transition-opacity hover:opacity-90" }) {
   const [status, setStatus] = useState("idle");
 
   const click = async () => {

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/use-toast";
-import { Send } from "lucide-react";
+import { Check, Info, MessageSquare, Send } from "lucide-react";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import { ghostBtn, primaryBtn, textarea } from "@/lib/uiClasses";
 
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
+const MAX_LENGTH = 1000;
 
 export default function QuickMessageModal({ open, onClose, member }) {
   const { toast } = useToast();
@@ -53,34 +54,55 @@ export default function QuickMessageModal({ open, onClose, member }) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Quick Message"
+    <Modal open={open} onClose={onClose} title="Quick Message" subtitle="Send an in-app message to this member." icon={MessageSquare}
       footer={<>
-        <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-        <button onClick={send} disabled={!body.trim() || sending} className={`px-4 py-2 text-sm font-medium rounded-lg inline-flex items-center gap-2 ${body.trim() && !sending ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>
+        <button onClick={onClose} className={ghostBtn}>Cancel</button>
+        <button onClick={send} disabled={!body.trim() || sending} className={primaryBtn}>
           <Send className="w-4 h-4" /> {sending ? "Sending..." : "Send"}
         </button>
       </>}>
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center text-xs font-semibold">{member.name?.split(" ").map((n) => n[0]).join("").slice(0, 2)}</div>
-          <div><p className="text-sm font-semibold">{member.name}</p><p className="text-xs text-black/50">{member.memberId} · {member.phone}</p></div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium mb-1.5">Quick templates</label>
-          <div className="flex flex-wrap gap-1.5">
-            {templates.map((t) => (
-              <button key={t.label} onClick={() => setBody(t.text)} className="px-3 py-1.5 rounded-lg text-xs font-medium border border-black/15 hover:bg-black/5">{t.label}</button>
-            ))}
+      <div className="space-y-5">
+        <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400">
+            {member.name?.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{member.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{member.memberId} · {member.phone}</p>
           </div>
         </div>
+
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-sm font-medium">Message</label>
-            <span className="text-[11px] text-black/40">In-app · {body.length}/1000</span>
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">Quick templates</p>
+          <div className="space-y-2">
+            {templates.map((template) => {
+              const activeTemplate = body === template.text;
+              return (
+                <button key={template.label} type="button" onClick={() => setBody(template.text)}
+                  className={`flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${activeTemplate ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-400" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 truncate">{template.label}</span>
+                  {activeTemplate && <Check className="w-4 h-4 shrink-0" />}
+                </button>
+              );
+            })}
           </div>
-          <textarea rows={5} maxLength={1000} className={inputCls} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message to this member…" />
-          <p className="text-xs text-black/40 mt-1.5">The member will receive this message inside GymSync.</p>
         </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground">Message</span>
+            <span className="flex items-center gap-2">
+              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">In-app</span>
+              <span className="text-[11px] text-muted-foreground">{body.length}/{MAX_LENGTH}</span>
+            </span>
+          </div>
+          <textarea rows={5} maxLength={MAX_LENGTH} className={textarea} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a message to this member…" />
+        </div>
+
+        <p className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 w-3.5 h-3.5 shrink-0 text-emerald-400" /> The member will receive this message inside GymSync.
+        </p>
       </div>
     </Modal>
   );

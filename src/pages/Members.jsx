@@ -7,14 +7,13 @@ import PhoneNumberField from "@/components/PhoneNumberField";
 import PhotoPicker from "@/components/PhotoPicker";
 import MemberMetricCards from "@/components/members/MemberMetricCards";
 import MemberRow from "@/components/members/MemberRow";
-import { Check, ChevronDown, Loader2, Plus, RotateCcw, Search, SlidersHorizontal, Users, X } from "lucide-react";
+import { Check, ChevronDown, CreditCard, DollarSign, Loader2, Plus, RefreshCw, RotateCcw, Search, SlidersHorizontal, StickyNote, User, UserPlus, Users, X } from "lucide-react";
 import { useMembers, useGymAnalytics, addMember, updateMember, renewMember, deleteMember } from "@/lib/memberStore";
 import { buildMemberMetrics, buildPaymentIndex, lastActivityFor, normalizePhone, planRate } from "@/lib/gymMetrics";
+import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
 import { useToast } from "@/components/ui/use-toast";
 
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
-const labelCls = "block text-sm font-medium mb-1.5";
-const sectionCls = "text-xs font-semibold uppercase tracking-wider text-black/40 mb-3";
+const sectionCls = "flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground";
 
 // The pills filter the member lifecycle status, the filter popover narrows by
 // payment state — both applied to real member records.
@@ -226,7 +225,7 @@ export default function Members() {
               </>
             )}
           </div>
-          <button onClick={openAdd} className="flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground">
+          <button onClick={openAdd} className={`${primaryBtn} shrink-0 !px-3`}>
             <Plus className="w-4 h-4" /> Add Member
           </button>
         </div>
@@ -287,88 +286,101 @@ export default function Members() {
         </div>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={actionMode === "renew" ? "Renew Membership" : editingId ? "Edit Member" : "Add Member"}
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={actionMode === "renew" ? "Renew Membership" : editingId ? "Edit Member" : "Add New Member"}
+        subtitle={actionMode === "renew" ? "Extend the member's membership and keep them active." : editingId ? "Update this member's details and membership." : "Fill in the member details to register them in your gym."}
+        icon={actionMode === "renew" ? RefreshCw : UserPlus}
         footer={<>
-          <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-80 inline-flex items-center gap-2">{saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : actionMode === "renew" ? "Renew Membership" : editingId ? "Save Changes" : "Add Member"}</button>
+          <button onClick={() => setModalOpen(false)} className={ghostBtn}>Cancel</button>
+          <button onClick={submit} disabled={saving} className={primaryBtn}>
+            {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : actionMode === "renew" ? <><RefreshCw className="w-4 h-4" /> Renew Membership</> : editingId ? "Save Changes" : <><UserPlus className="w-4 h-4" /> Add Member</>}
+          </button>
         </>}>
         <div className="space-y-6">
-          <div>
-            <p className={sectionCls}>Personal Information</p>
-            <div className="space-y-4">
-              <div><label className={labelCls}>Full Name</label>
-                <input className={`${inputCls} ${errors.name ? "border-black bg-black/5" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
-                {errors.name && <p className="text-xs text-black font-medium mt-1">{errors.name}</p>}</div>
-              <div><label className={labelCls}>Phone Number</label>
-                <PhoneNumberField
-                  key={`${modalOpen}-${editingId || "new"}`}
-                  value={form.phone}
-                  onChange={(phone) => setForm((current) => ({ ...current, phone }))}
-                  error={errors.phone}
-                />
-                {errors.phone && <p className="text-xs text-black font-medium mt-1">{errors.phone}</p>}
-                {duplicatePhoneMember && (
-                  <p className="text-xs text-red-600 font-medium mt-1.5">This phone number is already registered in the system.</p>
-                )}
-              </div>
-              <div><label className={labelCls}>Email (optional)</label>
-                <input type="email" className={inputCls} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" /></div>
-              <div><label className={labelCls}>Gender</label>
-                <select className={`${inputCls} ${errors.gender ? "border-black bg-black/5" : ""}`} value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-                  <option value="">Select gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-                {errors.gender && <p className="text-xs text-black font-medium mt-1">{errors.gender}</p>}</div>
-              <div><label className={labelCls}>Profile Photo</label>
-                <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-20 h-20" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
-              </div>
+          <section className="space-y-4">
+            <p className={sectionCls}><User className="w-3.5 h-3.5" /> Personal Information</p>
+            <div>
+              <label className={label}>Full Name *</label>
+              <input className={`${input} ${errors.name ? "border-red-500/60" : ""}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
+              {errors.name && <p className="mt-1 text-xs font-medium text-red-400">{errors.name}</p>}
             </div>
-          </div>
+            <div>
+              <label className={label}>Phone Number *</label>
+              <PhoneNumberField
+                key={`${modalOpen}-${editingId || "new"}`}
+                value={form.phone}
+                onChange={(phone) => setForm((current) => ({ ...current, phone }))}
+                error={errors.phone}
+              />
+              {errors.phone && <p className="mt-1 text-xs font-medium text-red-400">{errors.phone}</p>}
+              {duplicatePhoneMember && (
+                <p className="mt-1.5 text-xs font-medium text-red-400">This phone number is already registered in the system.</p>
+              )}
+            </div>
+            <div>
+              <label className={label}>Email (optional)</label>
+              <input type="email" className={input} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" />
+            </div>
+            <div>
+              <label className={label}>Gender *</label>
+              <select className={`${input} ${errors.gender ? "border-red-500/60" : ""}`} value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                <option value="">Select gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+              {errors.gender && <p className="mt-1 text-xs font-medium text-red-400">{errors.gender}</p>}
+            </div>
+            <div>
+              <p className={label}>Profile Photo</p>
+              <PhotoPicker value={form.photoUrl} onChange={(url) => setForm({ ...form, photoUrl: url })} onRemove={() => setForm({ ...form, photoUrl: null })} size="w-20 h-20" placeholder={form.name ? initials(form.name) : null} hint="Optional. JPG or PNG." />
+            </div>
+          </section>
 
-          <div>
-            <p className={sectionCls}>Membership</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div><label className={labelCls}>Membership Plan</label>
-                <select className={inputCls} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
+          <section className="space-y-4 border-t border-border pt-5">
+            <p className={sectionCls}><CreditCard className="w-3.5 h-3.5" /> Membership Information</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label className={label}>Membership Plan *</label>
+                <select className={input} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
                   {!selectedPlan && <option value={form.plan}>{form.plan || "No plans available"}</option>}
                   {activePlans.map((p) => <option key={p.id} value={p.name}>{p.name} — ${p.price}</option>)}
                 </select></div>
-              <div><label className={labelCls}>Start Date</label>
-                <input type="date" className={inputCls} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
-              <div><label className={labelCls}>Expiry Date</label>
-                <input type="date" aria-label="Expiry Date" className={inputCls} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
-              <div className="sm:col-span-3"><label className={labelCls}>Preferred gym time</label>
-                <select className={inputCls} value={form.preferredTime} onChange={(e) => setForm({ ...form, preferredTime: e.target.value })}>
+              <div><label className={label}>Preferred gym time</label>
+                <select className={input} value={form.preferredTime} onChange={(e) => setForm({ ...form, preferredTime: e.target.value })}>
                   {["Morning", "Afternoon", "Evening", "Flexible"].map((t) => <option key={t}>{t}</option>)}
                 </select></div>
+              <div><label className={label}>Registration Date *</label>
+                <input type="date" className={input} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+              <div><label className={label}>Expiry Date *</label>
+                <input type="date" aria-label="Expiry Date" className={input} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
             </div>
-          </div>
+          </section>
 
-          <div>
-            <p className={sectionCls}>Internal notes</p>
-            <div><label className={labelCls}>Private note (only you can see this)</label>
-              <textarea rows={3} className={inputCls} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Prefers evening workouts. Payment usually made on the 5th." /></div>
-          </div>
-
-          <div>
-            <p className={sectionCls}>Payment</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div><label className={labelCls}>Amount Paid ($)</label>
-                <input type="number" className={inputCls} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" /></div>
-              <div><label className={labelCls}>Outstanding Balance ($)</label>
-                <input type="number" className={inputCls} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} /></div>
-              <div><label className={labelCls}>Payment Method</label>
-                <select className={inputCls} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
+          <section className="space-y-4 border-t border-border pt-5">
+            <p className={sectionCls}><DollarSign className="w-3.5 h-3.5" /> Payment</p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div><label className={label}>Amount Paid ($)</label>
+                <input type="number" className={input} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" /></div>
+              <div><label className={label}>Outstanding Balance ($)</label>
+                <input type="number" className={input} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} /></div>
+              <div><label className={label}>Payment Method</label>
+                <select className={input} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
                   {methodOptions.map((o) => <option key={o}>{o}</option>)}
                 </select></div>
-              <div><label className={labelCls}>Member Status</label>
-                <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+              <div><label className={label}>Member Status</label>
+                <select className={input} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   {statusOptions.map((o) => <option key={o}>{o}</option>)}
                 </select></div>
             </div>
-            <p className="text-xs text-black/40 mt-2">Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override.</p>
-          </div>
+            <p className="text-xs text-muted-foreground">Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override.</p>
+          </section>
+
+          <section className="space-y-4 border-t border-border pt-5">
+            <p className={sectionCls}><StickyNote className="w-3.5 h-3.5" /> Internal notes</p>
+            <div><label className={label}>Private note (only you can see this)</label>
+              <textarea rows={3} className={textarea} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Prefers evening workouts. Payment usually made on the 5th." /></div>
+          </section>
         </div>
       </Modal>
 
