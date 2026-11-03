@@ -264,7 +264,7 @@ export default function Members() {
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           {filtered.length === 0 ? (
             <div className="px-6 py-14 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/10"><Users className="w-6 h-6 text-muted-foreground" /></div>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent"><Users className="w-6 h-6 text-muted-foreground" /></div>
               <p className="font-semibold">No members found</p>
               <p className="mt-1 text-sm text-muted-foreground">Try changing your search or filters.</p>
               <button onClick={clearFilters} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"><RotateCcw className="w-4 h-4" /> Clear filters</button>
