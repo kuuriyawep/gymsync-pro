@@ -87,7 +87,7 @@ export default function AuthCallback() {
           <button
             type="button"
             onClick={() => window.location.replace("/login")}
-            className="px-4 py-2 rounded-lg bg-black text-white text-sm font-medium"
+            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
           >
             Back to sign in
           </button>

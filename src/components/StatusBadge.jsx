@@ -4,7 +4,7 @@ const tones = {
   success: "bg-emerald-500/15 text-emerald-400",
   warning: "bg-amber-500/15 text-amber-400",
   danger: "bg-red-500/15 text-red-400",
-  neutral: "bg-slate-500/20 text-slate-300",
+  neutral: "bg-muted text-muted-foreground",
 };
 
 const statusTone = {

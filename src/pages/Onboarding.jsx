@@ -16,6 +16,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { base44 } from "@/api/base44Client";
 import { UserCog, Users, ListChecks, Eye, CreditCard, BarChart3, Zap, Sparkles, Flame, MessageSquare, Dumbbell, Building2 } from "lucide-react";
 
+// Shared button styling: primary when the step can continue, muted while it
+// cannot. Both come from theme tokens so onboarding follows the device theme.
+const cta = "w-full py-3 text-sm font-semibold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors";
+const ctaOff = "w-full py-3 text-sm font-semibold rounded-xl bg-muted text-muted-foreground";
+
 const ownerQuestions = [
   { id: "role", kind: "question", icon: UserCog, title: "What best describes you?", subtitle: "This helps us tailor your setup.", options: [
     { value: "owner", label: "Gym Owner", icon: UserCog }, { value: "manager", label: "Gym Manager", icon: Users }, { value: "staff", label: "Staff / Administrator", icon: ListChecks },
@@ -129,23 +134,23 @@ export default function Onboarding() {
   if (current.kind === "question") {
     const answered = current.multi ? (answers[current.id] || []).length > 0 : !!answers[current.id];
     content = <QuestionScreen icon={current.icon} title={current.title} subtitle={current.subtitle} options={current.options} multi={current.multi} value={answers[current.id]} maxSelections={current.maxSelections} onChange={(v) => setAnswers((a) => ({ ...a, [current.id]: v }))} />;
-    footer = <button onClick={next} disabled={!answered} className={`w-full py-3 text-sm font-semibold rounded-xl transition-colors ${answered ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>Continue</button>;
+    footer = <button onClick={next} disabled={!answered} className={answered ? cta : ctaOff}>Continue</button>;
   } else if (current.kind === "visual") {
     const Visual = current.visual; content = <VisualScreen icon={current.icon} title={current.title} subtitle={current.subtitle}><Visual answers={answers} /></VisualScreen>;
-    footer = <button onClick={next} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">{nextIsPaywall ? "See GymSync Pro" : "Continue"}</button>;
+    footer = <button onClick={next} className={cta}>{nextIsPaywall ? "See GymSync Pro" : "Continue"}</button>;
   } else if (current.kind === "access") {
-    content = <VisualScreen icon={Users} title={current.title} subtitle={current.subtitle}><div className="space-y-3"><div className="bg-black text-white rounded-2xl p-5"><p className="font-semibold">You do not need to create a gym.</p><p className="text-sm text-white/70 mt-1">Your owner can invite you and assign the right permissions. This keeps gym ownership and data secure.</p></div><p className="text-xs text-black/45 text-center">Already invited? Continue to sign in.</p></div></VisualScreen>;
-    footer = <button onClick={() => navigate("/login")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Go to sign in</button>;
+    content = <VisualScreen icon={Users} title={current.title} subtitle={current.subtitle}><div className="space-y-3"><div className="bg-primary text-primary-foreground rounded-2xl p-5"><p className="font-semibold">You do not need to create a gym.</p><p className="text-sm text-primary-foreground/70 mt-1">Your owner can invite you and assign the right permissions. This keeps gym ownership and data secure.</p></div><p className="text-xs text-muted-foreground text-center">Already invited? Continue to sign in.</p></div></VisualScreen>;
+    footer = <button onClick={() => navigate("/login")} className={cta}>Go to sign in</button>;
   } else if (current.kind === "account") {
-    content = <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync."><div className="space-y-3"><button onClick={() => navigate("/register?returnTo=" + encodeURIComponent("/onboarding?resume=1"))} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Create account</button><p className="text-xs text-black/40 text-center">Free to start. No payment required.</p></div></VisualScreen>;
+    content = <VisualScreen icon={Sparkles} title="Your gym is ready to get started" subtitle="Create an account to save your setup and continue into GymSync."><div className="space-y-3"><button onClick={() => navigate("/register?returnTo=" + encodeURIComponent("/onboarding?resume=1"))} className={cta}>Create account</button><p className="text-xs text-muted-foreground text-center">Free to start. No payment required.</p></div></VisualScreen>;
   } else if (current.kind === "gymProfile") {
     const gp = answers.gymProfile || {}; content = <VisualScreen icon={Building2} title="Set up your gym profile" subtitle="Your gym name and location are required. Logo is optional."><GymProfileSetup value={gp} onChange={(v) => { const updated = { ...gp, ...v }; setAnswers((a) => ({ ...a, gymProfile: updated })); }} /></VisualScreen>;
-    footer = <button onClick={completeGymProfile} disabled={!gp.name || !gp.location || savingGym} className={`w-full py-3 text-sm font-semibold rounded-xl ${gp.name && gp.location && !savingGym ? "bg-black text-white" : "bg-black/10 text-black/40"}`}>{savingGym ? "Creating workspace..." : "Create my gym"}</button>;
+    footer = <button onClick={completeGymProfile} disabled={!gp.name || !gp.location || savingGym} className={gp.name && gp.location && !savingGym ? cta : ctaOff}>{savingGym ? "Creating workspace..." : "Create my gym"}</button>;
   } else if (current.kind === "paywall") {
     content = <Paywall answers={answers} onContinue={() => navigate("/")} onLater={() => navigate("/")} onRestore={() => toast({ title: "Restore purchase", description: "Purchase restoration will be connected to App Store / Google Play billing." })} />;
   } else if (current.kind === "cta") {
-    content = <VisualScreen icon={Dumbbell} title="Join your gym" subtitle="Already a member of a GymSync gym?"><p className="text-sm text-black/60">Verify your membership with your registered phone number and full name, then link your account to access the member app.</p></VisualScreen>;
-    footer = <button onClick={() => navigate("/join-gym")} className="w-full py-3 text-sm font-semibold rounded-xl bg-black text-white hover:bg-black/90">Continue to join</button>;
+    content = <VisualScreen icon={Dumbbell} title="Join your gym" subtitle="Already a member of a GymSync gym?"><p className="text-sm text-muted-foreground">Verify your membership with your registered phone number and full name, then link your account to access the member app.</p></VisualScreen>;
+    footer = <button onClick={() => navigate("/join-gym")} className={cta}>Continue to join</button>;
   }
 
   return <OnboardingShell step={step} total={steps.length} onBack={back}><AnimatePresence mode="wait"><motion.div key={current.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.25 }} className="flex-1 flex flex-col">{content}</motion.div></AnimatePresence>{footer}</OnboardingShell>;

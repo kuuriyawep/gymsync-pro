@@ -1,5 +1,6 @@
 import React from "react";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import { UserCog } from "lucide-react";
 import { ghostBtn, input, label, primaryBtn } from "@/lib/uiClasses";
 
@@ -12,7 +13,7 @@ export default function StaffInviteModal({ open, onClose, invite, setInvite, onS
     <div className="space-y-4">
       <div><label className={label}>Full name</label><input className={input} value={invite.fullName || ""} onChange={(event) => setInvite({ ...invite, fullName: event.target.value })} placeholder="Ahmed Ali" type="text" /></div>
       <div><label className={label}>Email</label><input className={input} value={invite.email} onChange={(event) => setInvite({ ...invite, email: event.target.value })} placeholder="staff@example.com" type="email" /></div>
-      <div><label className={label}>Role</label><select className={input} value={invite.role} onChange={(event) => setInvite({ ...invite, role: event.target.value })}>{roles.map((role) => <option key={role}>{role}</option>)}</select></div>
+      <div><label className={label}>Role</label><ActionSelect value={invite.role} onChange={(role) => setInvite({ ...invite, role })} options={roles} ariaLabel="Staff role" title="Staff role" /></div>
       <div className="rounded-xl border border-border bg-accent p-3">
         <p className="mb-1.5 text-xs font-semibold">This role can:</p>
         {permissions[invite.role].map((item) => <p key={item} className="py-0.5 text-xs text-muted-foreground">• {item}</p>)}

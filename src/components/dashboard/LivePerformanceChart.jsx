@@ -2,8 +2,8 @@ import React from "react";
 import { ComposedChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
 
 export default function LivePerformanceChart({ data, label }) {
-  return <div className="bg-white border border-black/10 rounded-xl p-4 md:p-5">
-    <div className="mb-4"><h3 className="font-semibold">Revenue & Members</h3><p className="text-xs text-black/50">{label}</p></div>
+  return <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+    <div className="mb-4"><h3 className="font-semibold">Revenue & Members</h3><p className="text-xs text-muted-foreground">{label}</p></div>
     <div className="h-64 md:h-72 -ml-2"><ResponsiveContainer width="100%" height="100%">
       <ComposedChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#00000010" vertical={false} />

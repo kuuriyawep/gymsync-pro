@@ -15,16 +15,16 @@ export default function QuestionScreen({ icon: Icon, title, subtitle, options, m
   return (
     <div className="flex-1 flex flex-col">
       <div className="mb-6">
-        <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center mb-4">{Icon && <Icon className="w-6 h-6" />}</div>
+        <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center mb-4">{Icon && <Icon className="w-6 h-6" />}</div>
         <h1 className="text-2xl font-heading font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-black/50 mt-1.5">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-muted-foreground mt-1.5">{subtitle}</p>}
       </div>
       <div className="space-y-2.5">
         {options.map((o) => (
           <OptionCard key={o.value} selected={selected(o.value)} onClick={() => toggle(o.value)} icon={o.icon} label={o.label} description={o.description} />
         ))}
       </div>
-      {multi && <p className="text-xs text-black/40 mt-4">{maxSelections ? `Select up to ${maxSelections}.` : "Select all that apply."}</p>}
+      {multi && <p className="text-xs text-muted-foreground mt-4">{maxSelections ? `Select up to ${maxSelections}.` : "Select all that apply."}</p>}
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default function RecentPaymentsTable({ payments }) {
                 <tr key={payment.id} className="border-t border-border">
                   <td className="px-4 py-3 sm:px-5">
                     <div className="flex items-center gap-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] font-semibold">{initials(payment.memberName)}</span>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-[10px] font-semibold">{initials(payment.memberName)}</span>
                       <span className="whitespace-nowrap font-medium">{payment.memberName}</span>
                     </div>
                   </td>

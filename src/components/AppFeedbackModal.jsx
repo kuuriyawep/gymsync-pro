@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import { useToast } from "@/components/ui/use-toast";
 import { Megaphone } from "lucide-react";
+import { ghostBtn, label, primaryBtn, textarea } from "@/lib/uiClasses";
 
 const TYPES = ["Bug", "UI problem", "Broken feature", "Suggestion", "Feature request", "Performance", "Other"];
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
 
 export default function AppFeedbackModal({ open, onClose }) {
   const { toast } = useToast();
@@ -27,25 +28,23 @@ export default function AppFeedbackModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title="Feedback about GymSync"
       footer={<>
-        <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-        <button onClick={submit} disabled={!body.trim() || submitting} className={`px-4 py-2 text-sm font-medium rounded-lg ${body.trim() && !submitting ? "bg-black text-white hover:bg-black/90" : "bg-black/10 text-black/40"}`}>
+        <button onClick={onClose} className={ghostBtn}>Cancel</button>
+        <button onClick={submit} disabled={!body.trim() || submitting} className={primaryBtn}>
           {submitting ? "Sending..." : "Send feedback"}
         </button>
       </>}>
       <div className="space-y-4">
-        <div className="flex items-start gap-3 bg-black/[0.02] rounded-lg p-3">
-          <Megaphone className="w-4 h-4 mt-0.5 shrink-0" />
-          <p className="text-xs text-black/60">This goes to the GymSync product team — not your gym. Report bugs, broken features, or ideas to improve the app itself.</p>
+        <div className="flex items-start gap-3 rounded-xl bg-muted p-3">
+          <Megaphone className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">This goes to the GymSync product team — not your gym. Report bugs, broken features, or ideas to improve the app itself.</p>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">What's this about?</label>
-          <select className={inputCls} value={type} onChange={(e) => setType(e.target.value)}>
-            {TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
+          <label className={label}>What's this about?</label>
+          <ActionSelect value={type} onChange={setType} options={TYPES} ariaLabel="Feedback topic" title="Feedback topic" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1.5">Details</label>
-          <textarea rows={4} className={inputCls} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what happened, what you expected, or your suggestion…" />
+          <label className={label}>Details</label>
+          <textarea rows={4} className={textarea} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what happened, what you expected, or your suggestion…" />
         </div>
       </div>
     </Modal>

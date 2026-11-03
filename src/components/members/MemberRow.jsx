@@ -13,7 +13,7 @@ export default function MemberRow({ member, lastActivity, rate, onOpen, onEdit, 
   return (
     <div className="relative flex items-center gap-2 px-4 py-3.5 transition-colors hover:bg-accent/60 sm:gap-3">
       <button onClick={() => onOpen(member)} className="flex min-w-0 flex-1 items-center gap-2 text-left sm:gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 text-xs font-semibold">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground text-xs font-semibold">
           {member.photoUrl ? <Image src={member.photoUrl} alt={member.name} className="h-full w-full" fittingType="fill" /> : initials(member.name)}
         </span>
         <span className="min-w-0 flex-1">

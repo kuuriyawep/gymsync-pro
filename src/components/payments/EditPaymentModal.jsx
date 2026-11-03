@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import { Wallet } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
@@ -54,9 +55,7 @@ export default function EditPaymentModal({ open, onClose, payment, onSave, savin
           <div><label className={label}>Amount ($)</label>
             <input type="number" min="0.01" step="0.01" className={input} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="60" /></div>
           <div><label className={label}>Payment Method</label>
-            <select className={input} value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
-              {methodOptions.map((o) => <option key={o}>{o}</option>)}
-            </select></div>
+            <ActionSelect value={form.method} onChange={(method) => setForm({ ...form, method })} options={methodOptions} ariaLabel="Payment method" title="Payment method" /></div>
         </div>
         <div><label className={label}>Payment Date</label>
           <input type="date" className={input} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>

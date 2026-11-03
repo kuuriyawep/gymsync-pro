@@ -4,7 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import ActionSelect from "@/components/ui/action-select";
 import { useToast } from "@/components/ui/use-toast";
+
+const priorities = ["Low", "Normal", "High", "Urgent"];
 
 export default function SupportContactForm() {
   const { toast } = useToast();
@@ -25,11 +28,11 @@ export default function SupportContactForm() {
   };
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl p-6">
-      <h2 className="text-lg font-semibold">Contact Support</h2>
-      <p className="text-sm text-black/50 mt-1 mb-5">Describe your issue and we'll respond by email.</p>
+    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <h2 className="font-heading text-lg font-semibold">Contact Support</h2>
+      <p className="mt-1 mb-5 text-sm text-muted-foreground">Describe your issue and we'll respond by email.</p>
       <form onSubmit={submit} className="space-y-4">
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="sup-name">Name</Label>
             <Input id="sup-name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Your name" />
@@ -39,24 +42,14 @@ export default function SupportContactForm() {
             <Input id="sup-email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="you@gym.com" />
           </div>
         </div>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="sup-subject">Subject</Label>
             <Input id="sup-subject" value={form.subject} onChange={(e) => set("subject", e.target.value)} placeholder="Brief summary" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="sup-priority">Priority</Label>
-            <select
-              id="sup-priority"
-              value={form.priority}
-              onChange={(e) => set("priority", e.target.value)}
-              className="w-full h-10 rounded-lg border border-input bg-transparent px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option>Low</option>
-              <option>Normal</option>
-              <option>High</option>
-              <option>Urgent</option>
-            </select>
+            <ActionSelect id="sup-priority" value={form.priority} onChange={(v) => set("priority", v)} options={priorities} ariaLabel="Priority" title="Priority" />
           </div>
         </div>
         <div className="space-y-1.5">

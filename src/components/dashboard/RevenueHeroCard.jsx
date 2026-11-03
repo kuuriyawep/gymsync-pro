@@ -7,7 +7,7 @@ function BreakdownRow({ label, value, dim }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span className={`h-2 w-2 rounded-full ${dim ? "bg-white/25" : "bg-white"}`} />
+        <span className={`h-2 w-2 rounded-full ${dim ? "bg-primary-foreground/25" : "bg-primary-foreground"}`} />
         {label}
       </span>
       <span className="text-xs font-semibold tabular-nums">{money(value)}</span>

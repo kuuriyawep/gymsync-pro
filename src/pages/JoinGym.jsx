@@ -9,7 +9,8 @@ import PhoneNumberField from "@/components/PhoneNumberField";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
-const inputCls = "w-full px-3 py-3 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black";
+const inputCls = "w-full px-3 py-3 rounded-lg border border-border bg-card text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring";
+const primary = "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90";
 
 export default function JoinGym() {
   const navigate = useNavigate();
@@ -120,43 +121,112 @@ export default function JoinGym() {
     }
   };
 
-  return <div className="min-h-screen bg-white text-black flex flex-col"><header className="h-14 flex items-center px-4 border-b border-black/10"><button onClick={() => navigate("/login")} className="p-2 -ml-2"><ArrowLeft className="w-5 h-5" /></button><div className="flex-1 flex justify-center items-center gap-2"><div className="w-7 h-7 rounded-lg bg-black flex items-center justify-center"><Dumbbell className="w-4 h-4 text-white" /></div><b>GymSync</b></div><div className="w-9" /></header><div className="flex-1 flex items-center justify-center px-5 py-8"><div className="w-full max-w-md">
-    <AnimatePresence mode="wait">
-      {step === "checking" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /></div>}
+  const errorBox = error && <p className="mb-4 rounded-lg bg-muted p-3 text-sm">{error}</p>;
 
-      {step === "account" && <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="text-2xl font-bold">Create your account</h1>
-        <p className="text-sm text-black/50 mt-1 mb-6">First, set up your login — then we'll verify your gym membership.</p>
-        {error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}
-        <SocialAuthButtons redirectTo="/auth/callback?next=member" onError={setError} />
-        <div className="relative mb-6"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-black/10" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-3 text-black/40">or</span></div></div>
-        <form onSubmit={createAccount} className="space-y-4">
-          <label className="block text-sm font-medium">Email<div className="relative mt-1.5"><Mail className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input type="email" autoComplete="email" className={`${inputCls} pl-10`} value={email} onChange={(e) => setEmail(e.target.value)} required /></div></label>
-          <label className="block text-sm font-medium">Password<div className="relative mt-1.5"><Lock className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input type="password" autoComplete="new-password" className={`${inputCls} pl-10`} value={password} onChange={(e) => setPassword(e.target.value)} required /></div></label>
-          <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black text-white text-sm font-medium">Create account <ArrowRight className="w-4 h-4" /></button>
-        </form>
-      </motion.div>}
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <header className="flex h-14 items-center border-b border-border px-4">
+        <button onClick={() => navigate("/login")} className="p-2 -ml-2 rounded-lg hover:bg-accent" aria-label="Back to sign in"><ArrowLeft className="w-5 h-5" /></button>
+        <div className="flex flex-1 items-center justify-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground"><Dumbbell className="w-4 h-4" /></div>
+          <b className="font-heading">GymSync</b>
+        </div>
+        <div className="w-9" />
+      </header>
+      <div className="flex flex-1 items-center justify-center px-5 py-8">
+        <div className="w-full max-w-md">
+          <AnimatePresence mode="wait">
+            {step === "checking" && <div className="py-10 text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-muted-foreground" /></div>}
 
-      {step === "creatingAccount" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /><p className="text-sm mt-4">Creating your account…</p></div>}
+            {step === "account" && (
+              <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <h1 className="text-2xl font-heading font-bold">Create your account</h1>
+                <p className="mt-1 mb-6 text-sm text-muted-foreground">First, set up your login — then we'll verify your gym membership.</p>
+                {errorBox}
+                <SocialAuthButtons redirectTo="/auth/callback?next=member" onError={setError} />
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-3 text-muted-foreground">or</span></div>
+                </div>
+                <form onSubmit={createAccount} className="space-y-4">
+                  <label className="block text-sm font-medium">Email
+                    <div className="relative mt-1.5">
+                      <Mail className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
+                      <input type="email" autoComplete="email" className={`${inputCls} pl-10`} value={email} onChange={(e) => setEmail(e.target.value)} required />
+                    </div>
+                  </label>
+                  <label className="block text-sm font-medium">Password
+                    <div className="relative mt-1.5">
+                      <Lock className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
+                      <input type="password" autoComplete="new-password" className={`${inputCls} pl-10`} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    </div>
+                  </label>
+                  <button className={primary}>Create account <ArrowRight className="w-4 h-4" /></button>
+                </form>
+              </motion.div>
+            )}
 
-      {step === "otp" && <motion.div key="otp" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <h1 className="text-2xl font-bold">Verify your email</h1>
-        <p className="text-sm text-black/50 mt-1 mb-6">We sent a code to {email}</p>
-        {error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}
-        <div className="flex justify-center mb-6"><InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} autoFocus autoComplete="one-time-code"><InputOTPGroup><InputOTPSlot index={0} /><InputOTPSlot index={1} /><InputOTPSlot index={2} /><InputOTPSlot index={3} /><InputOTPSlot index={4} /><InputOTPSlot index={5} /></InputOTPGroup></InputOTP></div>
-        <button onClick={verifyOtp} disabled={otpCode.length < 6} className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black text-white text-sm font-medium disabled:opacity-50">Verify</button>
-        <p className="text-center text-sm text-black/50 mt-4">Didn't receive the code? <button onClick={resendOtp} className="font-medium underline">Resend</button></p>
-      </motion.div>}
+            {step === "creatingAccount" && <div className="py-10 text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-muted-foreground" /><p className="mt-4 text-sm">Creating your account…</p></div>}
 
-      {step === "verifyingOtp" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /><p className="text-sm mt-4">Verifying…</p></div>}
+            {step === "otp" && (
+              <motion.div key="otp" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <h1 className="text-2xl font-heading font-bold">Verify your email</h1>
+                <p className="mt-1 mb-6 text-sm text-muted-foreground">We sent a code to {email}</p>
+                {errorBox}
+                <div className="mb-6 flex justify-center">
+                  <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode} autoFocus autoComplete="one-time-code">
+                    <InputOTPGroup><InputOTPSlot index={0} /><InputOTPSlot index={1} /><InputOTPSlot index={2} /><InputOTPSlot index={3} /><InputOTPSlot index={4} /><InputOTPSlot index={5} /></InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <button onClick={verifyOtp} disabled={otpCode.length < 6} className={`${primary} disabled:opacity-50`}>Verify</button>
+                <p className="mt-4 text-center text-sm text-muted-foreground">Didn't receive the code? <button onClick={resendOtp} className="font-medium text-foreground underline">Resend</button></p>
+              </motion.div>
+            )}
 
-      {step === "form" && <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><h1 className="text-2xl font-bold">Join your gym</h1><p className="text-sm text-black/50 mt-1 mb-6">Enter your phone number and the full name your gym registered you with.</p>{error && <p className="mb-4 p-3 bg-black/5 rounded-lg text-sm">{error}</p>}<form onSubmit={verify} className="space-y-4"><label className="block text-sm font-medium">Registered phone number<div className="relative mt-1.5"><PhoneNumberField value={phone} onChange={setPhone} /></div></label><label className="block text-sm font-medium">Full name (as registered by your gym)<div className="relative mt-1.5"><User className="absolute left-3 top-3.5 w-4 h-4 text-black/40" /><input className={`${inputCls} pl-10`} value={fullName} onChange={(e) => setFullName(e.target.value)} required /></div></label><button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-black text-white text-sm font-medium">Verify information <ArrowRight className="w-4 h-4" /></button></form></motion.div>}
+            {step === "verifyingOtp" && <div className="py-10 text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-muted-foreground" /><p className="mt-4 text-sm">Verifying…</p></div>}
 
-      {step === "verifying" && <div className="text-center py-10"><Loader2 className="w-10 h-10 mx-auto animate-spin" /><p className="text-sm mt-4">Verifying your information…</p></div>}
+            {step === "form" && (
+              <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <h1 className="text-2xl font-heading font-bold">Join your gym</h1>
+                <p className="mt-1 mb-6 text-sm text-muted-foreground">Enter your phone number and the full name your gym registered you with.</p>
+                {errorBox}
+                <form onSubmit={verify} className="space-y-4">
+                  <label className="block text-sm font-medium">Registered phone number
+                    <div className="relative mt-1.5"><PhoneNumberField value={phone} onChange={setPhone} /></div>
+                  </label>
+                  <label className="block text-sm font-medium">Full name (as registered by your gym)
+                    <div className="relative mt-1.5">
+                      <User className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
+                      <input className={`${inputCls} pl-10`} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                    </div>
+                  </label>
+                  <button className={primary}>Verify information <ArrowRight className="w-4 h-4" /></button>
+                </form>
+              </motion.div>
+            )}
 
-      {step === "success" && <div className="text-center"><CheckCircle2 className="w-16 h-16 mx-auto mb-4" /><h1 className="text-2xl font-bold">Membership verified</h1><p className="text-sm text-black/50 mt-2 mb-6">Your exact membership information is now linked.</p><button onClick={() => navigate("/member")} className="w-full px-4 py-3 rounded-lg bg-black text-white">Continue to member app</button></div>}
+            {step === "verifying" && <div className="py-10 text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-muted-foreground" /><p className="mt-4 text-sm">Verifying your information…</p></div>}
 
-      {step === "error" && <div className="text-center"><AlertCircle className="w-16 h-16 mx-auto mb-4 text-black/50" /><h1 className="text-2xl font-bold">We couldn't verify your information</h1><p className="text-sm text-black/50 mt-2 mb-6">{error}</p><button onClick={() => setStep("form")} className="w-full px-4 py-3 rounded-lg bg-black text-white">Try again</button></div>}
-    </AnimatePresence>
-  </div></div></div>;
+            {step === "success" && (
+              <div className="text-center">
+                <CheckCircle2 className="mx-auto mb-4 w-16 h-16 text-emerald-600 dark:text-emerald-400" />
+                <h1 className="text-2xl font-heading font-bold">Membership verified</h1>
+                <p className="mt-2 mb-6 text-sm text-muted-foreground">Your exact membership information is now linked.</p>
+                <button onClick={() => navigate("/member")} className={primary}>Continue to member app</button>
+              </div>
+            )}
+
+            {step === "error" && (
+              <div className="text-center">
+                <AlertCircle className="mx-auto mb-4 w-16 h-16 text-muted-foreground" />
+                <h1 className="text-2xl font-heading font-bold">We couldn't verify your information</h1>
+                <p className="mt-2 mb-6 text-sm text-muted-foreground">{error}</p>
+                <button onClick={() => setStep("form")} className={primary}>Try again</button>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
 }

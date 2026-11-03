@@ -75,7 +75,9 @@ export default async function(req: Request): Promise<Response> {
         select('feedback_requests', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('member_messages', `member_id=eq.${memberFilter}&gym_id=eq.${gymFilter}&select=*&order=sent_at.desc&limit=20`)
       ]);
-      const today = new Date().toISOString().slice(0, 10);
+      // The gym's local day (Africa/Mogadishu), not UTC — otherwise a
+      // membership flips to "expired" three hours early.
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Mogadishu', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       const currentMembership = memberships.find((item: any) => String(item.start_date || '') <= today && (!item.end_date || String(item.end_date) >= today)) || memberships[0] || null;
       const membership = currentMembership;
       const plan = plans.find((item: any) => item.id === membership?.plan_id);

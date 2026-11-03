@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { CalendarDays, Clock3, Mail, ShieldCheck, UserRound, Pencil, Save, Loader2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import PhotoPicker from "@/components/PhotoPicker";
 import ProfileImage from "@/components/ProfileImage";
 import { ghostBtn, input, label, primaryBtn } from "@/lib/uiClasses";
@@ -48,7 +49,7 @@ export default function StaffProfileModal({ staff, open, onClose, onSave, saving
       <div className="space-y-4">
         <div><label className={label}>Full name</label>{editing ? <input maxLength={120} className={input} value={draft.name} onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))} /> : <div className="flex items-center gap-2 text-sm"><UserRound className="w-4 h-4 text-muted-foreground" />{staff.name}</div>}</div>
         <div><label className={label}>Email address</label><div className="flex items-center gap-2 break-all text-sm"><Mail className="w-4 h-4 shrink-0 text-muted-foreground" />{staff.email || "Not available"}</div><p className="mt-1 text-xs text-muted-foreground">Email is linked to sign-in and cannot be changed here.</p></div>
-        <div><label className={label}>Role</label>{editing ? <select className={input} value={draft.role} onChange={(e) => setDraft((current) => ({ ...current, role: e.target.value }))}>{roles.map((role) => <option key={role} value={role}>{role}</option>)}</select> : <div className="flex items-center gap-2 text-sm"><ShieldCheck className="w-4 h-4 text-muted-foreground" />{staff.role}</div>}</div>
+        <div><label className={label}>Role</label>{editing ? <ActionSelect value={draft.role} onChange={(role) => setDraft((current) => ({ ...current, role }))} options={roles} ariaLabel="Staff role" title="Staff role" /> : <div className="flex items-center gap-2 text-sm"><ShieldCheck className="w-4 h-4 text-muted-foreground" />{staff.role}</div>}</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="rounded-xl border border-border p-3"><div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground"><CalendarDays className="w-3.5 h-3.5" /> Added to gym</div><p className="text-sm font-medium">{dateLabel(staff.createdAt)}</p></div>
           <div className="rounded-xl border border-border p-3"><div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="w-3.5 h-3.5" /> First joined</div><p className="text-sm font-medium">{dateLabel(staff.joinedAt)}</p></div>

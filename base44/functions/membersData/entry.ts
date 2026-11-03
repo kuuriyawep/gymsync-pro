@@ -42,10 +42,14 @@ export default async function(req: Request): Promise<Response> {
       );
       if (!existing[0]) await notifyOwner(key, title, message);
     };
+    // "Today" is the gym's local day, not UTC. The gym runs on Africa/Mogadishu
+    // (UTC+3), so a UTC day boundary made memberships read as expired a few
+    // hours early and pushed midnight payments onto the previous day.
+    const localToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Mogadishu', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const lifecycleStatus = (membership: any, member: any, fallback = 'Active') => {
       if (String(member?.status || '').toLowerCase() === 'suspended') return 'Suspended';
       const expiry = String(membership?.end_date || '');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localToday();
       if (String(membership?.status || '').toLowerCase() === 'expired' || (expiry && expiry < today)) return 'Expired';
       if (expiry) {
         const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
@@ -78,8 +82,8 @@ export default async function(req: Request): Promise<Response> {
     // entries (owner catching up on an old cash payment) keep the plain
     // date, since day-level accuracy is all that matters there.
     const resolvePaidAt = (dateStr: string) => {
-      const today = new Date().toISOString().slice(0, 10);
-      return dateStr === today ? new Date().toISOString() : `${dateStr}T00:00:00Z`;
+      if (!dateStr) return new Date().toISOString();
+      return dateStr === localToday() ? new Date().toISOString() : `${dateStr}T00:00:00+03:00`;
     };
     const normalizeMethod = (value: string) => value === 'Mobile Money' ? 'mobile_money' : value.toLowerCase().replace(/\s+/g, '_');
     const memberStatus = (value: string) => value === 'Suspended' ? 'suspended' : 'active';
@@ -99,13 +103,20 @@ export default async function(req: Request): Promise<Response> {
       });
     };
 
+    // A payment is credited to the membership period its date falls inside.
+    // When a member pays after their period has ended — the normal case for a
+    // late or renewal payment — no window matched, so the payment was saved
+    // with no membership link and never reached the member's balance. That is
+    // why a member who had paid could still show as overdue. Fall back to
+    // their most recent period so the ledger always reconciles.
     const findMembershipForPaymentDate = async (memberId: string, paymentDate: string) => {
       const memberships = await select('memberships', 'member_id=eq.' + encodeURIComponent(memberId) + '&gym_id=eq.' + gymFilter + '&select=id,start_date,end_date,created_at&order=created_at.desc');
-      return memberships.find((item: any) => {
+      const byWindow = memberships.find((item: any) => {
         const start = String(item.start_date || '');
         const end = String(item.end_date || '');
         return start && end && paymentDate >= start && paymentDate <= end;
-      }) || null;
+      });
+      return byWindow || memberships[0] || null;
     };
     const ensurePlan = async (name: string, price: number) => {
       const found = await select('membership_plans', `gym_id=eq.${gymFilter}&name=eq.${encodeURIComponent(name)}&select=*&limit=1`);
@@ -137,7 +148,7 @@ export default async function(req: Request): Promise<Response> {
         select('memberships', `member_id=eq.${memberId}&gym_id=eq.${gymFilter}&select=*&order=created_at.desc`),
         select('membership_plans', `gym_id=eq.${gymFilter}&select=*`)
       ]);
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localToday();
       const membership = memberships.find((item: any) => String(item.start_date || '') <= today && (!item.end_date || String(item.end_date) >= today)) || memberships[0] || null;
       const plan = plans.find((p: any) => p.id === membership?.plan_id) || null;
       const paymentHistory = payments.map((p: any) => ({
@@ -273,8 +284,15 @@ export default async function(req: Request): Promise<Response> {
       // Close the previous current period before creating the new renewal.
       // Its dates, plan and payment history remain unchanged; only its lifecycle
       // status moves out of active so there is never more than one active period.
-      const previousMemberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id,status&order=created_at.desc&limit=1`);
+      const previousMemberships = await select('memberships', `member_id=eq.${id}&gym_id=eq.${gymFilter}&select=id,status,start_date,end_date&order=created_at.desc&limit=1`);
       const previousMembership = previousMemberships[0];
+      // Renewing with a period that already exists (a double submit, or
+      // re-saving the same dates) used to insert a duplicate period. Those
+      // duplicates inflated the renewal counts and the 3-month reports, and
+      // split one payment across two rows. Reuse the existing period instead.
+      const samePeriod = Boolean(previousMembership)
+        && String(previousMembership.start_date || '') === String(input.startDate)
+        && String(previousMembership.end_date || '') === String(input.expiryDate);
       if (previousMembership?.status === 'active') {
         await update('memberships', `id=eq.${encodeURIComponent(previousMembership.id)}&gym_id=eq.${gymFilter}`, { status: 'expired' });
       }
@@ -285,16 +303,18 @@ export default async function(req: Request): Promise<Response> {
       // Renewal starts a new membership period. Never overwrite the previous
       // membership because its dates, plan and linked payments are historical
       // financial records that must remain immutable.
-      const membership = (await insert('memberships', {
-        member_id: owned[0].id,
-        gym_id: gym.id,
-        plan_id: plan.id,
-        start_date: input.startDate,
-        end_date: input.expiryDate,
-        amount_due: amountDue,
-        amount_paid: cappedPaid,
-        status: 'active'
-      }))[0];
+      const membership = samePeriod
+        ? (await update('memberships', `id=eq.${encodeURIComponent(previousMembership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, amount_due: amountDue, amount_paid: cappedPaid, status: 'active' }))[0]
+        : (await insert('memberships', {
+            member_id: owned[0].id,
+            gym_id: gym.id,
+            plan_id: plan.id,
+            start_date: input.startDate,
+            end_date: input.expiryDate,
+            amount_due: amountDue,
+            amount_paid: cappedPaid,
+            status: 'active'
+          }))[0];
       if (renewalPayment > 0) {
         await insert('payments', { gym_id: gym.id, member_id: owned[0].id, membership_id: membership.id, amount: renewalPayment, method: normalizeMethod(String(input.paymentMethod || 'Cash')), reference: `TXN-${Date.now()}`, note: 'Membership renewal payment', paid_at: resolvePaidAt(input.startDate) });
         await notifyOwner('payments', 'Payment received', `${owned[0].full_name} paid $${Number(renewalPayment).toLocaleString()} for renewal`);
@@ -435,6 +455,17 @@ export default async function(req: Request): Promise<Response> {
         ? select('trainers', `gym_id=eq.${gymFilter}&select=id,status`)
         : Promise.resolve([])
     ]);
+    // Identical periods saved twice (a renewal submitted twice before the
+    // guard above existed) each counted as a renewal and inflated the plan and
+    // renewal reports. Collapse them on read — newest row per member + period —
+    // instead of deleting history that payments may still reference.
+    const seenPeriods = new Set();
+    const reportMemberships = memberships.filter((item: any) => {
+      const key = `${item.member_id}|${item.start_date}|${item.end_date}`;
+      if (seenPeriods.has(key)) return false;
+      seenPeriods.add(key);
+      return true;
+    });
     const titleCase = (value: string) => value.split(' ').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
     const result = members.map((member: any, index: number) => {
       const membership = memberships.find((item: any) => item.member_id === member.id);
@@ -447,7 +478,7 @@ export default async function(req: Request): Promise<Response> {
       const amountPaid = Number(membership?.amount_paid || 0);
       const balance = metadata.balance_override !== undefined && metadata.balance_override >= 0 ? metadata.balance_override : Math.max(0, amountDue - amountPaid);
       const expiryDate = membership?.end_date || '';
-      const expiredByDate = expiryDate && expiryDate < new Date().toISOString().slice(0, 10);
+      const expiredByDate = expiryDate && expiryDate < localToday();
       const paymentStatus = amountDue > amountPaid ? ((status === 'Expired' || expiredByDate) ? 'Overdue' : 'Pending') : 'Paid';
       return { id: member.id, memberId: metadata.memberId || `GYM-${1001 + index}`, name: member.full_name, phone: member.phone, email: member.email || '', gender: metadata.gender || '', plan: plan?.name || 'Monthly', fee: amountDue, amountPaid, balance, balanceOverride: metadata.balance_override !== undefined ? metadata.balance_override : null, status, startDate: membership?.start_date || member.joined_at.slice(0,10), expiryDate, paymentStatus, paymentMethod: payment?.method ? titleCase(payment.method.replace(/_/g, ' ')) : 'Cash', registeredDate: member.joined_at.slice(0,10), gym: gym.name, note: metadata.note || '', preferredTime: metadata.preferredTime || 'Flexible', photoUrl: member.avatar_url || null, joinToken: metadata.joinToken || '', createdAt: member.created_at, updatedAt: member.updated_at };
     });
@@ -461,7 +492,7 @@ export default async function(req: Request): Promise<Response> {
         const member = members.find((item: any) => item.id === membership.member_id);
         if (!member || !membership.end_date) return null;
         const expiry = String(membership.end_date);
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localToday();
         const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
         if (days === 5) return { key: 'expiry', title: 'Membership expires in 5 days', message: `${member.full_name} membership expires on ${expiry}` };
         if (days === 1) return { key: 'expiry', title: 'Membership expires tomorrow', message: `${member.full_name} membership expires on ${expiry}` };
@@ -476,8 +507,8 @@ export default async function(req: Request): Promise<Response> {
     const analytics = {
       trainers: trainers.map((trainer: any) => ({ id: trainer.id, status: trainer.status || '' })),
       payments: readPayments ? payments.map((payment: any) => ({ id: payment.id, memberId: payment.member_id, membershipId: payment.membership_id || null, memberName: names.get(payment.member_id) || 'Unknown member', amount: Number(payment.amount || 0), method: payment.method || '', reference: payment.reference || '', note: payment.note || '', paidAt: payment.paid_at || payment.created_at })) : [],
-      memberships: (access.role === 'owner' || access.permissions.includes('plans.read')) ? memberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })) : [],
-      plans: (access.role === 'owner' || access.permissions.includes('plans.read')) ? plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: memberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })) : [],
+      memberships: (access.role === 'owner' || access.permissions.includes('plans.read')) ? reportMemberships.map((membership: any) => ({ id: membership.id, memberId: membership.member_id, planId: membership.plan_id, startDate: membership.start_date, endDate: membership.end_date, amountDue: Number(membership.amount_due || 0), amountPaid: Number(membership.amount_paid || 0), status: membership.status, createdAt: membership.created_at })) : [],
+      plans: (access.role === 'owner' || access.permissions.includes('plans.read')) ? plans.map((plan: any) => ({ id: plan.id, name: plan.name, price: Number(plan.price || 0), duration: `${Number(plan.duration_months || 1)} ${Number(plan.duration_months || 1) === 1 ? 'month' : 'months'}`, status: plan.is_active ? 'Active' : 'Inactive', activeMembers: reportMemberships.filter((membership: any) => membership.plan_id === plan.id && membership.status === 'active').length })) : [],
       recentActivities: access.role === 'owner' ? recentActivities : recentActivities.filter((item: any) => item.type === 'member')
     };
     const safeMembers = readMembers ? result.map((member: any) => {

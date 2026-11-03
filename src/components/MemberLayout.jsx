@@ -25,9 +25,7 @@ export default function MemberLayout({ children, title, back }) {
   useTabHistory(nav.map((item) => item.path));
 
   return (
-    // `light` keeps the member portal on the light palette while the owner app
-    // follows the device theme; its screens have not moved onto tokens yet.
-    <div className="light min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border h-14 flex items-center px-4 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {back ? (
           <button onClick={() => navigate(back)} className="p-2 -ml-2 rounded-lg hover:bg-accent"><ChevronLeft className="w-5 h-5" /></button>
@@ -76,7 +74,7 @@ export default function MemberLayout({ children, title, back }) {
             <motion.div key={item.path} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 * i, duration: 0.25 }} className="flex-1">
               <Link to={tabTarget(item.path, location.pathname)} className={`flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 <motion.div whileTap={{ scale: 0.85 }}><item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} /></motion.div>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-[11px] font-medium">{item.label}</span>
               </Link>
             </motion.div>
           );

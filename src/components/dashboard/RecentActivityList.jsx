@@ -28,7 +28,7 @@ export default function RecentActivityList({ activities }) {
             const Icon = iconFor[item.type] || Activity;
             return (
               <div key={item.id} className="flex items-start gap-3 px-4 py-3 sm:px-5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10"><Icon className="h-4 w-4" /></span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"><Icon className="h-4 w-4" /></span>
                 <div className="min-w-0">
                   <p className="text-sm leading-snug">{item.text}</p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">{relative(item.occurredAt)}</p>
