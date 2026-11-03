@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PhoneNumberField from "@/components/PhoneNumberField";
 import PhotoPicker from "@/components/PhotoPicker";
@@ -325,11 +326,15 @@ export default function Members() {
             </div>
             <div>
               <label className={label}>Gender *</label>
-              <select className={`${input} ${errors.gender ? "border-red-500/60" : ""}`} value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
-                <option value="">Select gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
+              <ActionSelect
+                className={errors.gender ? "border-red-500/60" : ""}
+                value={form.gender}
+                onChange={(gender) => setForm({ ...form, gender })}
+                placeholder="Select gender"
+                ariaLabel="Gender"
+                title="Select gender"
+                options={["Male", "Female"]}
+              />
               {errors.gender && <p className="mt-1 text-xs font-medium text-red-400">{errors.gender}</p>}
             </div>
             <div>
@@ -342,14 +347,19 @@ export default function Members() {
             <p className={sectionCls}><CreditCard className="w-3.5 h-3.5" /> Membership Information</p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div><label className={label}>Membership Plan *</label>
-                <select className={input} value={form.plan} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
-                  {!selectedPlan && <option value={form.plan}>{form.plan || "No plans available"}</option>}
-                  {activePlans.map((p) => <option key={p.id} value={p.name}>{p.name} — ${p.price}</option>)}
-                </select></div>
+                <ActionSelect
+                  value={form.plan}
+                  onChange={(plan) => setForm({ ...form, plan })}
+                  placeholder="No plans available"
+                  ariaLabel="Membership plan"
+                  title="Membership plan"
+                  options={[
+                    ...(!selectedPlan && form.plan ? [{ value: form.plan, label: form.plan }] : []),
+                    ...activePlans.map((p) => ({ value: p.name, label: `${p.name} — $${p.price}` })),
+                  ]}
+                /></div>
               <div><label className={label}>Preferred gym time</label>
-                <select className={input} value={form.preferredTime} onChange={(e) => setForm({ ...form, preferredTime: e.target.value })}>
-                  {["Morning", "Afternoon", "Evening", "Flexible"].map((t) => <option key={t}>{t}</option>)}
-                </select></div>
+                <ActionSelect value={form.preferredTime} onChange={(preferredTime) => setForm({ ...form, preferredTime })} ariaLabel="Preferred gym time" title="Preferred gym time" options={["Morning", "Afternoon", "Evening", "Flexible"]} /></div>
               <div><label className={label}>Registration Date *</label>
                 <input type="date" className={input} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
               <div><label className={label}>Expiry Date *</label>
@@ -365,13 +375,9 @@ export default function Members() {
               <div><label className={label}>Outstanding Balance ($)</label>
                 <input type="number" className={input} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} /></div>
               <div><label className={label}>Payment Method</label>
-                <select className={input} value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
-                  {methodOptions.map((o) => <option key={o}>{o}</option>)}
-                </select></div>
+                <ActionSelect value={form.paymentMethod} onChange={(paymentMethod) => setForm({ ...form, paymentMethod })} ariaLabel="Payment method" title="Payment method" options={methodOptions} /></div>
               <div><label className={label}>Member Status</label>
-                <select className={input} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  {statusOptions.map((o) => <option key={o}>{o}</option>)}
-                </select></div>
+                <ActionSelect value={form.status} onChange={(status) => setForm({ ...form, status })} ariaLabel="Member status" title="Member status" options={statusOptions} /></div>
             </div>
             <p className="text-xs text-muted-foreground">Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override.</p>
           </section>

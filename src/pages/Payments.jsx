@@ -9,7 +9,9 @@ import PaymentRow from "@/components/payments/PaymentRow";
 import EditPaymentModal from "@/components/payments/EditPaymentModal";
 import { useToast } from "@/components/ui/use-toast";
 import { Banknote, CalendarDays, ChevronDown, DollarSign, Plus, Printer, Receipt, Search, StickyNote, User, Wallet } from "lucide-react";
-import { useMembers, useGymAnalytics, useMembersLoaded, useMembersError, recordPayment, updatePayment } from "@/lib/memberStore";
+import ActionSelect from "@/components/ui/action-select";
+import PullToRefresh from "@/components/PullToRefresh";
+import { loadMembers, useMembers, useGymAnalytics, useMembersLoaded, useMembersError, recordPayment, updatePayment } from "@/lib/memberStore";
 import { useGym } from "@/lib/gymStore";
 import { buildRevenueMetrics, money, parseDate, planRate } from "@/lib/gymMetrics";
 import { card, ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
@@ -159,10 +161,9 @@ export default function Payments() {
 
   if (!loaded) return <Layout dark><PageSkeleton /></Layout>;
 
-  const selectCls = `${input} flex items-center justify-between gap-2 text-left`;
-
   return (
     <Layout dark>
+      <PullToRefresh onRefresh={() => loadMembers(true)}>
       <div className="space-y-4 text-foreground sm:space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -182,13 +183,8 @@ export default function Payments() {
             <Search className="w-4 h-4 shrink-0 text-muted-foreground" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by member name, phone or ID…" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
           </div>
-          <select className={`${selectCls} sm:w-40`} value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} aria-label="Filter by plan">
-            <option>All Plans</option>
-            {planOptions.map((plan) => <option key={plan}>{plan}</option>)}
-          </select>
-          <select className={`${selectCls} sm:w-40`} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status">
-            {["All Status", "Paid", "Pending", "Overdue"].map((status) => <option key={status}>{status}</option>)}
-          </select>
+          <ActionSelect className="sm:w-40" value={planFilter} onChange={setPlanFilter} ariaLabel="Filter by plan" title="Filter by plan" options={["All Plans", ...planOptions]} />
+          <ActionSelect className="sm:w-40" value={statusFilter} onChange={setStatusFilter} ariaLabel="Filter by status" title="Filter by status" options={["All Status", "Paid", "Pending", "Overdue"]} />
         </div>
 
         {/* Payment list */}
@@ -227,6 +223,7 @@ export default function Payments() {
           )}
         </div>
       </div>
+      </PullToRefresh>
 
       {/* Record Payment */}
       <Modal open={recordOpen} onClose={() => setRecordOpen(false)} title="Record Payment" subtitle="Record a payment for this member." icon={Wallet}
@@ -241,10 +238,7 @@ export default function Payments() {
             <label className={label}>Member</label>
             <div className="relative">
               <User className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
-              <select className={`${input} pl-9`} value={form.memberId} onChange={(e) => onMemberSelect(e.target.value)}>
-                <option value="">Select a member…</option>
-                {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              <ActionSelect className="pl-9" value={form.memberId} onChange={onMemberSelect} placeholder="Select a member…" ariaLabel="Member" title="Select a member" options={members.map((m) => ({ value: String(m.id), label: m.name }))} />
             </div>
           </div>
 

@@ -5,8 +5,12 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
+import useSystemTheme from '@/hooks/useSystemTheme';
 
 function App() {
+  // Follows the device's light/dark preference on the document root.
+  useSystemTheme();
+
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>

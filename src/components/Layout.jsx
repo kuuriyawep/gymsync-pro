@@ -10,6 +10,7 @@ import { useMembers, useGymAnalytics } from "@/lib/memberStore";
 import { useTrainers } from "@/lib/trainerStore";
 import ProfileImage from "@/components/ProfileImage";
 import { Image } from "@/components/ui/image";
+import { tabTarget, useTabHistory } from "@/lib/tabHistory";
 
 const primaryNav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
@@ -53,6 +54,10 @@ export default function Layout({ children, dark = false }) {
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
 
+  // The bottom bar remembers each tab's last screen, so returning to a tab
+  // restores where the user left off instead of resetting to its first page.
+  useTabHistory(bottomNav.map((item) => item.path));
+
   const realPayments = useMemo(() => (analytics.payments || []).map((p) => ({ id: p.id, paymentId: `PAY-${String(p.id).slice(0, 8).toUpperCase()}`, name: p.memberName, amount: Number(p.amount || 0) })), [analytics.payments]);
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -74,7 +79,7 @@ export default function Layout({ children, dark = false }) {
   const go = (to) => { setSearch(""); setSearchFocus(false); navigate(to); };
 
   return (
-    <div className={`min-h-screen bg-background flex${dark ? " dark" : ""}`}>
+    <div className="min-h-screen bg-background flex">
       <aside className="hidden md:flex flex-col w-64 border-r border-border bg-background text-foreground sticky top-0 h-screen">
         <div className="flex items-center gap-2 px-6 h-16 border-b border-border">
           <ProfileImage src={gym.logoUrl} alt={gym.isLoading ? "Loading…" : gym.name} fallback={<Dumbbell className="w-5 h-5" />} className="w-10 h-10" shape="rounded" dark />
@@ -156,7 +161,7 @@ export default function Layout({ children, dark = false }) {
           const active = isActive(item.path);
           return (
             <motion.div key={item.path} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i, duration: 0.25 }} className="flex-1">
-              <Link to={item.path} className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+              <Link to={tabTarget(item.path, location.pathname)} className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 <motion.div whileTap={{ scale: 0.85 }}><item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} /></motion.div>
                 <span className="text-[11px] font-medium">{item.label}</span>
               </Link>

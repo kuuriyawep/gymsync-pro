@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import Modal from "@/components/ui/Modal";
+import ActionSelect from "@/components/ui/action-select";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import PageSkeleton from "@/components/PageSkeleton";
+import StatusBadge from "@/components/StatusBadge";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Users, Calendar, Check, Pencil, Eye, Power, CreditCard } from "lucide-react";
+import { Plus, Users, Calendar, Pencil, Eye, Power, CreditCard } from "lucide-react";
 import { useGymAnalytics, useMembersLoaded, useMembersError, createMembershipPlan, updateMembershipPlan, toggleMembershipPlan } from "@/lib/memberStore";
+import { ghostBtn, input, label, primaryBtn } from "@/lib/uiClasses";
 
-const inputCls = "w-full px-3 py-2.5 rounded-lg border border-black/15 bg-white text-sm outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors";
-const labelCls = "block text-sm font-medium mb-1.5";
+const cardBtn = "flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent";
 const emptyForm = { name: "", price: "", duration: "1", status: "Active" };
 
 export default function Membership() {
@@ -61,41 +63,42 @@ export default function Membership() {
 
   return (
     <Layout>
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="space-y-4 text-foreground sm:space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-heading font-bold tracking-tight">Membership</h1>
-            <p className="text-sm text-black/50 mt-0.5">Manage membership plans and pricing</p>
+            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Membership</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">Manage membership plans and pricing.</p>
           </div>
-          <button onClick={openAdd} className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">
+          <button onClick={openAdd} className={primaryBtn}>
             <Plus className="w-4 h-4" /> Add Plan
           </button>
         </div>
 
-        {loadError && <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">{loadError}</div>}
+        {loadError && <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{loadError}</div>}
 
         {plans.length === 0 ? (
           <EmptyState icon={CreditCard} title="No membership plans" description="Create your first plan to get started." actionLabel="Add Plan" onAction={openAdd} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {plans.map((p) => (
-              <div key={p.id} className="bg-white border border-black/10 rounded-xl p-5 flex flex-col">
-                <div className="flex items-center justify-between mb-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${p.status === "Active" ? "bg-emerald-600 text-white" : "bg-black/5 text-black/50"}`}>
-                    {p.status === "Active" && <Check className="w-3 h-3" />} {p.status}
-                  </span>
+              <div key={p.id} className="flex flex-col rounded-2xl border border-border bg-card p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <StatusBadge status={p.status} />
+                  <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{p.duration}</span>
                 </div>
-                <h3 className="text-lg font-semibold">{p.name}</h3>
-                <p className="text-3xl font-bold mt-1">
+                <h3 className="font-heading text-lg font-semibold">{p.name}</h3>
+                <p className="mt-1 text-3xl font-bold tabular-nums">
                   {p.price == null ? "Custom" : `$${p.price}`}
-                  {p.price != null && <span className="text-xs font-normal text-black/40"> / plan</span>}
+                  {p.price != null && <span className="text-xs font-normal text-muted-foreground"> / plan</span>}
                 </p>
-                <div className="flex items-center gap-2 text-xs text-black/50 mt-2"><Calendar className="w-3.5 h-3.5" /> {p.duration}</div>
-                <div className="flex items-center gap-2 text-xs text-black/50 mt-1"><Users className="w-3.5 h-3.5" /> {p.activeMembers} active members</div>
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-black/5">
-                  <button onClick={() => openView(p)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-black/15 hover:bg-black/5"><Eye className="w-3.5 h-3.5" /> View</button>
-                  <button onClick={() => openEdit(p)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-black/15 hover:bg-black/5"><Pencil className="w-3.5 h-3.5" /> Edit</button>
-                  <button onClick={() => setConfirm({ type: "toggle", plan: p })} className="p-2 rounded-lg border border-black/15 hover:bg-black/5" title={p.status === "Active" ? "Deactivate" : "Activate"}><Power className="w-3.5 h-3.5" /></button>
+                <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2"><Calendar className="h-3.5 w-3.5" /> {p.duration}</div>
+                  <div className="flex items-center gap-2"><Users className="h-3.5 w-3.5" /> {p.activeMembers} active members</div>
+                </div>
+                <div className="mt-auto flex items-center gap-2 border-t border-border pt-4">
+                  <button onClick={() => openView(p)} className={cardBtn}><Eye className="h-3.5 w-3.5" /> View</button>
+                  <button onClick={() => openEdit(p)} className={cardBtn}><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                  <button onClick={() => setConfirm({ type: "toggle", plan: p })} className="rounded-xl border border-border p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" title={p.status === "Active" ? "Deactivate" : "Activate"}><Power className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             ))}
@@ -104,40 +107,47 @@ export default function Membership() {
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Edit Plan" : "Add Plan"}
+        subtitle="Plans control the price and duration members pick from." icon={CreditCard}
         footer={<>
-          <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Cancel</button>
-          <button onClick={submit} disabled={saving} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90 disabled:opacity-60">{saving ? "Saving..." : editingId ? "Save Plan" : "Add Plan"}</button>
+          <button onClick={() => setModalOpen(false)} className={ghostBtn}>Cancel</button>
+          <button onClick={submit} disabled={saving} className={primaryBtn}>{saving ? "Saving..." : editingId ? "Save Plan" : "Add Plan"}</button>
         </>}>
         <div className="space-y-4">
-          <div><label className={labelCls}>Plan Name</label>
-            <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Monthly" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className={labelCls}>Price ($)</label>
-              <input type="number" className={inputCls} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="60" /></div>
-            <div><label className={labelCls}>Duration</label>
-              <input type="number" min="1" className={inputCls} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="1" /></div>
+          <div>
+            <label className={label}>Plan Name</label>
+            <input className={input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Monthly" />
           </div>
-          <div><label className={labelCls}>Status</label>
-            <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              <option>Active</option><option>Inactive</option>
-            </select></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={label}>Price ($)</label>
+              <input type="number" className={input} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="60" />
+            </div>
+            <div>
+              <label className={label}>Duration (months)</label>
+              <input type="number" min="1" className={input} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} placeholder="1" />
+            </div>
+          </div>
+          <div>
+            <label className={label}>Status</label>
+            <ActionSelect value={form.status} onChange={(status) => setForm({ ...form, status })} ariaLabel="Plan status" title="Plan status" options={["Active", "Inactive"]} />
+          </div>
         </div>
       </Modal>
 
-      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title="Plan Details"
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} title="Plan Details" icon={Calendar}
         footer={<>
-          <button onClick={() => setViewOpen(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-black/15 hover:bg-black/5">Close</button>
-          {viewing && <button onClick={() => { openEdit(viewing); setViewOpen(false); }} className="px-4 py-2 text-sm font-medium rounded-lg bg-black text-white hover:bg-black/90">Edit Plan</button>}
+          <button onClick={() => setViewOpen(false)} className={ghostBtn}>Close</button>
+          {viewing && <button onClick={() => { openEdit(viewing); setViewOpen(false); }} className={primaryBtn}>Edit Plan</button>}
         </>}>
         {viewing && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div><h3 className="text-xl font-bold">{viewing.name}</h3><p className="text-sm text-black/50">{viewing.duration}</p></div>
-              <p className="text-3xl font-bold">{viewing.price == null ? "Custom" : `$${viewing.price}`}</p>
+              <div><h3 className="text-xl font-bold">{viewing.name}</h3><p className="text-sm text-muted-foreground">{viewing.duration}</p></div>
+              <p className="text-3xl font-bold tabular-nums">{viewing.price == null ? "Custom" : `$${viewing.price}`}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Active Members</p><p className="text-lg font-bold mt-0.5">{viewing.activeMembers}</p></div>
-              <div className="border border-black/10 rounded-lg p-3"><p className="text-xs text-black/40">Status</p><span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-xs font-medium ${viewing.status === "Active" ? "bg-emerald-600 text-white" : "bg-black/5 text-black/50"}`}>{viewing.status}</span></div>
+              <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Active Members</p><p className="mt-0.5 text-lg font-bold tabular-nums">{viewing.activeMembers}</p></div>
+              <div className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">Status</p><div className="mt-1"><StatusBadge status={viewing.status} /></div></div>
             </div>
           </div>
         )}

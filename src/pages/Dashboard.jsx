@@ -12,7 +12,8 @@ import { base44 } from "@/api/base44Client";
 import { downloadDashboardCsv } from "@/lib/exportDashboardCsv";
 import { buildMemberMetrics, buildRecentPayments, buildRevenueMetrics, buildRevenueSeries } from "@/lib/gymMetrics";
 import { useGym } from "@/lib/gymStore";
-import { useGymAnalytics, useMembers, useMembersError, useMembersLoaded } from "@/lib/memberStore";
+import PullToRefresh from "@/components/PullToRefresh";
+import { loadMembers, useGymAnalytics, useMembers, useMembersError, useMembersLoaded } from "@/lib/memberStore";
 
 export default function Dashboard() {
   const [range, setRange] = useState("30d");
@@ -46,7 +47,7 @@ export default function Dashboard() {
     }
   };
 
-  return <Layout dark><div className="space-y-4 text-foreground sm:space-y-6">
+  return <Layout dark><PullToRefresh onRefresh={() => loadMembers(true)}><div className="space-y-4 text-foreground sm:space-y-6">
     <div className="flex items-start justify-between gap-3">
       <div>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Dashboard</h1>
@@ -74,5 +75,5 @@ export default function Dashboard() {
       <RecentPaymentsTable payments={recentPayments} />
       <RecentActivityList activities={source.recentActivities} />
     </div>
-  </div></Layout>;
+  </div></PullToRefresh></Layout>;
 }

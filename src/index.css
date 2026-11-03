@@ -81,13 +81,38 @@
 
 
 
-/* The .dark token block above is NOT tied to the OS colour scheme and must
-   never be applied globally: most pages (Payments, Reports, Settings, …)
-   still render hardcoded bg-white/text-black surfaces, so flipping the body
-   tokens would produce invisible white-on-white text. It is used only where
-   it is applied explicitly — the Dashboard and Members surfaces opt in
-   through the Layout `dark` prop, which puts the `.dark` class on that
-   page's wrapper so its token-based classes resolve to the dark palette. */
+/* Theme model
+   -----------
+   The `.dark` class is toggled on <html> by useSystemTheme() and follows the
+   device's prefers-color-scheme, so every token-based surface (page
+   background, cards, popovers, borders, text) adapts without per-page wiring.
+
+   A few screens have not been moved onto tokens yet — the member portal. They
+   opt out with the `.light` class on their own wrapper, which re-declares the
+   light palette for that subtree only, so they stay legible under a dark
+   device setting until they are converted. */
+.light {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.9%;
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96.1%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --accent: 0 0% 96.1%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 0 0% 3.9%;
+  color-scheme: light;
+}
 
 @layer base {
   * {

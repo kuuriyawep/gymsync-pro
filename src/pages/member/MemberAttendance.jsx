@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Flame, Check, X, Calendar } from "lucide-react";
 import MemberLayout from "@/components/MemberLayout";
 import MemberDataState from "@/components/member/MemberDataState";
-import { checkInMember, useMemberPortal } from "@/lib/memberPortalStore";
+import PullToRefresh from "@/components/PullToRefresh";
+import { checkInMember, loadMemberPortal, useMemberPortal } from "@/lib/memberPortalStore";
 import { attendanceSummary } from "@/lib/memberPortalUtils";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -64,6 +65,7 @@ export default function MemberAttendance() {
 
   return (
     <MemberLayout title="Attendance" back="/member">
+      <PullToRefresh onRefresh={() => loadMemberPortal(true)} label="Refreshing attendance…">
       <div className="space-y-5">
         <div className="bg-black text-white rounded-2xl p-5 text-center">
           <Flame className="w-8 h-8 mx-auto" />
@@ -161,6 +163,7 @@ export default function MemberAttendance() {
           <p className="text-xs text-black/50">Check-ins this month</p>
         </div>
       </div>
+      </PullToRefresh>
     </MemberLayout>
   );
 }

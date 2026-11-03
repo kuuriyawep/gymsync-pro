@@ -39,44 +39,44 @@ export default function Support() {
 
   return (
     <Layout>
-      <div className="space-y-8">
+      <div className="space-y-6 text-foreground sm:space-y-8">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center shrink-0">
-            <LifeBuoy className="w-6 h-6 text-white" />
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary">
+            <LifeBuoy className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Support Center</h1>
-            <p className="text-sm text-black/50 mt-1">Find documentation, guides, and get technical assistance.</p>
+            <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Support Center</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Find documentation, guides, and get technical assistance.</p>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {resources.map((r, i) => (
             <motion.div
               key={r.title}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * i, duration: 0.25 }}
-              className="bg-white border border-black/10 rounded-2xl p-5"
+              className="rounded-2xl border border-border bg-card p-5"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-black/5 flex items-center justify-center">
-                  <r.icon className="w-5 h-5" />
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-muted-foreground">
+                  <r.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">{r.title}</h3>
-                  <p className="text-xs text-black/50">{r.description}</p>
+                  <h3 className="font-heading font-semibold">{r.title}</h3>
+                  <p className="text-xs text-muted-foreground">{r.description}</p>
                 </div>
               </div>
-              <ul className="space-y-1.5">
+              <ul className="space-y-1">
                 {r.links.map((l) => (
                   <li key={l}>
                     <button
                       onClick={() => openResource(l)}
-                      className="flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm text-black/70 hover:bg-black/5"
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                     >
                       <span>{l}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-black/30" />
+                      <ArrowRight className="h-3.5 w-3.5" />
                     </button>
                   </li>
                 ))}

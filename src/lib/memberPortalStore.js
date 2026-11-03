@@ -65,11 +65,37 @@ export async function joinGym(phone, fullName) {
   return { ...data, member };
 }
 export async function checkInMember() {
-  const result = await invoke("memberCheckIn");
-  // Reload from the server so the calendar, weekly markers and streak are all
-  // derived from the persisted attendance row rather than optimistic UI data.
-  await loadMemberPortal(true);
-  return result;
+  const previous = state.data;
+  // Mark today as attended immediately so the streak, week markers and calendar
+  // respond to the tap without waiting for the round trip. The authoritative
+  // payload replaces this as soon as the server confirms.
+  if (previous) {
+    const now = new Date();
+    state = {
+      ...state,
+      data: {
+        ...previous,
+        attendance: [
+          ...(previous.attendance || []),
+          { id: `optimistic-${now.getTime()}`, checkedInAt: now.toISOString(), pending: true },
+        ],
+      },
+    };
+    emit();
+  }
+  try {
+    const result = await invoke("memberCheckIn");
+    // Reload so the calendar, weekly markers and streak are all derived from the
+    // persisted attendance row rather than optimistic UI data.
+    await loadMemberPortal(true);
+    return result;
+  } catch (error) {
+    if (previous) {
+      state = { ...state, data: previous };
+      emit();
+    }
+    throw error;
+  }
 }
 export async function createMemberFeedback(feedback) {
   const title = String(feedback?.title || "").trim();
@@ -86,20 +112,6 @@ export async function createMemberFeedback(feedback) {
   const memberId = state.data?.profile?.id;
   if (!memberId) throw new Error("Your membership session is not ready. Please refresh and try again.");
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData?.user?.id) {
-    throw new Error("Your sign-in session has expired. Please sign in again.");
-  }
-
-  const { data: memberRow, error: memberError } = await supabase
-    .from("members")
-    .select("id,gym_id")
-    .eq("id", memberId)
-    .maybeSingle();
-
-  if (memberError) throw new Error(memberError.message || "Could not verify your membership.");
-  if (!memberRow?.gym_id) throw new Error("Your gym membership is not linked correctly.");
-
   const typeMap = {
     Feedback: "feedback",
     Complaint: "complaint",
@@ -108,32 +120,8 @@ export async function createMemberFeedback(feedback) {
     "Coach Request": "coach_request",
   };
 
-  // Insert without requesting the inserted row back. The member RLS policy
-  // allows the write, but a PostgREST INSERT ... RETURNING can be filtered by
-  // the SELECT policy and then .single() turns that successful write into a
-  // misleading 400/500-style error. The gymAccess service path already reads
-  // feedback with the service role, so the next portal refresh can load it.
-  const { error: insertError } = await supabase
-    .from("feedback_requests")
-    .insert({
-      gym_id: memberRow.gym_id,
-      member_id: memberId,
-      user_id: userData.user.id,
-      channel: "gym",
-      type: typeMap[type] || "feedback",
-      subject: title,
-      message: body,
-      status: "open",
-      priority: "normal",
-    });
-
-  if (insertError) {
-    throw new Error(insertError.message || "Your request could not be submitted.");
-  }
-
-  // Update the local portal immediately. Do not reload unrelated portal data
-  // after a successful insert; a secondary read failure must never show a
-  // false submission error.
+  // Show the request in the member's list straight away; it is removed again if
+  // the write is rejected so the list never drifts from the database.
   const createdFeedback = {
     id: `local-${Date.now()}`,
     type,
@@ -142,13 +130,60 @@ export async function createMemberFeedback(feedback) {
     status: "Pending",
     date: new Date().toISOString().slice(0, 10),
     response: null,
+    pending: true,
   };
-  if (state.data) {
-    state = { ...state, data: { ...state.data, feedback: [createdFeedback, ...(state.data.feedback || [])] } };
+  const previous = state.data;
+  if (previous) {
+    state = { ...state, data: { ...previous, feedback: [createdFeedback, ...(previous.feedback || [])] } };
     emit();
   }
 
-  return createdFeedback;
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData?.user?.id) {
+      throw new Error("Your sign-in session has expired. Please sign in again.");
+    }
+
+    const { data: memberRow, error: memberError } = await supabase
+      .from("members")
+      .select("id,gym_id")
+      .eq("id", memberId)
+      .maybeSingle();
+
+    if (memberError) throw new Error(memberError.message || "Could not verify your membership.");
+    if (!memberRow?.gym_id) throw new Error("Your gym membership is not linked correctly.");
+
+    // Insert without requesting the inserted row back. The member RLS policy
+    // allows the write, but a PostgREST INSERT ... RETURNING can be filtered by
+    // the SELECT policy and then .single() turns that successful write into a
+    // misleading 400/500-style error. The gymAccess service path already reads
+    // feedback with the service role, so the next portal refresh can load it.
+    const { error: insertError } = await supabase
+      .from("feedback_requests")
+      .insert({
+        gym_id: memberRow.gym_id,
+        member_id: memberId,
+        user_id: userData.user.id,
+        channel: "gym",
+        type: typeMap[type] || "feedback",
+        subject: title,
+        message: body,
+        status: "open",
+        priority: "normal",
+      });
+
+    if (insertError) {
+      throw new Error(insertError.message || "Your request could not be submitted.");
+    }
+
+    return createdFeedback;
+  } catch (error) {
+    if (previous) {
+      state = { ...state, data: previous };
+      emit();
+    }
+    throw error;
+  }
 }
 export function resetMemberPortalStore() {
   state = { data: null, loaded: false, loading: false, error: "" };

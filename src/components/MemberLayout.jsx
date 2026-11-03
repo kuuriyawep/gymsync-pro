@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Dumbbell, Home, Flame, CreditCard, MessageSquare, User, Bell, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemberPortal } from "@/lib/memberPortalStore";
+import { tabTarget, useTabHistory } from "@/lib/tabHistory";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
@@ -21,8 +22,12 @@ export default function MemberLayout({ children, title, back }) {
   const isActive = (path) => location.pathname === path || (path !== "/member" && location.pathname.startsWith(path));
   const unread = memberNotifications.filter((n) => !n.read).length;
 
+  useTabHistory(nav.map((item) => item.path));
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    // `light` keeps the member portal on the light palette while the owner app
+    // follows the device theme; its screens have not moved onto tokens yet.
+    <div className="light min-h-screen bg-background text-foreground flex flex-col">
       <header className="sticky top-0 z-30 bg-background/90 backdrop-blur border-b border-border h-14 flex items-center px-4 gap-3" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         {back ? (
           <button onClick={() => navigate(back)} className="p-2 -ml-2 rounded-lg hover:bg-accent"><ChevronLeft className="w-5 h-5" /></button>
@@ -69,7 +74,7 @@ export default function MemberLayout({ children, title, back }) {
           const active = isActive(item.path);
           return (
             <motion.div key={item.path} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 * i, duration: 0.25 }} className="flex-1">
-              <Link to={item.path} className={`flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+              <Link to={tabTarget(item.path, location.pathname)} className={`flex flex-col items-center justify-center gap-1 py-1.5 min-h-[44px] rounded-lg transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
                 <motion.div whileTap={{ scale: 0.85 }}><item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} /></motion.div>
                 <span className="text-sm font-medium">{item.label}</span>
               </Link>
