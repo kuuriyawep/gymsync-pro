@@ -27,7 +27,12 @@ export default function RoleRoute({ allowedRoles, fallback = <DefaultFallback />
   const { roles, isLoadingRole, roleError, reloadRole } = useAuth();
   const userRoles = roles || [];
 
-  if (isLoadingRole) return fallback;
+  // Only block the screen when there is nothing to show yet. Supabase re-emits
+  // its auth callback on every token refresh (returning to the app, unlocking
+  // the phone), which re-runs role resolution; blanking the whole UI behind a
+  // spinner each time made the app look like it was reloading and losing state.
+  // A user whose roles are already known keeps seeing the current page.
+  if (isLoadingRole && userRoles.length === 0) return fallback;
 
   if (roleError) {
     return (
