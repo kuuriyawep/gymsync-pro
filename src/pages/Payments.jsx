@@ -16,6 +16,7 @@ import { useGym } from "@/lib/gymStore";
 import { buildRevenueMetrics, money, parseDate, planRate } from "@/lib/gymMetrics";
 import { card, ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
 import { format, parseISO, isValid, isThisMonth } from "date-fns";
+import { gymToday } from "@/lib/gymTime";
 
 const methodOptions = ["Cash", "Card", "Mobile Money", "Bank Transfer"];
 const sortOptions = [
@@ -23,7 +24,7 @@ const sortOptions = [
   { key: "amount", label: "Amount: High to Low" },
   { key: "name", label: "Member A-Z" },
 ];
-const emptyForm = { memberId: "", name: "", plan: "Monthly", amount: "", method: "Cash", date: format(new Date(), "yyyy-MM-dd"), status: "Paid", notes: "" };
+const emptyForm = { memberId: "", name: "", plan: "Monthly", amount: "", method: "Cash", date: gymToday(), status: "Paid", notes: "" };
 
 const chip = (active) =>
   `flex-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors ${active ? "border-emerald-400/60 bg-emerald-500/10 text-emerald-400" : "border-border bg-card text-muted-foreground hover:text-foreground"}`;
@@ -107,9 +108,9 @@ export default function Payments() {
   const dueAmount = Number(selectedMember?.fee || selectedRate?.price || 0);
   const amountValue = Number(form.amount);
 
-  const openRecord = () => { setForm({ ...emptyForm, date: format(new Date(), "yyyy-MM-dd") }); setFormError(""); setRecordOpen(true); };
+  const openRecord = () => { setForm({ ...emptyForm, date: gymToday() }); setFormError(""); setRecordOpen(true); };
   const openRecordForMember = (member) => {
-    setForm({ ...emptyForm, memberId: member.id, name: member.name, plan: member.plan || "Monthly", amount: String(member.fee || ""), date: format(new Date(), "yyyy-MM-dd") });
+    setForm({ ...emptyForm, memberId: member.id, name: member.name, plan: member.plan || "Monthly", amount: String(member.fee || ""), date: gymToday() });
     setFormError("");
     setRecordOpen(true);
   };

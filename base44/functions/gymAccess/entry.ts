@@ -44,7 +44,7 @@ export default async function(req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
     const operation = String(body.operation || '');
-    const allowed = ['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage', 'memberCheckIn'];
+    const allowed = ['listStaff', 'inviteStaff', 'updateStaff', 'revokeStaff', 'join', 'memberData', 'createFeedback', 'listFeedback', 'updateFeedback', 'getGymProfile', 'updateGymProfile', 'updateNotificationSettings', 'listWorkspaceNotifications', 'markNotificationRead', 'markAllNotificationsRead', 'createOwnerGym', 'deleteAccount', 'resolveRole', 'sendMessage', 'memberCheckIn', 'updateMemberProfile', 'updateMembershipDefaults'];
     if (!allowed.includes(operation)) return Response.json({ error: 'Invalid operation' }, { status: 400 });
     const restUrl = secrets.get('SUPABASE_URL').replace(/\/$/, '');
     const serviceKey = secrets.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -90,13 +90,18 @@ export default async function(req: Request): Promise<Response> {
       });
       const expiryDate = String(membership?.end_date || '');
       const expiryDays = expiryDate ? Math.floor((new Date(`${expiryDate}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000) : null;
+      // Dates are authoritative on both sides. The owner list derives status the
+      // same way, so a renewed member can never read Active for the gym and
+      // Expired in the portal (or the reverse).
       const status = String(member.status || '').toLowerCase() === 'suspended'
         ? 'Suspended'
-        : String(membership?.status || '').toLowerCase() === 'expired' || (expiryDate && expiryDate < today)
-          ? 'Expired'
-          : expiryDays !== null && expiryDays >= 0 && expiryDays <= 7
-            ? 'Expiring Soon'
-            : (metadata.status || 'Active');
+        : !expiryDate
+          ? 'Active'
+          : expiryDate < today
+            ? 'Expired'
+            : expiryDays !== null && expiryDays <= 7
+              ? 'Expiring Soon'
+              : 'Active';
       const amountDue = Number(membership?.amount_due || plan?.price || 0);
       const amountPaid = Number(membership?.amount_paid || 0);
       const initials = String(member.full_name || '').split(' ').filter(Boolean).map((part: string) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -285,6 +290,20 @@ export default async function(req: Request): Promise<Response> {
         if (duplicate[0]) return Response.json({ success: true, alreadyCheckedIn: true, checkedInAt: duplicate[0].check_in_at });
         throw new Error('Unable to save attendance check-in');
       }
+    }
+
+    if (operation === 'updateMemberProfile') {
+      // A member may only change their own photo. The member row comes from the
+      // authenticated identity, never from client input, and the owner sees the
+      // same members.avatar_url in the gym's member list.
+      if (access.role !== 'member' || !access.member?.id) return deny('Only a linked member can update their profile');
+      const photoUrl = body.photoUrl === null || body.photoUrl === '' ? null : String(body.photoUrl || '').trim();
+      if (photoUrl && (!/^https:\/\//i.test(photoUrl) || photoUrl.length > 1000)) {
+        return Response.json({ error: 'Photo must be a valid image URL' }, { status: 400 });
+      }
+      await update('members', `id=eq.${encodeURIComponent(access.member.id)}`, { avatar_url: photoUrl });
+      access.member.avatar_url = photoUrl;
+      return Response.json({ success: true, photoUrl });
     }
 
     if (operation === 'createFeedback') {

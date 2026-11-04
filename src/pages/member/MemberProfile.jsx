@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Phone, Mail, Calendar, Dumbbell, LogOut, User } from "lucide-react";
 import MemberLayout from "@/components/MemberLayout";
 import MemberDataState from "@/components/member/MemberDataState";
 import PortalPill from "@/components/member/PortalPill";
-import { useMemberPortal } from "@/lib/memberPortalStore";
+import PhotoPicker from "@/components/PhotoPicker";
+import { updateMemberPhoto, useMemberPortal } from "@/lib/memberPortalStore";
 import { membershipProgress } from "@/lib/memberPortalUtils";
 import { useAuth } from "@/lib/AuthContext";
-import ProfileImage from "@/components/ProfileImage";
 
 const card = "rounded-2xl border border-border bg-card p-5";
 
@@ -23,6 +23,18 @@ const Row = ({ icon: Icon, label, value }) => (
 export default function MemberProfile() {
   const { data, loaded, error } = useMemberPortal();
   const { logout } = useAuth();
+  const [photoError, setPhotoError] = useState("");
+
+  // Members keep control of their own photo; the owner sees the same
+  // members.avatar_url in the gym's member list.
+  const savePhoto = async (url) => {
+    setPhotoError("");
+    try {
+      await updateMemberPhoto(url);
+    } catch (err) {
+      setPhotoError(err?.response?.data?.error || err?.message || "Could not save your photo.");
+    }
+  };
 
   if (!loaded) {
     return <MemberLayout title="Profile"><div className="h-80 bg-muted animate-pulse rounded-xl" /></MemberLayout>;
@@ -35,7 +47,17 @@ export default function MemberProfile() {
     <MemberLayout title="Profile" back="/member">
       <div className="space-y-5">
         <div className="text-center">
-          <ProfileImage src={data.profile.photoUrl} alt={data.profile.name} fallback={data.profile.avatar} className="w-24 h-24 mx-auto text-2xl" dark />
+          <div className="flex justify-center">
+            <PhotoPicker
+              value={data.profile.photoUrl}
+              onChange={savePhoto}
+              onRemove={() => savePhoto(null)}
+              size="w-20 h-20"
+              placeholder={data.profile.avatar}
+              hint="Change your profile photo."
+            />
+          </div>
+          {photoError && <p className="mt-2 text-xs font-medium text-red-500">{photoError}</p>}
           <h1 className="mt-3 text-xl font-heading font-bold">{data.profile.name}</h1>
           <p className="text-sm text-muted-foreground">{data.profile.memberId} · {data.profile.gym}</p>
         </div>

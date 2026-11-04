@@ -11,6 +11,7 @@ import MemberRow from "@/components/members/MemberRow";
 import { Check, ChevronDown, CreditCard, DollarSign, Loader2, Plus, RefreshCw, RotateCcw, Search, SlidersHorizontal, StickyNote, User, UserPlus, Users, X } from "lucide-react";
 import { useMembers, useGymAnalytics, addMember, updateMember, renewMember, deleteMember } from "@/lib/memberStore";
 import { buildMemberMetrics, buildPaymentIndex, lastActivityFor, normalizePhone, planRate } from "@/lib/gymMetrics";
+import { addDays, addMonths, gymToday } from "@/lib/gymTime";
 import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -110,19 +111,39 @@ export default function Members() {
   const openAdd = () => {
     setActionMode("edit");
     setEditingId(null);
-    const today = new Date().toISOString().slice(0, 10);
-    const expiry = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    // The gym's own day, not UTC — between 00:00 and 03:00 local time the UTC
+    // date is still yesterday, which backdated new memberships by a day.
+    const today = gymToday();
+    const expiry = addDays(today, 30);
     setForm({ ...emptyForm, plan: activePlans[0]?.name || emptyForm.plan, startDate: today, expiryDate: expiry });
     setErrors({});
     setModalOpen(true);
   };
+  // A renewal opens a NEW period: it starts the day after the current expiry
+  // when the member is still active, or today once they have lapsed, and runs
+  // for the plan's own duration. Carrying the old start/expiry dates into the
+  // form meant clicking "Renew" simply re-saved an expired period, and carrying
+  // the old amount paid recorded that payment a second time.
+  const renewalPeriod = (member) => {
+    const today = gymToday();
+    const expired = !member.expiryDate || member.expiryDate < today;
+    const start = expired ? today : addDays(member.expiryDate, 1);
+    const plan = activePlans.find((p) => p.name === member.plan);
+    const months = Number(String(plan?.duration || "").replace(/[^\d]/g, "")) || 1;
+    return { startDate: start, expiryDate: addMonths(start, months) };
+  };
+
   const openEdit = (m, mode = "edit") => {
+    const renewing = mode === "renew";
+    const period = renewing ? renewalPeriod(m) : { startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate };
     setActionMode(mode);
     setEditingId(m.id);
     setForm({
       name: m.name, phone: m.phone, email: m.email || "", gender: m.gender || "", plan: m.plan,
-      startDate: m.startDate || m.registeredDate, expiryDate: m.expiryDate,
-      amount: String(m.fee || ""), amountPaid: String(m.amountPaid || ""), balanceOverride: m.balanceOverride !== undefined && m.balanceOverride !== null ? String(m.balanceOverride) : "", paymentMethod: m.paymentMethod || "Cash", status: m.status,
+      startDate: period.startDate, expiryDate: period.expiryDate,
+      amount: String(m.fee || ""), amountPaid: renewing ? "" : String(m.amountPaid || ""),
+      balanceOverride: !renewing && m.balanceOverride !== undefined && m.balanceOverride !== null ? String(m.balanceOverride) : "",
+      paymentMethod: m.paymentMethod || "Cash", status: renewing ? "Active" : m.status,
       note: m.note || "", preferredTime: m.preferredTime || "Flexible", photoUrl: m.photoUrl || null,
     });
     setErrors({});

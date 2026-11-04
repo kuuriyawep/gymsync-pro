@@ -64,6 +64,14 @@ export async function joinGym(phone, fullName) {
   if (!member) throw new Error(state.error || "Membership linked but could not be loaded");
   return { ...data, member };
 }
+export async function updateMemberPhoto(photoUrl) {
+  const result = await invoke("updateMemberProfile", { photoUrl });
+  if (state.data) {
+    state = { ...state, data: { ...state.data, profile: { ...state.data.profile, photoUrl: result?.photoUrl ?? null } } };
+    emit();
+  }
+  return result;
+}
 export async function checkInMember() {
   const previous = state.data;
   // Mark today as attended immediately so the streak, week markers and calendar

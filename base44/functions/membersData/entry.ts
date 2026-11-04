@@ -46,16 +46,26 @@ export default async function(req: Request): Promise<Response> {
     // (UTC+3), so a UTC day boundary made memberships read as expired a few
     // hours early and pushed midnight payments onto the previous day.
     const localToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Mogadishu', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-    const lifecycleStatus = (membership: any, member: any, fallback = 'Active') => {
+    // A membership row's own status flag follows its dates, so an edit that
+    // extends the expiry can never leave a live period marked expired.
+    const membershipStatusForDates = (endDate: string) => {
+      const expiry = String(endDate || '');
+      return expiry && expiry < localToday() ? 'expired' : 'active';
+    };
+    // Status is derived from the period that covers today, never from the label
+    // a form was opened with. Renewing an expired member used to store that
+    // member's old "Expired" label onto the new period, so a freshly renewed,
+    // paid-through membership still read as Expired on the owner side while the
+    // member portal read Active — the two sides disagreed.
+    const lifecycleStatus = (membership: any, member: any, storedLabel = 'Active') => {
       if (String(member?.status || '').toLowerCase() === 'suspended') return 'Suspended';
-      const expiry = String(membership?.end_date || '');
+      if (!membership) return storedLabel || 'Active';
+      const expiry = String(membership.end_date || '');
       const today = localToday();
-      if (String(membership?.status || '').toLowerCase() === 'expired' || (expiry && expiry < today)) return 'Expired';
-      if (expiry) {
-        const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
-        if (days >= 0 && days <= 7) return 'Expiring Soon';
-      }
-      return fallback;
+      if (!expiry) return 'Active';
+      if (expiry < today) return 'Expired';
+      const days = Math.floor((new Date(`${expiry}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000);
+      return days <= 7 ? 'Expiring Soon' : 'Active';
     };
     // audit_logs.actor_id is a Supabase Auth UUID. Legacy Base44 identities are
     // not UUIDs, so only attach actor_id when the canonical Supabase identity
@@ -260,11 +270,11 @@ export default async function(req: Request): Promise<Response> {
       if (latestMembership) {
         // Update only the current/latest membership. Historical memberships must
         // remain immutable so past plan, dates and financial records stay intact.
-        await update('memberships', `id=eq.${encodeURIComponent(latestMembership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: input.status === 'Expired' ? 'expired' : 'active' });
+        await update('memberships', `id=eq.${encodeURIComponent(latestMembership.id)}&gym_id=eq.${gymFilter}`, { plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: existingPaid, status: membershipStatusForDates(input.expiryDate) });
         // Keep amount_paid consistent if the plan price changes, without altering the payment ledger.
         await recalculateMembershipPaid(latestMembership.id);
       } else {
-        await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: 0, status: input.status === 'Expired' ? 'expired' : 'active' });
+        await insert('memberships', { member_id: owned[0].id, gym_id: gym.id, plan_id: plan.id, start_date: input.startDate, end_date: input.expiryDate, amount_due: amountDue, amount_paid: 0, status: membershipStatusForDates(input.expiryDate) });
       }
     }
 
@@ -298,7 +308,7 @@ export default async function(req: Request): Promise<Response> {
       }
       let existingMetadata: any = {};
       try { existingMetadata = JSON.parse(owned[0].notes || '{}'); } catch { existingMetadata = {}; }
-      const metadata = JSON.stringify({ ...existingMetadata, note: input.note || '', preferredTime: input.preferredTime || existingMetadata.preferredTime || 'Flexible', status: input.status || 'Active', gender: input.gender || existingMetadata.gender || '' });
+      const metadata = JSON.stringify({ ...existingMetadata, note: input.note || '', preferredTime: input.preferredTime || existingMetadata.preferredTime || 'Flexible', status: input.status === 'Suspended' ? 'Suspended' : 'Active', gender: input.gender || existingMetadata.gender || '' });
       await update('members', `id=eq.${id}&gym_id=eq.${gymFilter}`, { full_name: input.name.trim(), phone: input.phone.trim(), email: input.email || null, avatar_url: input.photoUrl || null, notes: metadata, status: memberStatus(String(input.status || 'Active')) });
       // Renewal starts a new membership period. Never overwrite the previous
       // membership because its dates, plan and linked payments are historical
@@ -467,8 +477,16 @@ export default async function(req: Request): Promise<Response> {
       return true;
     });
     const titleCase = (value: string) => value.split(' ').map((part: string) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+    // The owner list and the member portal must read the same period. Both now
+    // take the row covering today first, and only fall back to the newest row
+    // when no period covers it (e.g. a lapse that has not been renewed yet).
+    const ownerToday = localToday();
+    const currentMembershipFor = (memberId: string) => {
+      const rows = memberships.filter((item: any) => item.member_id === memberId);
+      return rows.find((item: any) => String(item.start_date || '') <= ownerToday && (!item.end_date || String(item.end_date) >= ownerToday)) || rows[0] || null;
+    };
     const result = members.map((member: any, index: number) => {
-      const membership = memberships.find((item: any) => item.member_id === member.id);
+      const membership = currentMembershipFor(member.id);
       const plan = plans.find((item: any) => item.id === membership?.plan_id);
       const payment = payments.find((item: any) => item.member_id === member.id);
       let metadata: any = {};
@@ -501,8 +519,30 @@ export default async function(req: Request): Promise<Response> {
         return null;
       })
       .filter(Boolean);
-    if (access.role === 'owner' && lifecycleNotifications.length) {
-      await Promise.all(lifecycleNotifications.map((item: any) => notifyOwnerOnce(item.key, item.title, item.message).catch(() => undefined)));
+    if (access.role === 'owner' && lifecycleNotifications.length && gym.owner_id) {
+      // One read of the gym's recent alerts instead of an existence query per
+      // expiring member. Same dedupe, but it happens in memory — this used to
+      // add a round trip per life-cycle alert to every single page load.
+      try {
+        const existingAlerts = await select('notifications', `gym_id=eq.${gymFilter}&user_id=eq.${encodeURIComponent(gym.owner_id)}&select=type,title,message&limit=500`);
+        const seen = new Set(existingAlerts.map((row: any) => `${row.type}|${row.title}|${row.message}`));
+        const missing = lifecycleNotifications.filter((item: any) => {
+          if (!notificationEnabled(item.key)) return false;
+          const key = `${item.key}|${item.title}|${item.message.slice(0, 500)}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        await Promise.all(missing.map((item: any) => insert('notifications', {
+          gym_id: gym.id,
+          user_id: gym.owner_id,
+          type: item.key,
+          title: item.title,
+          message: item.message.slice(0, 500),
+        }).catch(() => undefined)));
+      } catch {
+        // Alerts are best-effort — never fail the member list over them.
+      }
     }
     const analytics = {
       trainers: trainers.map((trainer: any) => ({ id: trainer.id, status: trainer.status || '' })),

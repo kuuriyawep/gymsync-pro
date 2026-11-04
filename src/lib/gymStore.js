@@ -45,7 +45,10 @@ export async function loadGym() {
 
 export async function setGym(gym) {
   const response = await invokeWithAuth("gymAccess", { operation: "updateGymProfile", gym });
-  state = { ...emptyGym, ...response.data.gym, isLoading: false };
+  // updateGymProfile returns only the profile fields. Keep the plans and
+  // membership defaults already loaded, otherwise saving the gym details blanks
+  // the Membership section of Settings until the next full reload.
+  state = { ...state, ...response.data.gym, isLoading: false };
   loaded = true;
   emit();
   return state;

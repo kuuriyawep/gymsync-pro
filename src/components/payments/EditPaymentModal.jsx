@@ -4,6 +4,7 @@ import ActionSelect from "@/components/ui/action-select";
 import { Wallet } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
+import { gymToday } from "@/lib/gymTime";
 
 const methodOptions = ["Cash", "Card", "Mobile Money", "Bank Transfer"];
 
@@ -16,7 +17,7 @@ export default function EditPaymentModal({ open, onClose, payment, onSave, savin
       setForm({
         amount: String(payment.amount ?? ""),
         method: payment.method || "Cash",
-        date: payment.date || format(new Date(), "yyyy-MM-dd"),
+        date: payment.date || gymToday(),
         notes: payment.notes || ""
       });
       setError("");
