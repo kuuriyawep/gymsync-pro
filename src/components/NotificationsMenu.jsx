@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { Inbox, UserX, Clock, UserPlus, DollarSign, MessageSquare, X, RefreshCw } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Mailbox, UserX, Clock, UserPlus, DollarSign, MessageSquare, RefreshCw } from "lucide-react";
 import { formatDistanceStrict } from "date-fns";
 import { useAuth } from "@/lib/AuthContext";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
+import Sheet from "@/components/ui/Sheet";
+
+const RECENT_LIMIT = 6;
 
 const iconFor = {
   expiry: Clock,
@@ -37,10 +38,9 @@ const relativeTime = (value, clockOffset = 0) => {
 
 export default function NotificationsMenu() {
   const [open, setOpen] = useState(false);
-  const [allOpen, setAllOpen] = useState(false);
+  const [view, setView] = useState("recent");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [serverClockOffset, setServerClockOffset] = useState(0);
   const { roles } = useAuth();
   const canViewWorkspaceNotifications = roles.includes("owner") || roles.includes("staff");
 
@@ -58,11 +58,9 @@ export default function NotificationsMenu() {
       // turn a recent event into a future-relative timestamp.
       const serverNowMs = payload.serverNow ? new Date(payload.serverNow).getTime() : NaN;
       const offset = Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0;
-      setServerClockOffset(offset);
-      setItems(rows.map((item) => ({
-        ...item,
-        time: relativeTime(item.occurredAt, offset),
-      })))
+      // Newest first, whatever order the query returned.
+      const sorted = [...rows].sort((a, b) => new Date(b.occurredAt || 0) - new Date(a.occurredAt || 0));
+      setItems(sorted.map((item) => ({ ...item, time: relativeTime(item.occurredAt, offset) })));
     } catch {
       setItems([]);
     } finally {
@@ -95,14 +93,21 @@ export default function NotificationsMenu() {
     }
   };
 
+  const close = () => {
+    setOpen(false);
+    setView("recent");
+  };
+
+  const visible = view === "recent" ? items.slice(0, RECENT_LIMIT) : items;
+
   const Row = ({ notification }) => {
-    const Icon = iconFor[notification.type] || Inbox;
+    const Icon = iconFor[notification.type] || Mailbox;
     return (
       <button
         onClick={() => markOne(notification.id)}
-        className="group flex w-full items-start gap-3 px-4 py-3.5 text-left hover:bg-accent"
+        className="group flex w-full items-start gap-3 rounded-xl px-2 py-3 text-left transition-colors hover:bg-accent"
       >
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent">
+        <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent">
           <Icon className="h-5 w-5" strokeWidth={2} />
           {!notification.read && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-red-600 ring-2 ring-card" />}
         </span>
@@ -112,88 +117,62 @@ export default function NotificationsMenu() {
               <span className="block text-sm font-semibold leading-5">{notification.title}</span>
               <span className="mt-0.5 block text-sm leading-5 text-muted-foreground">{notification.description}</span>
             </span>
-            <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">{notification.time}</span>
+            <span className="shrink-0 pt-0.5 text-[11px] text-muted-foreground">{notification.time}</span>
           </span>
         </span>
       </button>
     );
   };
 
+  if (!canViewWorkspaceNotifications) return null;
+
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => { setOpen((value) => !value); if (!open) load(); }}
+        onClick={() => setOpen(true)}
         className={`relative rounded-xl p-2 transition-colors ${unread > 0 ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
       >
-        <Inbox className="h-5 w-5" />
-        {unread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white" />}
+        <Mailbox className="h-5 w-5" />
+        {unread > 0 && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-background" />}
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-            <motion.div
-              initial={{ y: -6, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -6, opacity: 0 }}
-              className="fixed left-2 right-2 top-[4.5rem] z-40 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-[0_20px_60px_rgba(0,0,0,0.18)] sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-[28rem]"
-            >
-              <div className="flex h-16 items-center justify-between border-b border-border px-5">
-                <div className="flex items-center gap-2">
-                  <Inbox className="h-5 w-5" />
-                  <h3 className="text-xl font-bold tracking-tight">Notifications</h3>
-                </div>
-                <button onClick={markAll} disabled={unread === 0} className="text-sm font-semibold text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-50">
-                  Mark all read
-                </button>
-              </div>
-              <div className="max-h-[22rem] overflow-y-auto py-1">
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-muted-foreground">
-                    <RefreshCw className="h-4 w-4 animate-spin" /> Loading...
-                  </div>
-                ) : items.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-sm text-muted-foreground">No notifications</p>
-                ) : (
-                  items.slice(0, 5).map((notification) => <Row key={notification.id} notification={notification} />)
-                )}
-              </div>
-              <button
-                onClick={() => { setAllOpen(true); setOpen(false); }}
-                className="w-full border-t border-border py-3.5 text-center text-sm font-medium hover:bg-accent"
-              >
-                View all notifications
-              </button>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {allOpen && createPortal(
-        <AnimatePresence>
-          <div className="fixed inset-0 z-[9999]">
-            <motion.button type="button" aria-label="Close all notifications" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 h-full w-full cursor-default bg-black/40" onClick={() => setAllOpen(false)} />
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "tween", duration: 0.25 }} role="dialog" aria-modal="true" aria-label="All notifications" className="absolute inset-y-0 right-0 z-10 flex w-full max-w-lg flex-col overflow-hidden border-l border-border bg-popover text-popover-foreground shadow-2xl">
-              <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-5">
-                <div className="flex items-center gap-2"><Inbox className="h-5 w-5" /><h3 className="font-semibold">All Notifications</h3></div>
-                <button onClick={() => setAllOpen(false)} className="rounded-lg p-1.5 hover:bg-accent" aria-label="Close notifications"><X className="h-5 w-5" /></button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-1">
-                {loading ? (
-                  <div className="flex items-center justify-center gap-2 px-5 py-10 text-sm text-muted-foreground"><RefreshCw className="h-4 w-4 animate-spin" /> Loading...</div>
-                ) : items.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-sm text-muted-foreground">No notifications</p>
-                ) : (
-                  items.map((notification) => <Row key={notification.id} notification={notification} />)
-                )}
-              </div>
-            </motion.div>
+      <Sheet
+        open={open}
+        onClose={close}
+        title={view === "recent" ? "Notifications" : "All notifications"}
+        subtitle={view === "recent" ? "Latest activity from your gym" : `${items.length} total`}
+        icon={Mailbox}
+        onBack={view === "all" ? () => setView("recent") : undefined}
+        headerRight={
+          <button
+            onClick={markAll}
+            disabled={unread === 0}
+            className="shrink-0 text-xs font-semibold text-muted-foreground hover:text-foreground disabled:cursor-default disabled:opacity-50"
+          >
+            Mark all read
+          </button>
+        }
+        footer={
+          view === "recent" && items.length > RECENT_LIMIT ? (
+            <button onClick={() => setView("all")} className="w-full rounded-xl py-2 text-sm font-semibold text-primary hover:bg-accent">
+              View all {items.length} notifications
+            </button>
+          ) : null
+        }
+      >
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
           </div>
-        </AnimatePresence>,
-        document.body
-      )}
-    </div>
+        ) : visible.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">No notifications yet</p>
+        ) : (
+          <div className="-mx-2 space-y-0.5">
+            {visible.map((notification) => <Row key={notification.id} notification={notification} />)}
+          </div>
+        )}
+      </Sheet>
+    </>
   );
 }

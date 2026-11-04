@@ -93,9 +93,11 @@ export async function checkInMember() {
   }
   try {
     const result = await invoke("memberCheckIn");
-    // Reload so the calendar, weekly markers and streak are all derived from the
-    // persisted attendance row rather than optimistic UI data.
-    await loadMemberPortal(true);
+    // The optimistic row already lights up the streak, week markers and
+    // calendar, so the success state is returned straight away and the
+    // authoritative reload happens in the background instead of holding the
+    // button on "Saving…" for a second round trip.
+    loadMemberPortal(true).catch(() => undefined);
     return result;
   } catch (error) {
     if (previous) {

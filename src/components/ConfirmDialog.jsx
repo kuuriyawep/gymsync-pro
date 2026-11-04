@@ -8,6 +8,7 @@ export default function ConfirmDialog({ open, onClose, onConfirm, title, message
     <Modal
       open={open}
       onClose={onClose}
+      blocking
       title={title}
       footer={
         <>

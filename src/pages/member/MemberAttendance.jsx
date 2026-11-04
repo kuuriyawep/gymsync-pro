@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Flame, Check, X, Calendar } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Check, X, Calendar } from "lucide-react";
+import StreakCard from "@/components/member/StreakCard";
 import MemberLayout from "@/components/MemberLayout";
 import MemberDataState from "@/components/member/MemberDataState";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -14,6 +15,25 @@ export default function MemberAttendance() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState("");
   const [checkInError, setCheckInError] = useState("");
+  const [celebrate, setCelebrate] = useState(false);
+
+  // Needed before the early returns so the celebration effect can watch it;
+  // the loading and error states below are unchanged.
+  const summary = data
+    ? attendanceSummary(data.attendance, data.attendanceStartDate)
+    : { current: 0, monthCount: 0, week: [], dates: new Set() };
+  const streakRef = useRef(summary.current);
+
+  useEffect(() => {
+    if (summary.current > streakRef.current) setCelebrate(true);
+    streakRef.current = summary.current;
+  }, [summary.current]);
+
+  useEffect(() => {
+    if (!celebrate) return undefined;
+    const timer = setTimeout(() => setCelebrate(false), 2400);
+    return () => clearTimeout(timer);
+  }, [celebrate]);
 
   if (!loaded) {
     return (
@@ -27,7 +47,6 @@ export default function MemberAttendance() {
     return <MemberDataState title="Attendance" error={error} />;
   }
 
-  const summary = attendanceSummary(data.attendance, data.attendanceStartDate);
   const now = new Date();
   const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const checkedInToday = summary.dates.has(todayKey);
@@ -55,10 +74,7 @@ export default function MemberAttendance() {
     <MemberLayout title="Attendance" back="/member">
       <PullToRefresh onRefresh={() => loadMemberPortal(true)} label="Refreshing attendance…">
         <div className="space-y-5">
-          <div className="rounded-2xl bg-primary p-5 text-center text-primary-foreground">
-            <Flame className="w-8 h-8 mx-auto" />
-            <p className="mt-2 text-3xl font-bold">{summary.current} day streak</p>
-          </div>
+          <StreakCard days={summary.current} celebrate={celebrate} />
 
           <div className={`${card} space-y-3`}>
             <div>

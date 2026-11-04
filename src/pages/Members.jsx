@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
-import Modal from "@/components/ui/Modal";
+import Sheet from "@/components/ui/Sheet";
 import ActionSelect from "@/components/ui/action-select";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PhoneNumberField from "@/components/PhoneNumberField";
@@ -308,7 +308,7 @@ export default function Members() {
         </div>
       </div>
 
-      <Modal
+      <Sheet
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={actionMode === "renew" ? "Renew Membership" : editingId ? "Edit Member" : "Add New Member"}
@@ -409,7 +409,7 @@ export default function Members() {
               <textarea rows={3} className={textarea} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g. Prefers evening workouts. Payment usually made on the 5th." /></div>
           </section>
         </div>
-      </Modal>
+      </Sheet>
 
       <ConfirmDialog
         open={!!confirmDelete}

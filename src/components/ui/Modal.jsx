@@ -2,9 +2,12 @@ import React, { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-// Theme-aware sheet: surfaces come from the design tokens, so the same modal
+// Theme-aware modal: surfaces come from the design tokens, so the same modal
 // renders light on the light pages and dark inside a `dark` Layout scope.
-export default function Modal({ open, onClose, title, subtitle, icon: Icon, children, footer }) {
+// `blocking` is for destructive or security-critical decisions: it centres on
+// every viewport behind a heavier scrim so the page behind cannot distract,
+// instead of sliding up like a context-preserving sheet (use <Sheet> for those).
+export default function Modal({ open, onClose, title, subtitle, icon: Icon, children, footer, blocking = false }) {
   const bodyRef = useRef(null);
 
   useEffect(() => {
@@ -33,9 +36,15 @@ export default function Modal({ open, onClose, title, subtitle, icon: Icon, chil
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className="absolute inset-0 bg-black/60" onClick={onClose} />
-          <motion.div initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} transition={{ type: "tween", duration: 0.2 }} className="relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border bg-card text-foreground shadow-2xl sm:max-w-md sm:rounded-2xl">
+        <div className={blocking ? "fixed inset-0 z-[75] flex items-center justify-center p-4" : "fixed inset-0 z-50 flex items-end sm:items-center justify-center"}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} className={`absolute inset-0 ${blocking ? "bg-black/75 backdrop-blur-sm" : "bg-black/60"}`} onClick={blocking ? undefined : onClose} />
+          <motion.div
+            initial={blocking ? { scale: 0.96, opacity: 0 } : { y: 24, opacity: 0 }}
+            animate={blocking ? { scale: 1, opacity: 1 } : { y: 0, opacity: 1 }}
+            exit={blocking ? { scale: 0.96, opacity: 0 } : { y: 24, opacity: 0 }}
+            transition={{ type: "tween", duration: 0.2 }}
+            className={`relative flex max-h-[85dvh] w-full flex-col border border-border bg-card text-foreground shadow-2xl ${blocking ? "rounded-2xl sm:max-w-sm" : "rounded-t-2xl sm:max-w-md sm:rounded-2xl"}`}
+          >
             <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-5 py-4">
               <div className="flex min-w-0 items-center gap-3">
                 {Icon && (
