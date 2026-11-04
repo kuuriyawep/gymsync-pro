@@ -31,6 +31,7 @@ const Membership = lazy(() => import('@/pages/Membership'));
 const Trainers = lazy(() => import('@/pages/Trainers'));
 const Feedback = lazy(() => import('@/pages/Feedback'));
 const Support = lazy(() => import('@/pages/Support'));
+const PullRequests = lazy(() => import('@/pages/PullRequests'));
 const Onboarding = lazy(() => import('@/pages/Onboarding'));
 
 const PageLoader = () => (
@@ -94,6 +95,7 @@ export default function AuthenticatedApp() {
         {/* Owner-only routes */}
         <Route element={<RoleRoute allowedRoles={["owner"]} />}>
           <Route path="/settings" element={<Settings />} />
+          <Route path="/pull-requests" element={<PullRequests />} />
         </Route>
         {/* Member routes */}
         <Route element={<RoleRoute allowedRoles={["member"]} />}>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, Menu, X, LogOut, MessageSquare, LifeBuoy } from "lucide-react";
+import { Dumbbell, LayoutDashboard, Users, Settings, BarChart3, CreditCard, Ticket, UserCog, Search, Menu, X, LogOut, MessageSquare, LifeBuoy, GitPullRequest } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationsMenu from "@/components/NotificationsMenu";
 import AppFeedbackModal from "@/components/AppFeedbackModal";
@@ -24,6 +24,7 @@ const secondaryNav = [
   { label: "Membership", path: "/membership", icon: Ticket },
   { label: "Feedback", path: "/feedback", icon: MessageSquare },
   { label: "Support", path: "/support", icon: LifeBuoy },
+  { label: "Pull Requests", path: "/pull-requests", icon: GitPullRequest, ownerOnly: true },
 ];
 // Mobile bar: the five destinations shown in the owner screenshots.
 const bottomNav = [
@@ -53,6 +54,10 @@ export default function Layout({ children, dark = false }) {
   const accountInitials = accountName.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
 
   const isActive = (path) => location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+
+  // Repository tooling belongs to the account holder, not to staff.
+  const isOwner = roles.includes("owner");
+  const visibleSecondaryNav = secondaryNav.filter((item) => !item.ownerOnly || isOwner);
 
   // The bottom bar remembers each tab's last screen, so returning to a tab
   // restores where the user left off instead of resetting to its first page.
@@ -91,7 +96,7 @@ export default function Layout({ children, dark = false }) {
           ))}
           <div className="pt-4 mt-2 border-t border-border">
             <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manage</p>
-            {secondaryNav.map((item, i) => (
+            {visibleSecondaryNav.map((item, i) => (
               <motion.div key={item.path} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * (primaryNav.length + i), duration: 0.25 }} whileHover={{ x: 4 }}>{renderLink(item, isActive(item.path))}</motion.div>
             ))}
           </div>
@@ -183,7 +188,7 @@ export default function Layout({ children, dark = false }) {
                 <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Menu</p>
                 {primaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
                 <p className="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Manage</p>
-                {secondaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
+                {visibleSecondaryNav.map((item) => renderLink(item, isActive(item.path), () => setMobileMenuOpen(false)))}
                 <div className="pt-4 mt-2 border-t border-border space-y-1">
                   <button onClick={() => setAppFeedbackOpen(true)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent w-full"><MessageSquare className="w-4.5 h-4.5" /> Send feedback</button>
                   <button onClick={() => logout()} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent w-full"><LogOut className="w-4.5 h-4.5" /> Log out</button>
