@@ -4,6 +4,7 @@ import { formatDistanceStrict } from "date-fns";
 import { useAuth } from "@/lib/AuthContext";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import Sheet from "@/components/ui/Sheet";
+import { normalizeNotifications, unreadCount } from "@/lib/notifications";
 
 const RECENT_LIMIT = 6;
 
@@ -41,15 +42,18 @@ export default function NotificationsMenu() {
   const [view, setView] = useState("recent");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const { roles } = useAuth();
   const canViewWorkspaceNotifications = roles.includes("owner") || roles.includes("staff");
 
-  const load = async () => {
+  // quiet = a refresh of what is already on screen (opening the mailbox must not
+  // replace the list with a spinner).
+  const load = async (quiet = false) => {
     if (!canViewWorkspaceNotifications) {
       setItems([]);
       return;
     }
-    setLoading(true);
+    if (!quiet) setLoading(true);
     try {
       const response = await invokeWithAuth("gymAccess", { operation: "listWorkspaceNotifications" });
       const payload = response?.data || {};
@@ -58,13 +62,17 @@ export default function NotificationsMenu() {
       // turn a recent event into a future-relative timestamp.
       const serverNowMs = payload.serverNow ? new Date(payload.serverNow).getTime() : NaN;
       const offset = Number.isFinite(serverNowMs) ? serverNowMs - Date.now() : 0;
-      // Newest first, whatever order the query returned.
-      const sorted = [...rows].sort((a, b) => new Date(b.occurredAt || 0) - new Date(a.occurredAt || 0));
-      setItems(sorted.map((item) => ({ ...item, time: relativeTime(item.occurredAt, offset) })));
-    } catch {
-      setItems([]);
+      // Duplicates (the same event returned twice) and ordering are handled in
+      // one place so the badge and the list can never disagree.
+      const normalized = normalizeNotifications(rows.map((item) => ({ ...item, occurredAt: item.occurredAt })));
+      setItems(normalized.map((item) => ({ ...item, time: relativeTime(item.occurredAt, offset) })));
+      setLoadError("");
+    } catch (error) {
+      // A failed request is not an empty inbox: say so and offer a retry.
+      setLoadError(error?.response?.data?.error || error?.message || "Notifications could not be loaded.");
+      if (!quiet) setItems([]);
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   };
 
@@ -72,7 +80,11 @@ export default function NotificationsMenu() {
     if (canViewWorkspaceNotifications) load();
   }, [canViewWorkspaceNotifications]);
 
-  const unread = items.filter((item) => !item.read).length;
+  useEffect(() => {
+    if (open && !loading) load(true);
+  }, [open]);
+
+  const unread = unreadCount(items);
 
   const markOne = async (id) => {
     setItems((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
@@ -164,6 +176,13 @@ export default function NotificationsMenu() {
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
             <RefreshCw className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : loadError && items.length === 0 ? (
+          <div className="py-12 text-center">
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+            <button onClick={() => load()} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-accent">
+              Try again
+            </button>
           </div>
         ) : visible.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">No notifications yet</p>

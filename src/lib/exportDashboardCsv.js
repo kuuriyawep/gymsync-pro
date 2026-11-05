@@ -1,3 +1,5 @@
+import { gymToday } from "@/lib/gymTime";
+
 // Client-side CSV export for the Dashboard.
 // Uses ONLY the already-authorized member data loaded for the current gym.
 // No gym_id is accepted — tenant isolation comes from the existing backend.
@@ -51,7 +53,7 @@ export function buildDashboardCsv(members = []) {
 
 export function downloadDashboardCsv(members = []) {
   const csv = buildDashboardCsv(members);
-  const date = new Date().toISOString().slice(0, 10);
+  const date = gymToday();
   const filename = `gymsync-dashboard-export-${date}.csv`;
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

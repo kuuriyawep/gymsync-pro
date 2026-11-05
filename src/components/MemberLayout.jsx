@@ -4,6 +4,7 @@ import { Dumbbell, Home, Flame, CreditCard, MessageSquare, User, Bell, ChevronLe
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemberPortal } from "@/lib/memberPortalStore";
 import { tabTarget, useTabHistory } from "@/lib/tabHistory";
+import { normalizeNotifications, notificationTimestamp, reminderStage, unreadCount } from "@/lib/notifications";
 
 const nav = [
   { label: "Home", path: "/member", icon: Home },
@@ -18,9 +19,11 @@ export default function MemberLayout({ children, title, back }) {
   const navigate = useNavigate();
   const [bellOpen, setBellOpen] = useState(false);
   const { data } = useMemberPortal();
-  const memberNotifications = data?.notifications || [];
+  // Duplicated rows (the same reminder re-created by the backend) collapse to one
+  // entry, so the badge and the list always agree.
+  const memberNotifications = normalizeNotifications(data?.notifications || []);
   const isActive = (path) => location.pathname === path || (path !== "/member" && location.pathname.startsWith(path));
-  const unread = memberNotifications.filter((n) => !n.read).length;
+  const unread = unreadCount(memberNotifications);
 
   useTabHistory(nav.map((item) => item.path));
 
@@ -53,8 +56,15 @@ export default function MemberLayout({ children, title, back }) {
                     {memberNotifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted-foreground">No notifications</p>}
                     {memberNotifications.map((n) => (
                       <div key={n.id} className={`flex gap-3 px-4 py-3 border-b border-border last:border-0 ${n.read ? "" : "bg-muted/50"}`}>
-                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                        <div className="flex-1 min-w-0"><p className="text-sm font-medium leading-tight">{n.title}</p><p className="text-xs text-muted-foreground mt-0.5 leading-tight">{n.description}</p><p className="text-xs text-muted-foreground mt-1">{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}</p></div>
+                        {/* The dot marks unread only — a read notification must not look new. */}
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? "bg-transparent" : "bg-primary"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-tight">{n.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-tight">{n.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {[reminderStage(n.title), notificationTimestamp(n.createdAt)].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>

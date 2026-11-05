@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { gymToday } from "@/lib/gymTime";
 
 const listeners = new Set();
 let state = { data: null, loaded: false, loading: false, error: "" };
@@ -138,7 +139,7 @@ export async function createMemberFeedback(feedback) {
     title,
     body,
     status: "Pending",
-    date: new Date().toISOString().slice(0, 10),
+    date: gymToday(),
     response: null,
     pending: true,
   };

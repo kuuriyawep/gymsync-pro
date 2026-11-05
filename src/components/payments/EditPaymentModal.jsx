@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Modal from "@/components/ui/Modal";
 import ActionSelect from "@/components/ui/action-select";
 import { Wallet } from "lucide-react";
-import { format, parseISO, isValid } from "date-fns";
+import { parseISO, isValid } from "date-fns";
 import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
 import { gymToday } from "@/lib/gymTime";
 

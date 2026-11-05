@@ -30,7 +30,12 @@ export default function MemberFeedback() {
   const requests = filter === "All" ? data.feedback : data.feedback.filter((item) => item.status === filter);
 
   const submit = async () => {
-    if (!form.title.trim() || !form.body.trim()) return;
+    // Guards a second tap/Enter before React re-renders the disabled button.
+    if (saving) return;
+    if (!form.title.trim() || !form.body.trim()) {
+      toast({ title: "Add a title and details", description: "Both are needed before your gym can review the request." });
+      return;
+    }
     setSaving(true);
     try {
       await createMemberFeedback(form);
@@ -72,7 +77,12 @@ export default function MemberFeedback() {
               <div key={item.id} className="rounded-xl border border-border bg-card p-4">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">{item.type}</span>
-                  <PortalPill status={item.status} className="!px-2 !py-0.5 !text-[10px]" />
+                  {/* A row written optimistically is not a confirmed status yet. */}
+                  {item.pending ? (
+                    <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Sending…</span>
+                  ) : (
+                    <PortalPill status={item.status} className="!px-2 !py-0.5 !text-[10px]" />
+                  )}
                 </div>
                 <h3 className="mt-2 text-sm font-semibold">{item.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>

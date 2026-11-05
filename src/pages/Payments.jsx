@@ -13,9 +13,9 @@ import ActionSelect from "@/components/ui/action-select";
 import PullToRefresh from "@/components/PullToRefresh";
 import { loadMembers, useMembers, useGymAnalytics, useMembersLoaded, useMembersError, recordPayment, updatePayment } from "@/lib/memberStore";
 import { useGym } from "@/lib/gymStore";
-import { buildRevenueMetrics, money, parseDate, planRate } from "@/lib/gymMetrics";
+import { buildRevenueMetrics, money, planRate } from "@/lib/gymMetrics";
 import { card, ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
-import { format, parseISO, isValid, isThisMonth } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import { gymToday } from "@/lib/gymTime";
 
 const methodOptions = ["Cash", "Card", "Mobile Money", "Bank Transfer"];

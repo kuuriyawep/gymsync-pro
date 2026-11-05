@@ -5,7 +5,8 @@ import MemberLayout from "@/components/MemberLayout";
 import MemberDataState from "@/components/member/MemberDataState";
 import PullToRefresh from "@/components/PullToRefresh";
 import { checkInMember, loadMemberPortal, useMemberPortal } from "@/lib/memberPortalStore";
-import { attendanceSummary } from "@/lib/memberPortalUtils";
+import { attendanceMonth, attendanceSummary } from "@/lib/attendance";
+import { formatGymMonth, gymToday } from "@/lib/gymTime";
 
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const card = "rounded-2xl border border-border bg-card p-5";
@@ -47,8 +48,10 @@ export default function MemberAttendance() {
     return <MemberDataState title="Attendance" error={error} />;
   }
 
-  const now = new Date();
-  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  // "Today" is the gym's calendar day, matching the backend's one-check-in-per-day
+  // rule. Using the device clock let a member in another timezone see the button
+  // as available right after a successful check-in.
+  const todayKey = gymToday();
   const checkedInToday = summary.dates.has(todayKey);
 
   const handleCheckIn = async () => {
@@ -66,9 +69,8 @@ export default function MemberAttendance() {
     }
   };
 
-  const first = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
-  const count = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const cells = [...Array(first).fill(null), ...Array.from({ length: count }, (_, index) => index + 1)];
+  const { cells, meta } = attendanceMonth(todayKey);
+  const calendarMonthKey = meta.monthKey;
 
   return (
     <MemberLayout title="Attendance" back="/member">
@@ -97,7 +99,7 @@ export default function MemberAttendance() {
             <h3 className="mb-3 font-semibold">Last 7 days</h3>
             <div className="flex justify-between gap-1">
               {summary.week.map((item) => (
-                <div key={item.date} className="text-center">
+                <div key={item.key} className="text-center">
                   <p className="text-[10px] text-muted-foreground">{item.day}</p>
                   <div className={`mx-auto mt-2 flex h-9 w-9 items-center justify-center rounded-full ${item.attended ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                     {item.attended ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
@@ -110,7 +112,7 @@ export default function MemberAttendance() {
           <div className={card}>
             <h3 className="mb-4 flex gap-2 font-semibold">
               <Calendar className="w-4 h-4" />
-              {now.toLocaleDateString("en", { month: "long", year: "numeric" })}
+              {formatGymMonth(todayKey)}
             </h3>
             <div className="grid grid-cols-7 gap-1">
               {days.map((day) => (
@@ -118,8 +120,9 @@ export default function MemberAttendance() {
               ))}
               {cells.map((day, index) => {
                 if (!day) return <div key={`blank-${index}`} />;
-                const key = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const tracked = !data.attendanceStartDate || key >= data.attendanceStartDate.slice(0, 10);
+                const key = `${calendarMonthKey}-${String(day).padStart(2, "0")}`;
+                const started = data.attendanceStartDate ? String(data.attendanceStartDate).slice(0, 10) : "";
+                const tracked = !started || key >= started;
                 return (
                   <div
                     key={key}

@@ -74,10 +74,15 @@ export function useTrainers() {
     trainers,
     loading,
     error,
-    createTrainer: (trainer) => perform(async () => {
-      const { error: err } = await supabase.from("trainers").insert({ ...toDb(trainer), gym_id: profile?.gym_id });
-      if (err) throw err;
-    }),
+    createTrainer: async (trainer) => {
+      // Never insert a trainer without the authenticated gym context: a row with
+      // a null gym_id belongs to no tenant and can surface in another gym.
+      if (!profile?.gym_id) throw new Error("Your gym profile is still loading. Please try again in a moment.");
+      return perform(async () => {
+        const { error: err } = await supabase.from("trainers").insert({ ...toDb(trainer), gym_id: profile.gym_id });
+        if (err) throw err;
+      });
+    },
     updateTrainer: (id, trainer) => perform(async () => {
       const { error: err } = await supabase.from("trainers").update(toDb(trainer)).eq("id", id);
       if (err) throw err;
@@ -93,10 +98,13 @@ export function useTrainers() {
     }),
     // Not yet wired to any UI control (none exists in Trainers.jsx today) —
     // ready for when member-assignment UI is added, per the migration spec.
-    assignMember: (trainerId, memberId) => perform(async () => {
-      const { error: err } = await supabase.from("trainer_members").insert({ trainer_id: trainerId, member_id: memberId, gym_id: profile?.gym_id });
-      if (err && err.code !== "23505") throw err; // 23505 = already assigned, treat as a no-op success
-    }),
+    assignMember: async (trainerId, memberId) => {
+      if (!profile?.gym_id) throw new Error("Your gym profile is still loading. Please try again in a moment.");
+      return perform(async () => {
+        const { error: err } = await supabase.from("trainer_members").insert({ trainer_id: trainerId, member_id: memberId, gym_id: profile.gym_id });
+        if (err && err.code !== "23505") throw err; // 23505 = already assigned, treat as a no-op success
+      });
+    },
     removeMember: (trainerId, memberId) => perform(async () => {
       const { error: err } = await supabase.from("trainer_members").delete().eq("trainer_id", trainerId).eq("member_id", memberId);
       if (err) throw err;

@@ -27,6 +27,7 @@ export default function Feedback() {
   const [response, setResponse] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -38,7 +39,10 @@ export default function Feedback() {
       const payload = result?.data ?? result ?? {};
       const feedback = Array.isArray(payload.feedback) ? payload.feedback : [];
       setItems(feedback.sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))));
+      setLoadError("");
     } catch (error) {
+      // Keep a failed load visibly distinct from an empty inbox.
+      setLoadError(error?.response?.data?.error || error?.message || "Please try again.");
       toast({ title: "Could not load feedback", description: error?.response?.data?.error || error?.message || "Please try again." });
     } finally {
       setLoading(false);
@@ -87,6 +91,11 @@ export default function Feedback() {
 
         {loading ? (
           <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-accent" />)}</div>
+        ) : loadError && items.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card px-5 py-12 text-center">
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+            <button onClick={load} className="mt-4 rounded-xl border border-border px-4 py-2 text-sm font-semibold hover:bg-accent">Try again</button>
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyState icon={MessageSquare} title="No feedback here" description="Member feedback will appear here as it comes in." />
         ) : (

@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { invokeWithAuth } from "@/lib/invokeWithAuth";
 import { Sentry } from "@/lib/sentry";
+import { gymToday } from "@/lib/gymTime";
 
 const listeners = new Set();
 const emptyAnalytics = () => ({ payments: [], memberships: [], plans: [], trainers: [], recentActivities: [] });
@@ -129,7 +130,7 @@ export function addMember(member) {
         plan: member.plan,
         status: member.status || "Active",
         paymentStatus: paymentStateFor(fee, paid),
-        registeredDate: member.startDate || new Date().toISOString().slice(0, 10),
+        registeredDate: member.startDate || gymToday(),
         startDate: member.startDate,
         expiryDate: member.expiryDate,
         fee,

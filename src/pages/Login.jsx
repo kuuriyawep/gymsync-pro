@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,22 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const returnTo = safeReturnTo();
+
+  // A valid session should never be sent back to the sign-in form. `?switch=1`
+  // is the deliberate escape hatch for changing accounts.
+  useEffect(() => {
+    const switching = new URLSearchParams(window.location.search).get("switch") === "1";
+    if (switching) return undefined;
+    let active = true;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!active || !data?.session?.user) return;
+        window.location.replace(returnTo);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [returnTo]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

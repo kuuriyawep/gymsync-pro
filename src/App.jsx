@@ -5,6 +5,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { AuthProvider } from '@/lib/AuthContext';
 import ScrollToTop from './components/ScrollToTop';
 import AuthenticatedApp from '@/components/AuthenticatedApp';
+import SessionBoundary from '@/components/SessionBoundary';
 import useSystemTheme from '@/hooks/useSystemTheme';
 
 function App() {
@@ -15,8 +16,10 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <ScrollToTop />
-          <AuthenticatedApp />
+          <SessionBoundary>
+            <ScrollToTop />
+            <AuthenticatedApp />
+          </SessionBoundary>
         </Router>
         <Toaster />
       </QueryClientProvider>

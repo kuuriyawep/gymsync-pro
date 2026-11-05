@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import PhoneNumberField from "@/components/PhoneNumberField";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { validateMemberLink } from "@/lib/linkVerification";
 
 const inputCls = "w-full px-3 py-3 rounded-lg border border-border bg-card text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring";
 const primary = "w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90";
@@ -26,6 +27,8 @@ export default function JoinGym() {
   const [password, setPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (isLoadingAuth) return;
@@ -66,12 +69,19 @@ export default function JoinGym() {
         token: otpCode,
         type: "email",
       });
-      if (verifyError) throw verifyError;
+      // A wrong/expired code is the only reason to go back to the code screen.
+      // Sending the member there after a successful verification would ask them
+      // to reuse a code that has already been consumed.
+      if (verifyError) {
+        setError(verifyError.message || "Invalid verification code");
+        setStep("otp");
+        return;
+      }
 
       // OTP verification creates the authenticated session. Now attach the
       // password the member chose so normal email/password login works later.
       const { error: passwordError } = await supabase.auth.updateUser({ password });
-      if (passwordError) throw passwordError;
+      setNotice(passwordError ? "Your email is verified, but the password could not be saved. You can set one later with “Forgot password”." : "");
 
       setStep("form");
     } catch (err) {
@@ -97,10 +107,17 @@ export default function JoinGym() {
 
   const verify = async (event) => {
     event.preventDefault();
+    // A second tap before React re-renders must not send a duplicate link request.
+    if (step === "verifying") return;
     setError("");
+    const checked = validateMemberLink({ phone, fullName });
+    setFieldErrors(checked.errors);
+    if (!checked.ok) return;
     setStep("verifying");
     try {
-      await joinGym(phone.trim(), fullName.trim());
+      // The backend performs the authoritative name + phone match and the
+      // account link; these values are only what it verifies against.
+      await joinGym(checked.phone, checked.fullName);
       await reloadRole();
       setStep("success");
     } catch (err) {
@@ -189,18 +206,22 @@ export default function JoinGym() {
               <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <h1 className="text-2xl font-heading font-bold">Join your gym</h1>
                 <p className="mt-1 mb-6 text-sm text-muted-foreground">Enter your phone number and the full name your gym registered you with.</p>
+                {notice && <p className="mb-4 rounded-lg bg-muted p-3 text-sm">{notice}</p>}
                 {errorBox}
-                <form onSubmit={verify} className="space-y-4">
+                <form onSubmit={verify} className="space-y-4" noValidate>
                   <label className="block text-sm font-medium">Registered phone number
                     <div className="relative mt-1.5"><PhoneNumberField value={phone} onChange={setPhone} /></div>
+                    {fieldErrors.phone && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.phone}</p>}
                   </label>
                   <label className="block text-sm font-medium">Full name (as registered by your gym)
                     <div className="relative mt-1.5">
                       <User className="absolute left-3 top-3.5 w-4 h-4 text-muted-foreground" />
-                      <input className={`${inputCls} pl-10`} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                      <input className={`${inputCls} pl-10`} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
                     </div>
+                    {fieldErrors.fullName && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{fieldErrors.fullName}</p>}
                   </label>
                   <button className={primary}>Verify information <ArrowRight className="w-4 h-4" /></button>
+                  <p className="text-center text-xs text-muted-foreground">Your gym confirms these details against the membership it created for you.</p>
                 </form>
               </motion.div>
             )}
