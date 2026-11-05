@@ -1,6 +1,7 @@
 // Client-side PDF export for the Reports page using jsPDF.
 // Uses ONLY the already-authorized analytics data from buildLiveGymAnalytics.
 import { jsPDF } from "jspdf";
+import { gymToday } from "@/lib/gymTime";
 
 export function downloadReportsPdf(data, label) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -10,7 +11,8 @@ export function downloadReportsPdf(data, label) {
   const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  const generatedDate = new Date().toISOString().slice(0, 10);
+  // The gym's own day, so an early-morning export is not stamped yesterday (UTC).
+  const generatedDate = gymToday();
 
   // Title
   doc.setFont("helvetica", "bold");
@@ -130,6 +132,5 @@ export function downloadReportsPdf(data, label) {
     y += 14;
   });
 
-  var date = new Date().toISOString().slice(0, 10);
-  doc.save("gymsync-reports-" + date + ".pdf");
+  doc.save("gymsync-reports-" + gymToday() + ".pdf");
 }

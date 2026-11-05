@@ -28,7 +28,13 @@ export default function MemberRow({ member, lastActivity, rate, onOpen, onEdit, 
         <p className="whitespace-nowrap text-[10px] text-muted-foreground sm:text-[11px]">{money(member.fee)}{rate ? ` / ${rate}` : ""}</p>
       </div>
 
-      <StatusBadge status={memberDisplayStatus(member)} />
+      {member.pending ? (
+        // An optimistic record is not a confirmed server row yet, so it is
+        // labelled as saving instead of being given a lifecycle status.
+        <span className="shrink-0 rounded-full border border-border px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">Saving…</span>
+      ) : (
+        <StatusBadge status={memberDisplayStatus(member)} />
+      )}
 
       <div className="relative shrink-0">
         <button

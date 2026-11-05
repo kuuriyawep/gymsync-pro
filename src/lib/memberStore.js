@@ -10,6 +10,14 @@ let analytics = emptyAnalytics();
 let loaded = false;
 let loadError = null;
 let loadingPromise = null;
+// Two ordering guards for overlapping requests:
+// - latestRequest drops a response that a newer request has already superseded,
+//   so a slow earlier call can never overwrite fresher server state.
+// - version lets a failed mutation roll back only when nothing landed after its
+//   optimistic change; otherwise it refetches instead of clobbering the newer
+//   snapshot.
+let latestRequest = 0;
+let version = 0;
 
 function emit() { listeners.forEach((listener) => listener()); }
 function subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }
@@ -19,12 +27,18 @@ function getLoadedSnapshot() { return loaded; }
 function getLoadErrorSnapshot() { return loadError; }
 
 async function run(operation, payload = {}) {
+  const requestId = ++latestRequest;
   try {
     const response = await invokeWithAuth("membersData", { operation, ...payload });
+    if (requestId < latestRequest) {
+      // A newer request has already applied a fresher snapshot — keep it.
+      return response.data.members;
+    }
     members = response.data.members;
     analytics = response.data.analytics || emptyAnalytics();
     loadError = null;
     loaded = true;
+    version += 1;
     emit();
     return members;
   } catch (e) {
@@ -51,11 +65,20 @@ function optimisticApply(apply) {
   if (next) {
     members = next.members ?? previous.members;
     analytics = next.analytics ?? previous.analytics;
+    version += 1;
     emit();
   }
+  const appliedAt = version;
   return () => {
+    // If another response landed after this optimistic change, restoring the
+    // old snapshot would throw away newer server data. Refetch instead.
+    if (version !== appliedAt) {
+      loadMembers(true).catch(() => undefined);
+      return;
+    }
     members = previous.members;
     analytics = previous.analytics;
+    version += 1;
     emit();
   };
 }
@@ -206,6 +229,8 @@ export function resetMemberStore() {
   loaded = false;
   loadError = null;
   loadingPromise = null;
+  latestRequest += 1;
+  version += 1;
   emit();
 }
 

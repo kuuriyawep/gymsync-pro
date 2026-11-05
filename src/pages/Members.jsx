@@ -9,8 +9,8 @@ import PhotoPicker from "@/components/PhotoPicker";
 import MemberMetricCards from "@/components/members/MemberMetricCards";
 import MemberRow from "@/components/members/MemberRow";
 import { Check, ChevronDown, CreditCard, DollarSign, Loader2, Plus, RefreshCw, RotateCcw, Search, SlidersHorizontal, StickyNote, User, UserPlus, Users, X } from "lucide-react";
-import { useMembers, useGymAnalytics, addMember, updateMember, renewMember, deleteMember } from "@/lib/memberStore";
-import { buildMemberMetrics, buildPaymentIndex, lastActivityFor, normalizePhone, planRate } from "@/lib/gymMetrics";
+import { addMember, deleteMember, loadMembers, renewMember, updateMember, useGymAnalytics, useMembers, useMembersError, useMembersLoaded } from "@/lib/memberStore";
+import { buildMemberMetrics, buildPaymentIndex, lastActivityFor, money, normalizePhone, planRate } from "@/lib/gymMetrics";
 import { addDays, addMonths, gymToday } from "@/lib/gymTime";
 import { ghostBtn, input, label, primaryBtn, textarea } from "@/lib/uiClasses";
 import { useToast } from "@/components/ui/use-toast";
@@ -45,6 +45,8 @@ export default function Members() {
   const [searchParams, setSearchParams] = useSearchParams();
   const members = useMembers();
   const analytics = useGymAnalytics();
+  const loaded = useMembersLoaded();
+  const loadError = useMembersError();
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
@@ -69,6 +71,11 @@ export default function Members() {
     () => activePlans.find((p) => p.name === form.plan) || null,
     [activePlans, form.plan]
   );
+
+  // Editing a profile must never rewrite financial history, so the paid amount
+  // and balance are read-only unless this is a new member or a renewal payment.
+  const editingMember = useMemo(() => members.find((m) => String(m.id) === String(editingId || "")) || null, [members, editingId]);
+  const locksFinancials = Boolean(editingId) && actionMode !== "renew";
 
   const duplicatePhoneMember = useMemo(() => {
     const normalized = normalizePhone(form.phone);
@@ -163,20 +170,34 @@ export default function Members() {
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.phone.trim()) e.phone = "Phone is required";
     else if (normalizePhone(form.phone).length < 7) e.phone = "Enter a valid phone number";
+    else if (duplicatePhoneMember) e.phone = "This phone number is already registered in the system.";
     if (!form.gender) e.gender = "Gender is required";
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) e.email = "Enter a valid email address";
+    if (!form.plan) e.plan = "Choose a membership plan";
+    if (!form.startDate) e.startDate = "Registration date is required";
+    if (!form.expiryDate) e.expiryDate = "Expiry date is required";
+    else if (form.startDate && form.expiryDate < form.startDate) e.expiryDate = "Expiry must be on or after the start date";
+    if (form.amountPaid !== "" && (!Number.isFinite(Number(form.amountPaid)) || Number(form.amountPaid) < 0)) e.amountPaid = "Enter an amount of 0 or more";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
   const submit = async () => {
-    if (!validate()) return;
+    // The button is disabled while saving; this guard also covers a second
+    // click or Enter keypress that lands before React re-renders.
+    if (saving || !validate()) return;
     setSaving(true);
+    // Profile edits never carry financial fields: the paid amount and balance
+    // belong to the payment ledger, not to the personal details form.
+    const payload = { ...form };
+    if (editingId) delete payload.balanceOverride;
+    if (editingId && actionMode !== "renew") delete payload.amountPaid;
     try {
       if (editingId) {
         if (actionMode === "renew") {
-          await renewMember(editingId, form);
-          toast({ title: "Membership renewed", description: `${form.name}${Number(form.amountPaid) > 0 ? ` · $${Number(form.amountPaid).toLocaleString()} payment recorded` : ""}` });
+          await renewMember(editingId, payload);
+          toast({ title: "Membership renewed", description: `${form.name}${Number(form.amountPaid) > 0 ? ` · payment of $${Number(form.amountPaid).toLocaleString()} recorded` : ""}` });
         } else {
-          await updateMember(editingId, form);
+          await updateMember(editingId, payload);
           toast({ title: "Member updated", description: form.name });
         }
       } else {
@@ -252,6 +273,13 @@ export default function Members() {
           </button>
         </div>
 
+        {loadError && (
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+            <span className="min-w-0">{loadError}</span>
+            <button onClick={() => loadMembers(true)} className="shrink-0 font-semibold underline">Retry</button>
+          </div>
+        )}
+
         <MemberMetricCards metrics={metrics} />
 
         {/* Lifecycle tabs + sort */}
@@ -284,12 +312,22 @@ export default function Members() {
         {/* Member list */}
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           {filtered.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent"><Users className="w-6 h-6 text-muted-foreground" /></div>
-              <p className="font-semibold">No members found</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try changing your search or filters.</p>
-              <button onClick={clearFilters} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"><RotateCcw className="w-4 h-4" /> Clear filters</button>
-            </div>
+            !loaded ? (
+              <div className="px-6 py-14 text-center text-sm text-muted-foreground">Loading members…</div>
+            ) : loadError ? (
+              <div className="px-6 py-14 text-center">
+                <p className="font-semibold">Members unavailable</p>
+                <p className="mt-1 text-sm text-muted-foreground">Your member list could not be loaded.</p>
+                <button onClick={() => loadMembers(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"><RotateCcw className="w-4 h-4" /> Retry</button>
+              </div>
+            ) : (
+              <div className="px-6 py-14 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-accent"><Users className="w-6 h-6 text-muted-foreground" /></div>
+                <p className="font-semibold">No members found</p>
+                <p className="mt-1 text-sm text-muted-foreground">Try changing your search or filters.</p>
+                <button onClick={clearFilters} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"><RotateCcw className="w-4 h-4" /> Clear filters</button>
+              </div>
+            )
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((m) => (
@@ -298,7 +336,7 @@ export default function Members() {
                   member={m}
                   lastActivity={lastActivityFor(m, paymentIndex)}
                   rate={rateByPlan.get(m.plan)}
-                  onOpen={(member) => navigate(`/members/${member.id}`)}
+                  onOpen={(member) => { if (!member.pending) navigate(`/members/${member.id}`); }}
                   onEdit={(member) => openEdit(member)}
                   onDelete={(member) => setConfirmDelete(member.id)}
                 />
@@ -343,7 +381,8 @@ export default function Members() {
             </div>
             <div>
               <label className={label}>Email (optional)</label>
-              <input type="email" className={input} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" />
+              <input type="email" className={`${input} ${errors.email ? "border-red-500/60" : ""}`} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jane@olympicgym.com" />
+              {errors.email && <p className="mt-1 text-xs font-medium text-red-400">{errors.email}</p>}
             </div>
             <div>
               <label className={label}>Gender *</label>
@@ -366,9 +405,15 @@ export default function Members() {
 
           <section className="space-y-4 border-t border-border pt-5">
             <p className={sectionCls}><CreditCard className="w-3.5 h-3.5" /> Membership Information</p>
+            {locksFinancials && Number(editingMember?.amountPaid || 0) > 0 && (
+              <p className="rounded-xl border border-border bg-accent p-3 text-xs text-muted-foreground">
+                This membership already has payments recorded. Changing the plan or dates updates the current period only — past periods, their prices and their payments stay exactly as recorded.
+              </p>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div><label className={label}>Membership Plan *</label>
                 <ActionSelect
+                  className={errors.plan ? "border-red-500/60" : ""}
                   value={form.plan}
                   onChange={(plan) => setForm({ ...form, plan })}
                   placeholder="No plans available"
@@ -378,13 +423,16 @@ export default function Members() {
                     ...(!selectedPlan && form.plan ? [{ value: form.plan, label: form.plan }] : []),
                     ...activePlans.map((p) => ({ value: p.name, label: `${p.name} — $${p.price}` })),
                   ]}
-                /></div>
+                />
+                {errors.plan && <p className="mt-1 text-xs font-medium text-red-400">{errors.plan}</p>}</div>
               <div><label className={label}>Preferred gym time</label>
                 <ActionSelect value={form.preferredTime} onChange={(preferredTime) => setForm({ ...form, preferredTime })} ariaLabel="Preferred gym time" title="Preferred gym time" options={["Morning", "Afternoon", "Evening", "Flexible"]} /></div>
               <div><label className={label}>Registration Date *</label>
-                <input type="date" className={input} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
+                <input type="date" className={`${input} ${errors.startDate ? "border-red-500/60" : ""}`} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+                {errors.startDate && <p className="mt-1 text-xs font-medium text-red-400">{errors.startDate}</p>}</div>
               <div><label className={label}>Expiry Date *</label>
-                <input type="date" aria-label="Expiry Date" className={input} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
+                <input type="date" aria-label="Expiry Date" className={`${input} ${errors.expiryDate ? "border-red-500/60" : ""}`} value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
+                {errors.expiryDate && <p className="mt-1 text-xs font-medium text-red-400">{errors.expiryDate}</p>}</div>
             </div>
           </section>
 
@@ -392,15 +440,32 @@ export default function Members() {
             <p className={sectionCls}><DollarSign className="w-3.5 h-3.5" /> Payment</p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div><label className={label}>Amount Paid ($)</label>
-                <input type="number" className={input} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" /></div>
+                {locksFinancials ? (
+                  <div className={`${input} tabular-nums`}>{money(editingMember?.amountPaid || 0)}</div>
+                ) : (
+                  <div>
+                    <input type="number" min="0" step="0.01" className={`${input} ${errors.amountPaid ? "border-red-500/60" : ""}`} value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="0" />
+                    {errors.amountPaid && <p className="mt-1 text-xs font-medium text-red-400">{errors.amountPaid}</p>}
+                  </div>
+                )}</div>
               <div><label className={label}>Outstanding Balance ($)</label>
-                <input type="number" className={input} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} /></div>
+                {editingId ? (
+                  <div className={`${input} tabular-nums`}>{money(editingMember?.balance || 0)}</div>
+                ) : (
+                  <input type="number" min="0" step="0.01" className={input} value={form.balanceOverride} onChange={(e) => setForm({ ...form, balanceOverride: e.target.value })} placeholder={String(Math.max(0, (selectedPlan?.price || 0) - (Number(form.amountPaid) || 0)))} />
+                )}</div>
               <div><label className={label}>Payment Method</label>
                 <ActionSelect value={form.paymentMethod} onChange={(paymentMethod) => setForm({ ...form, paymentMethod })} ariaLabel="Payment method" title="Payment method" options={methodOptions} /></div>
               <div><label className={label}>Member Status</label>
                 <ActionSelect value={form.status} onChange={(status) => setForm({ ...form, status })} ariaLabel="Member status" title="Member status" options={statusOptions} /></div>
             </div>
-            <p className="text-xs text-muted-foreground">Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override.</p>
+            <p className="text-xs text-muted-foreground">
+              {locksFinancials
+                ? "Amount paid and outstanding balance come from recorded payments. Correct them on the Payments page so the ledger stays intact."
+                : editingId
+                  ? "This payment is added to the member's payment history; its allocation is shown on the Payments page."
+                  : "Outstanding balance auto-calculates from Plan Amount − Amount Paid. Enter a value only to override."}
+            </p>
           </section>
 
           <section className="space-y-4 border-t border-border pt-5">

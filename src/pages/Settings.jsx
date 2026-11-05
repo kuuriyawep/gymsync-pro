@@ -132,6 +132,7 @@ export default function Settings() {
   const handleInviteStaff = async () => {
     if (!invite.fullName.trim()) { toast({ title: "Invite failed", description: "Full name is required." }); return; }
     if (!invite.email.trim()) { toast({ title: "Invite failed", description: "Email is required." }); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(invite.email.trim())) { toast({ title: "Invite failed", description: "Enter a valid email address." }); return; }
     setInviteSaving(true);
     try { await inviteStaff(invite.fullName.trim(), invite.email.trim(), invite.role); setInviteOpen(false); setInvite({ fullName: "", email: "", role: "Front Desk" }); toast({ title: "Staff access created", description: `${invite.fullName} can now sign in with Google using ${invite.email.trim()} on any device.` }); }
     catch (error) { toast({ title: "Invite failed", description: error.message }); }
@@ -248,7 +249,7 @@ export default function Settings() {
                           <Field title="Email"><input className={input} value={gym.email} onInput={(e) => setGymLocal({ ...gym, email: e.target.value })} /></Field>
                           <Field title="Address"><input data-testid="gym-address" className={input} value={gym.address} onInput={(e) => setGymLocal({ ...gym, address: e.target.value })} /></Field>
                         </div>
-                        <div className="flex justify-end"><SaveButton label="Save profile" successLabel="Saved" onSave={async () => { const saved = await setGym(gym); setGymLocal(saved); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); }} /></div>
+                        <div className="flex justify-end"><SaveButton label="Save profile" successLabel="Saved" onSave={async () => { try { const saved = await setGym(gym); setGymLocal(saved); toast({ title: "Gym profile saved", description: "Your gym information has been updated." }); } catch (error) { toast({ title: "Could not save gym profile", description: error?.response?.data?.error || error.message || "Please try again." }); throw error; } }} /></div>
                       </Panel>
                       <Panel>
                         <h3 className="mb-3 text-sm font-semibold">Preview</h3>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { ArrowLeft, X } from "lucide-react";
 
@@ -54,9 +54,27 @@ export default function Sheet({
 }) {
   const desktop = useIsDesktop();
   const [snap, setSnap] = useState(SNAPS[1]);
+  const bodyRef = useRef(null);
 
   useEffect(() => {
     if (open) setSnap(SNAPS[1]);
+  }, [open]);
+
+  // Keyboard-safe: when a field takes focus on a phone, pull it to the middle of
+  // the sheet so the on-screen keyboard cannot hide the input the user is in.
+  useEffect(() => {
+    if (!open) return undefined;
+    const el = bodyRef.current;
+    if (!el) return undefined;
+    const handler = (event) => {
+      const target = event.target;
+      if (!target) return;
+      const fillable = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable;
+      if (!fillable) return;
+      setTimeout(() => target.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+    };
+    el.addEventListener("focusin", handler);
+    return () => el.removeEventListener("focusin", handler);
   }, [open]);
 
   const shell = (
@@ -99,7 +117,7 @@ export default function Sheet({
           <X className="h-5 w-5" />
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">{children}</div>
+      <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5">{children}</div>
       {footer && (
         <div
           className="flex shrink-0 justify-end gap-2 border-t border-border px-4 py-3 sm:px-5"

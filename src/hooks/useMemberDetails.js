@@ -7,15 +7,19 @@ export function useMemberDetails(memberId) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Drop the previous member's payload immediately. Without this, navigating
+    // from Member A to Member B kept A's payments, attendance and activity on
+    // screen under B's header until the new request resolved.
+    setDetails(null);
+    setError(null);
+
     if (!memberId) {
       setLoading(false);
-      setError(null);
-      setDetails(null);
       return;
     }
+
     let cancelled = false;
     setLoading(true);
-    setError(null);
     invokeWithAuth("membersData", { operation: "memberDetails", memberId })
       .then((response) => {
         if (cancelled) return;
@@ -25,8 +29,11 @@ export function useMemberDetails(memberId) {
       .catch((e) => {
         if (cancelled) return;
         setError(e?.response?.data?.error || e?.message || "Failed to load member details");
+        setDetails(null);
         setLoading(false);
       });
+    // Cancelling on id change means a slow response for the previous member can
+    // never overwrite the member the user is now looking at.
     return () => { cancelled = true; };
   }, [memberId]);
 

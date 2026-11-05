@@ -1,6 +1,7 @@
 // Client-side CSV export for the Reports page.
 // Uses ONLY the already-authorized analytics data from buildLiveGymAnalytics.
 // No gym_id is accepted — tenant isolation comes from the existing backend.
+import { gymToday } from "@/lib/gymTime";
 
 function escapeCsv(value) {
   if (value === null || value === undefined) return "";
@@ -16,7 +17,8 @@ function row(values) {
 }
 
 export function buildReportsCsv(data, label) {
-  const generatedDate = new Date().toISOString().slice(0, 10);
+  // The gym's own day, so an early-morning export is not stamped yesterday (UTC).
+  const generatedDate = gymToday();
   const lines = [];
 
   // Header / metadata
@@ -94,8 +96,7 @@ export function buildReportsCsv(data, label) {
 
 export function downloadReportsCsv(data, label) {
   const csv = buildReportsCsv(data, label);
-  const date = new Date().toISOString().slice(0, 10);
-  const filename = `gymsync-reports-${date}.csv`;
+  const filename = `gymsync-reports-${gymToday()}.csv`;
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

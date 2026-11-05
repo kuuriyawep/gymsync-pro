@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { AlertCircle, ArrowLeft, BellRing, CalendarDays, Clock, CreditCard, DollarSign, KeyRound, Mail, MessageSquare, Pencil, Phone, RefreshCw, User, UserCheck, Wallet } from "lucide-react";
-import { useGymAnalytics, useMembers } from "@/lib/memberStore";
+import { loadMembers, useGymAnalytics, useMembers, useMembersLoaded } from "@/lib/memberStore";
 import { useMemberDetails } from "@/hooks/useMemberDetails";
+import PageSkeleton from "@/components/PageSkeleton";
 import QuickMessageModal from "@/components/QuickMessageModal";
 import ProfileImage from "@/components/ProfileImage";
 import StatusBadge from "@/components/StatusBadge";
@@ -27,19 +28,46 @@ export default function MemberDetails() {
   const [quickMsg, setQuickMsg] = useState(false);
   const [tab, setTab] = useState("overview");
   const allMembers = useMembers();
+  const storeLoaded = useMembersLoaded();
   const analytics = useGymAnalytics();
   const member = allMembers.find((m) => String(m.id) === id);
   const { details, loading, error } = useMemberDetails(id);
 
-  if (!member) return (
-    <Layout dark>
-      <div className="space-y-3 text-foreground">
-        <h1 className="font-heading text-2xl font-bold">Member not found</h1>
-        <p className="text-sm text-muted-foreground">This member may have been removed or the link is incorrect.</p>
-        <button onClick={() => navigate("/members")} className={`${primaryBtn} mt-1`}>Back to Members</button>
-      </div>
-    </Layout>
-  );
+  // A deep link can land before the shared member list has loaded, and that list
+  // is only fetched once per session. Re-ask the server once for an id it does
+  // not know yet, so a stale list heals instead of producing a false
+  // "Member not found".
+  const refreshedFor = useRef(null);
+  useEffect(() => {
+    if (!id || member || !storeLoaded || refreshedFor.current === id) return;
+    refreshedFor.current = id;
+    loadMembers(true).catch(() => undefined);
+  }, [id, member, storeLoaded]);
+
+  // Still arriving: show loading rather than claiming the member does not exist.
+  if (!member && (loading || !storeLoaded)) {
+    return <Layout dark><PageSkeleton cards={3} rows={4} /></Layout>;
+  }
+
+  if (!member) {
+    const notFound = /not found/i.test(error || "");
+    return (
+      <Layout dark>
+        <div className="space-y-3 text-foreground">
+          <h1 className="font-heading text-2xl font-bold">{notFound ? "Member not found" : "Unable to load this member"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {notFound
+              ? "This member may have been removed or the link is incorrect."
+              : error || "This member's profile could not be loaded. Please try again."}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <button onClick={() => navigate("/members")} className={primaryBtn}>Back to Members</button>
+            {!notFound && <button onClick={() => loadMembers(true)} className={ghostBtn}>Retry</button>}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   const startDate = member.startDate || member.registeredDate;
   const expiry = member.expiryDate ? parseISO(member.expiryDate) : null;
@@ -55,7 +83,10 @@ export default function MemberDetails() {
   const checkIns = activities.filter((a) => a.type === "Check-in");
   const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
   const lastPayment = payments[0] || null;
-  const outstandingBalance = details?.balance ?? 0;
+  // The balance is derived from this member's membership by the backend; null
+  // means the caller may not read payments, so it is shown as unavailable
+  // rather than as a misleading $0.
+  const outstandingBalance = details?.balance ?? null;
   const planInfo = (analytics.plans || []).find((plan) => plan.name === member.plan) || null;
   const rate = planRate(planInfo);
   const renewSoon = daysRemaining !== null && daysRemaining <= 7;
@@ -86,7 +117,7 @@ export default function MemberDetails() {
     { icon: Wallet, label: "Total Paid", value: money(totalPaid) },
     { icon: DollarSign, label: "Last Payment", value: lastPayment ? money(lastPayment.amount) : "—" },
     { icon: CalendarDays, label: "Last Payment Date", value: lastPayment?.date ? format(parseISO(lastPayment.date), "MMM d, yyyy") : "—" },
-    { icon: AlertCircle, label: "Outstanding Balance", value: money(outstandingBalance), danger: outstandingBalance > 0 },
+    { icon: AlertCircle, label: "Outstanding Balance", value: outstandingBalance == null ? "—" : money(outstandingBalance), danger: Number(outstandingBalance) > 0 },
   ];
   const tabs = [
     { key: "overview", label: "Overview" },
@@ -193,15 +224,19 @@ export default function MemberDetails() {
 
         {tab === "payments" && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {paySummary.map((item) => (
-                <div key={item.label} className={`${card} p-4`}>
-                  <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.danger ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}><item.icon className="w-4 h-4" /></span>
-                  <p className={`mt-2 text-lg font-bold tabular-nums ${item.danger ? "text-red-400" : ""}`}>{item.value}</p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                </div>
-              ))}
-            </div>
+            {/* Totals are only shown once this member's own payments are in:
+                while loading or after a failed request they would read as $0. */}
+            {!loading && !error && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                {paySummary.map((item) => (
+                  <div key={item.label} className={`${card} p-4`}>
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.danger ? "bg-red-500/10 text-red-400" : "bg-emerald-500/10 text-emerald-400"}`}><item.icon className="w-4 h-4" /></span>
+                    <p className={`mt-2 text-lg font-bold tabular-nums ${item.danger ? "text-red-400" : ""}`}>{item.value}</p>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className={`${card} p-4 sm:p-5`}>
               <h2 className={`${sectionLabel} mb-2`}>Payment History</h2>
               {loading ? (
